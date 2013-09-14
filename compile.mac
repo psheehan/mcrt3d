@@ -1,0 +1,4 @@
+g++ -c -fopenmp -O3 -fPIC mcrt3d.cc -o mcrt3d.o
+g++ -g -fopenmp -shared -Wl,-dylib_install_name,libmcrt3d.so -o libmcrt3d.so mcrt3d.o
+
+rm mcrt3d.o
