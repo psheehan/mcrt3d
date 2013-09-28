@@ -173,7 +173,7 @@ void MCRT::thermal_mc_omp(int nphot, bool bw, int nthreads) {
 
 void MCRT::bw_iteration(int nphot, double ***pcount) {
 
-    bool verbose = false;
+    bool verbose = true;
 
     TCREATE(moo); TCLEAR(moo);
     for (int i=0; i<nphot; i++) {

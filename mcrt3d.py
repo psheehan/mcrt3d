@@ -1,6 +1,6 @@
 import ctypes
 import numpy
-import misc
+from pdspy import misc
 
 au = 1.496e13
 c_l = 2.99792458e10

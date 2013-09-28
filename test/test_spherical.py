@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from numpy import loadtxt, zeros, ones, arange
 from hyperion.model import Model
@@ -42,7 +42,7 @@ m.set_convergence(True, percentile=99., absolute=2., relative=1.02)
 
 m.write("test_spherical.rtin")
 
-#m.run("test_spherical.rtout", mpi=False)
+m.run("test_spherical.rtout", mpi=False)
 
 n = ModelOutput('test_spherical.rtout')
 
