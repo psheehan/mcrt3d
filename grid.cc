@@ -37,6 +37,7 @@ struct Grid {
     virtual bool in_grid(Photon *P);
     virtual bool in_grid_raytracing(Ray *R);
     void update_grid(int nphot, Vector<int, 3> l, double ***pcount);
+    void update_grid(int nphot, double ***pcount);
     double cell_lum(Vector<int, 3> l);
 };
 
@@ -195,6 +196,13 @@ void Grid::update_grid(int nphot, Vector<int, 3> l, double ***pcount) {
         if ((fabs(T_old-temp[l[0]][l[1]][l[2]])/T_old < 1.0e-2))
             not_converged = false;
     }
+}
+
+void Grid::update_grid(int nphot, double ***pcount) {
+    for (int i=0; i<nw1-1; i++)
+        for (int j=0; j<nw2-1; j++)
+            for (int k=0; k<nw3-1; k++)
+                update_grid(nphot,Vector<int, 3>(i,j,k),pcount);
 }
 
 /* Calculate the luminosity of the cell indicated by l. */

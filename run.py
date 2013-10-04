@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 #from Cartesian import *
 #from Cylindrical import *
-#from Spherical import *
-from YSO import *
+from Spherical import *
+#from YSO import *
 
 G = SetupGrid()
 #images = SetupImages()
@@ -16,10 +16,10 @@ G = SetupGrid()
 # Now give that all to C.
 
 M = MCRT(G)
-#C = Camera(G)
+C = Camera(G)
 
 t1 = time()
-M.thermal_mc(10,True)
+M.thermal_mc(1000000,True)
 t2 = time()
 print(t2-t1)
 
@@ -29,6 +29,7 @@ for i in range(images.size):
 
 for i in range(spectra.size):
     C.make_image(spectra[i])
+"""
 
 for i in range(9):
     plt.imshow(G.temp[:,:,i],origin="lower",interpolation="nearest", \
@@ -36,6 +37,7 @@ for i in range(9):
     plt.colorbar()
     plt.show()
 
+"""
 plt.imshow(images[0].intensity[:,:,0],origin="lower",interpolation="nearest")
 plt.show()
 

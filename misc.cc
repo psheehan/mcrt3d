@@ -200,4 +200,92 @@ double ***create3DArr(int nx, int ny, int nz) {
     return arr;
 };
 
+double ***create3DArrValue(int nx, int ny, int nz, int value) {
+    double ***arr = new double**[nx];
+    for (int i=0; i<nx; i++) {
+        arr[i] = new double*[ny];
+        for (int j=0; j<ny; j++) {
+            arr[i][j] = new double[nz];
+            for (int k=0; k<nz; k++)
+                arr[i][j][k] = value;
+        }
+    }
+
+    return arr;
+};
+
+void set3DArrValue(double ***arr, double value, int nx, int ny, int nz) {
+    for (int i=0; i<nx; i++)
+        for (int j=0; j<ny; j++)
+            for (int k=0; k<nz; k++)
+                arr[i][j][k] = value;
+}
+
+void equate3DArrs(double ***arr1, double ***arr2, int nx, int ny, int nz) {
+    for (int i=0; i<nx; i++)
+        for (int j=0; j<ny; j++)
+            for (int k=0; k<nz; k++)
+                arr1[i][j][k] = arr2[i][j][k];
+}
+
+double delta(double x1, double x2) {
+    double d1 = x1/x2;
+    double d2 = x2/x1;
+
+    double delt = d1;
+    if (d2 > d1) delt = d2;
+
+    return delt;
+}
+
+double quantile(double ***R, double p, int nx, int ny, int nz) {
+    double *Rline = new double[nx*ny*nz];
+
+    for (int i=0; i<nx; i++)
+        for (int j=0; j<ny; j++)
+            for (int k=0; k<nz; k++)
+                Rline[i*ny*nz+j*nz+k] = R[i][j][k];
+
+    bubbleSort(Rline, nx*ny*nz);
+
+    double quant = Rline[int(p*nx*ny*nz)];
+
+    delete Rline;
+
+    return quant;
+}
+
+bool converged(double ***newArr, double ***oldArr, double ***reallyoldArr,
+        int n1, int n2, int n3) {
+    double Qthresh = 2.0;
+    double Delthresh = 1.1;
+    double p = 0.99;
+
+    double ***R = create3DArr(n1, n2, n3);
+    double ***Rold = create3DArr(n1, n2, n3);
+
+    for (int i=0; i<n1; i++) {
+        for (int j=0; j<n2; j++) {
+            for (int k=0; k<n3; k++) {
+                R[i][j][k] = delta(oldArr[i][j][k],newArr[i][j][k]);
+                Rold[i][j][k] = delta(reallyoldArr[i][j][k],newArr[i][j][k]);
+            }
+        }
+    }
+
+    double Q = quantile(R,p,n1,n2,n3);
+    double Qold = quantile(Rold,p,n1,n2,n3);
+    printf("%f   %f\n", Q, Qold);
+
+    double Del = delta(Qold,Q);
+    printf("%f\n", Del);
+
+    bool conv = ((Q < Qthresh) && (Del < Delthresh));
+
+    delete R;
+    delete Rold;
+
+    return conv;
+}
+
 #endif

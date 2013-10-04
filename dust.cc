@@ -191,9 +191,11 @@ double *Dust::dBnu_arr(double T) {
 }
 
 double *Dust::int_Bnu_knu_nu_arr(double T) {
+    return new double(1);
 }
 
 double *Dust::int_dBnu_knu_nu_arr(double T) {
+    return new double(1);
 }
 
 /* Determine which frequency bin a given frequency is in. */
