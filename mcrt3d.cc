@@ -16,7 +16,7 @@ struct MCRT {
     void thermal_mc_lucy(int nphot);
     void lucy_iteration(int nphot, double ***pcount);
     void propagate_photon_bw(Photon *P, double ***pcount, int nphot);
-    void propagate_photon_lucy(Photon *P, double ***pcount);
+    void propagate_photon_lucy(Photon *P, double ***pcount, int nphot);
 };
 
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
@@ -95,7 +95,7 @@ void MCRT::lucy_iteration(int nphot, double ***pcount) {
 
         Photon *P = G->emit();
 
-        propagate_photon_lucy(P, pcount);
+        propagate_photon_lucy(P, pcount, nphot);
 
         P->clean();
         delete P;
@@ -115,12 +115,12 @@ void MCRT::propagate_photon_bw(Photon *P, double ***pcount, int nphot) {
         bool absorb = random_number() > P->current_albedo[G->dust[P->l[0]]
                 [P->l[1]][P->l[2]]];
 
-        G->propagate_photon(P, tau, pcount, false, verbose);
+        G->propagate_photon(P, tau, pcount, absorb, true, verbose, nphot);
 
         if (G->in_grid(P)) {
             if (absorb) {
-                pcount[P->l[0]][P->l[1]][P->l[2]]++;
-                G->update_grid(nphot,P->l,pcount);
+                //pcount[P->l[0]][P->l[1]][P->l[2]]++;
+                //G->update_grid(nphot,P->l,pcount);
                 G->absorb(P, false);
                 if (verbose) {
                     printf("Absorbing photon at %i  %i  %i\n", P->l[0], 
@@ -147,14 +147,14 @@ void MCRT::propagate_photon_bw(Photon *P, double ***pcount, int nphot) {
 
 /* The Lucy method for calculating temperature throughout the grid. */
 
-void MCRT::propagate_photon_lucy(Photon *P, double ***pcount) {
+void MCRT::propagate_photon_lucy(Photon *P, double ***pcount, int nphot) {
     while (G->in_grid(P)) {
         double tau = -log(1-random_number());
 
         bool absorb = random_number() > P->current_albedo[G->dust[P->l[0]]
                                 [P->l[1]][P->l[2]]];
 
-        G->propagate_photon(P, tau, pcount, absorb, false);
+        G->propagate_photon(P, tau, pcount, absorb, false, false, nphot);
 
         if (G->in_grid(P)) {
             if (absorb) {
