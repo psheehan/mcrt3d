@@ -8,6 +8,9 @@
 #include "photon.cc"
 
 struct Grid {
+    int n1;
+    int n2;
+    int n3;
     int nw1;
     int nw2;
     int nw3;
@@ -91,8 +94,6 @@ void Grid::propagate_photon(Photon *P, double tau, double ***pcount,
                     s1*P->n[2]/au, s2*P->n[2]/au);
         }
 
-        P->move(s);
-
         if (lucy) {
             pcount[P->l[0]][P->l[1]][P->l[2]] += s*
                 P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
@@ -101,6 +102,8 @@ void Grid::propagate_photon(Photon *P, double tau, double ***pcount,
 
         tau -= s*P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
                 dens[P->l[0]][P->l[1]][P->l[2]];
+
+        P->move(s);
 
         if (s1 < s2) P->l = photon_loc(P, verbose);
         i++;

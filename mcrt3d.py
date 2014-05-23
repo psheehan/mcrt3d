@@ -177,6 +177,10 @@ class Grid:
         self.w2 = w2
         self.w3 = w3
 
+        self.n1 = w1.size-1
+        self.n2 = w2.size-1
+        self.n3 = w3.size-1
+
         self.nw1 = w1.size
         self.nw2 = w2.size
         self.nw3 = w3.size
@@ -191,7 +195,8 @@ class Grid:
         self.dw2[self.nw2-1] = self.dw2[self.nw2-2]
         self.dw3[self.nw3-1] = self.dw3[self.nw3-2]
 
-        lib.set_walls(ctypes.c_void_p(self.obj), w1.size, w2.size, w3.size, \
+        lib.set_walls(ctypes.c_void_p(self.obj), w1.size-1, w2.size-1, \
+                w3.size-1, w1.size, w2.size, w3.size, \
                 w1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 w2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 w3.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \

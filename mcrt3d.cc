@@ -30,7 +30,7 @@ void MCRT::thermal_mc(int nphot, bool bw) {
 }
 
 void MCRT::thermal_mc_bw(int nphot) {
-    double ***pcount = create3DArrValue(G->nw1-1, G->nw2-1, G->nw3-1, 0);
+    double ***pcount = create3DArrValue(G->n1, G->n2, G->n3, 0);
     bool verbose = false;
 
     for (int i=0; i<nphot; i++) {
@@ -56,28 +56,28 @@ void MCRT::thermal_mc_bw(int nphot) {
 }
 
 void MCRT::thermal_mc_lucy(int nphot) {
-    double ***pcount = create3DArrValue(G->nw1-1, G->nw2-1, G->nw3-1, 0);
-    double ***told = create3DArr(G->nw1-1,G->nw2-1,G->nw3-1);
-    double ***treallyold = create3DArr(G->nw1-1,G->nw2-1,G->nw3-1);
+    double ***pcount = create3DArrValue(G->n1, G->n2, G->n3, 0);
+    double ***told = create3DArr(G->n1,G->n2,G->n3);
+    double ***treallyold = create3DArr(G->n1,G->n2,G->n3);
 
     int maxniter = 20;
 
-    equate3DArrs(told, G->temp, G->nw1-1, G->nw2-1, G->nw3-1);
+    equate3DArrs(told, G->temp, G->n1, G->n2, G->n3);
 
     int i = 1;
     while (i <= maxniter) {
         printf("Starting iteration # %i \n\n", i);
 
-        equate3DArrs(treallyold, told, G->nw1-1, G->nw2-1, G->nw3-1);
-        equate3DArrs(told, G->temp, G->nw1-1, G->nw2-1, G->nw3-1);
+        equate3DArrs(treallyold, told, G->n1, G->n2, G->n3);
+        equate3DArrs(told, G->temp, G->n1, G->n2, G->n3);
 
         lucy_iteration(nphot, pcount);
 
         G->update_grid(nphot, pcount);
-        set3DArrValue(pcount, 0.0, G->nw1-1, G->nw2-1, G->nw3-1);
+        set3DArrValue(pcount, 0.0, G->n1, G->n2, G->n3);
 
         if (i > 2)
-            if (converged(G->temp,told,treallyold,G->nw1-1,G->nw2-1,G->nw3-1))
+            if (converged(G->temp, told, treallyold, G->n1, G->n2, G->n3))
                 i = maxniter;
 
         i++;
@@ -188,9 +188,13 @@ extern "C" {
         return new SphericalGrid();
     }
 
-    void set_walls(Grid *G, int nw1, int nw2, int nw3, double *w1, double *w2, 
-            double *w3, double *dw1, double *dw2, double *dw3) {
+    void set_walls(Grid *G, int n1, int n2, int n3, int nw1, int nw2, int nw3, 
+            double *w1, double *w2, double *w3, double *dw1, double *dw2, 
+            double *dw3) {
 
+        G->n1 = n1;
+        G->n2 = n2;
+        G->n3 = n3;
         G->nw1 = nw1;
         G->nw2 = nw2;
         G->nw3 = nw3;
@@ -205,10 +209,10 @@ extern "C" {
     void set_physical_properties(Grid *G, double *_dens, double *_temp,
             double *_mass, int *_dust) {
 
-        double ***dens = pymangle(G->nw1-1, G->nw2-1, G->nw3-1, _dens);
-        double ***temp = pymangle(G->nw1-1, G->nw2-1, G->nw3-1, _temp);
-        double ***mass = pymangle(G->nw1-1, G->nw2-1, G->nw3-1, _mass);
-        int ***dust = pymangle(G->nw1-1, G->nw2-1, G->nw3-1, _dust);
+        double ***dens = pymangle(G->n1, G->n2, G->n3, _dens);
+        double ***temp = pymangle(G->n1, G->n2, G->n3, _temp);
+        double ***mass = pymangle(G->n1, G->n2, G->n3, _mass);
+        int ***dust = pymangle(G->n1, G->n2, G->n3, _dust);
 
         G->dens = dens;
         G->temp = temp;

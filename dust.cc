@@ -32,7 +32,7 @@ struct Dust {
     void isoscatt(Photon *P);
     void absorb(Photon *P, double T, bool bw, Dust* species, int nspecies);
 
-    double random_nu(Photon *P, double T, bool bw);
+    double random_nu(double T, bool bw);
     double opacity(double freq);
     double albdo(double freq);
     double planck_mean_opacity(double T);
@@ -75,7 +75,7 @@ void Dust::absorb(Photon *P, double T, bool bw, Dust* species, int nspecies) {
     P->invn[1] = 1.0/P->n[1];
     P->invn[2] = 1.0/P->n[2];
 
-    P->nu = random_nu(P,T,bw);
+    P->nu = random_nu(T,bw);
 
     for (int i=0; i<nspecies; i++) {
         P->current_kext[i] = species[i].opacity(P->nu);
@@ -85,7 +85,7 @@ void Dust::absorb(Photon *P, double T, bool bw, Dust* species, int nspecies) {
 
 /* Calculate a random frequency for a photon. */
 
-double Dust::random_nu(Photon *P, double T, bool bw) {
+double Dust::random_nu(double T, bool bw) {
     double freq;
 
     double *F;
