@@ -48,9 +48,6 @@ struct Grid {
 
 Photon *Grid::emit() {
     Photon *P = sources[0].emit(nspecies, dust_species);
-    P->l[0] = -1;
-    P->l[1] = -1;
-    P->l[2] = -1;
 
     P->l = photon_loc(P, false);
 

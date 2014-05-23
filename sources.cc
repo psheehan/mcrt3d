@@ -43,6 +43,9 @@ Photon *Source::emit(int nspecies, Dust *species) {
     P->invn[0] = 1.0/P->n[0];
     P->invn[1] = 1.0/P->n[1];
     P->invn[2] = 1.0/P->n[2];
+    P->l[0] = -1;
+    P->l[1] = -1;
+    P->l[2] = -1;
 
     P->nu = random_nu();
 
