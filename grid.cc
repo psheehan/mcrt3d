@@ -31,7 +31,7 @@ struct Grid {
 
     Photon *emit();
     virtual double next_wall_distance(Photon *P);
-    void propagate_photon(Photon *P, double tau, double ***pcount, bool lucy,
+    void propagate_photon(Photon *P, double tau, double ***pcount, bool absorb,
             bool verbose);
     void propagate_ray(Ray *R, bool verbose);
     void absorb(Photon *P, bool lucy);
@@ -73,7 +73,7 @@ void Grid::isoscatt(Photon *P) {
 /* Propagate a photon through the grid a distance equivalent to tau. */
 
 void Grid::propagate_photon(Photon *P, double tau, double ***pcount, 
-        bool lucy, bool verbose) {
+        bool absorb, bool verbose) {
 
     int i = 0;
     while ((tau > 1.0e-6) && (in_grid(P))) {
@@ -94,7 +94,7 @@ void Grid::propagate_photon(Photon *P, double tau, double ***pcount,
                     s1*P->n[2]/au, s2*P->n[2]/au);
         }
 
-        if (lucy) {
+        if (absorb) {
             pcount[P->l[0]][P->l[1]][P->l[2]] += s*
                 P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
                 dens[P->l[0]][P->l[1]][P->l[2]];

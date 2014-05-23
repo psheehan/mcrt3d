@@ -112,20 +112,13 @@ void MCRT::propagate_photon_bw(Photon *P, double ***pcount, int nphot) {
     while (G->in_grid(P)) {
         double tau = -log(1-random_number());
 
+        bool absorb = random_number() > P->current_albedo[G->dust[P->l[0]]
+                [P->l[1]][P->l[2]]];
+
         G->propagate_photon(P, tau, pcount, false, verbose);
 
         if (G->in_grid(P)) {
-            if (random_number() < P->current_albedo[G->dust[P->l[0]]
-                    [P->l[1]][P->l[2]]]) {
-                G->isoscatt(P);
-                if (verbose) {
-                    printf("Scattering photon at cell  %i  %i  %i\n", 
-                            P->l[0], P->l[1], P->l[2]);
-                    printf("Scattered with direction: %f  %f  %f\n", 
-                            P->n[0], P->n[1], P->n[2]);
-                }
-            }
-            else {
+            if (absorb) {
                 pcount[P->l[0]][P->l[1]][P->l[2]]++;
                 G->update_grid(nphot,P->l,pcount);
                 G->absorb(P, false);
@@ -139,6 +132,15 @@ void MCRT::propagate_photon_bw(Photon *P, double ***pcount, int nphot) {
                     printf("Re-emitted with frequency: %e\n", P->nu);
                 }
             }
+            else {
+                G->isoscatt(P);
+                if (verbose) {
+                    printf("Scattering photon at cell  %i  %i  %i\n", 
+                            P->l[0], P->l[1], P->l[2]);
+                    printf("Scattered with direction: %f  %f  %f\n", 
+                            P->n[0], P->n[1], P->n[2]);
+                }
+            }
         }
     }
 }
@@ -149,15 +151,17 @@ void MCRT::propagate_photon_lucy(Photon *P, double ***pcount) {
     while (G->in_grid(P)) {
         double tau = -log(1-random_number());
 
-        G->propagate_photon(P, tau, pcount, true, false);
+        bool absorb = random_number() > P->current_albedo[G->dust[P->l[0]]
+                                [P->l[1]][P->l[2]]];
+
+        G->propagate_photon(P, tau, pcount, absorb, false);
 
         if (G->in_grid(P)) {
-            if (random_number() < P->current_albedo[G->dust[P->l[0]]
-                    [P->l[1]][P->l[2]]]) {
-                G->isoscatt(P);
+            if (absorb) {
+                G->absorb(P, true);
             }
             else {
-                G->absorb(P, true);
+                G->isoscatt(P);
             }
         }
     }
