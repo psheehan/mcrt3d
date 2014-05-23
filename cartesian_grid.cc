@@ -55,7 +55,7 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P, bool verbose) {
     Vector<int, 3> l;
     
     if (P->r[0] >= w1[nw1-1])
-        l[0] = nw1-2;
+        l[0] = n1-1;
     else if (P->r[0] <= w1[0])
         l[0] = 0;
     else {
@@ -77,7 +77,7 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P, bool verbose) {
         l[0] += 1;
     
     if (P->r[1] >= w2[nw2-1])
-        l[1] = nw2-2;
+        l[1] = n2-1;
     else if (P->r[1] <= w2[0])
         l[1] = 0;
     else {
@@ -99,7 +99,7 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P, bool verbose) {
         l[1] += 1;
     
     if (P->r[2] >= w3[nw3-1])
-        l[2] = nw3-2;
+        l[2] = n3-1;
     else if (P->r[2] <= w3[0])
         l[2] = 0;
     else {
