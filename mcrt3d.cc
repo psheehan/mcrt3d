@@ -15,8 +15,6 @@ struct MCRT {
     void thermal_mc_bw(int nphot);
     void thermal_mc_lucy(int nphot);
     void lucy_iteration(int nphot, double ***pcount);
-    void propagate_photon_bw(Photon *P, double ***pcount, int nphot);
-    void propagate_photon_lucy(Photon *P, double ***pcount, int nphot);
 };
 
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
@@ -47,7 +45,7 @@ void MCRT::thermal_mc_bw(int nphot) {
             printf("Emitted with frequency: %e\n", P->nu);
         }
 
-        propagate_photon_bw(P, pcount, nphot);
+        G->propagate_photon_full(P, pcount, nphot, true);
 
         P->clean();
         delete P;
@@ -95,75 +93,10 @@ void MCRT::lucy_iteration(int nphot, double ***pcount) {
 
         Photon *P = G->emit();
 
-        propagate_photon_lucy(P, pcount, nphot);
+        G->propagate_photon_full(P, pcount, nphot, false);
 
         P->clean();
         delete P;
-    }
-}
-
-
-/* The Bjorkman & Wood method for calculating the temperature throughout the
- * grid. */
-
-void MCRT::propagate_photon_bw(Photon *P, double ***pcount, int nphot) {
-    bool verbose = false;
-
-    while (G->in_grid(P)) {
-        double tau = -log(1-random_number());
-
-        bool absorb = random_number() > P->current_albedo[G->dust[P->l[0]]
-                [P->l[1]][P->l[2]]];
-
-        G->propagate_photon(P, tau, pcount, absorb, true, verbose, nphot);
-
-        if (G->in_grid(P)) {
-            if (absorb) {
-                //pcount[P->l[0]][P->l[1]][P->l[2]]++;
-                //G->update_grid(nphot,P->l,pcount);
-                G->absorb(P, false);
-                if (verbose) {
-                    printf("Absorbing photon at %i  %i  %i\n", P->l[0], 
-                            P->l[1], P->l[2]);
-                    printf("Absorbed in a cell with temperature: %f\n", 
-                            G->temp[P->l[0]][P->l[1]][P->l[2]]);
-                    printf("Re-emitted with direction: %f  %f  %f\n", 
-                            P->n[0], P->n[1], P->n[2]);
-                    printf("Re-emitted with frequency: %e\n", P->nu);
-                }
-            }
-            else {
-                G->isoscatt(P);
-                if (verbose) {
-                    printf("Scattering photon at cell  %i  %i  %i\n", 
-                            P->l[0], P->l[1], P->l[2]);
-                    printf("Scattered with direction: %f  %f  %f\n", 
-                            P->n[0], P->n[1], P->n[2]);
-                }
-            }
-        }
-    }
-}
-
-/* The Lucy method for calculating temperature throughout the grid. */
-
-void MCRT::propagate_photon_lucy(Photon *P, double ***pcount, int nphot) {
-    while (G->in_grid(P)) {
-        double tau = -log(1-random_number());
-
-        bool absorb = random_number() > P->current_albedo[G->dust[P->l[0]]
-                                [P->l[1]][P->l[2]]];
-
-        G->propagate_photon(P, tau, pcount, absorb, false, false, nphot);
-
-        if (G->in_grid(P)) {
-            if (absorb) {
-                G->absorb(P, true);
-            }
-            else {
-                G->isoscatt(P);
-            }
-        }
     }
 }
 

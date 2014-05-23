@@ -6,6 +6,7 @@
 #include "dust.cc"
 #include "sources.cc"
 #include "photon.cc"
+#include "misc.cc"
 
 struct Grid {
     int n1;
@@ -31,10 +32,11 @@ struct Grid {
 
     Photon *emit();
     virtual double next_wall_distance(Photon *P);
+    void propagate_photon_full(Photon *P, double ***pcount, int nphot, bool bw);
     void propagate_photon(Photon *P, double tau, double ***pcount, bool absorb,
             bool bw, bool verbose, int nphot);
     void propagate_ray(Ray *R, bool verbose);
-    void absorb(Photon *P, bool lucy);
+    void absorb(Photon *P, bool bw);
     void isoscatt(Photon *P);
     virtual Vector<int, 3> photon_loc(Photon *P, bool verbose);
     virtual bool in_grid(Photon *P);
@@ -56,15 +58,55 @@ Photon *Grid::emit() {
 
 /* Linker function to the dust absorb function. */
 
-void Grid::absorb(Photon *P, bool lucy) {
+void Grid::absorb(Photon *P, bool bw) {
     dust_species[dust[P->l[0]][P->l[1]][P->l[2]]].absorb(P,
-            temp[P->l[0]][P->l[1]][P->l[2]], !lucy, dust_species, nspecies);
+            temp[P->l[0]][P->l[1]][P->l[2]], bw, dust_species, nspecies);
 }
 
 /* Linker function to the dust isoscatt function. */
 
 void Grid::isoscatt(Photon *P) {
     dust_species[dust[P->l[0]][P->l[1]][P->l[2]]].isoscatt(P);
+}
+
+/* Propagate a photon through the grid until it escapes. */
+
+void Grid::propagate_photon_full(Photon *P, double ***pcount, int nphot, 
+        bool bw) {
+    bool verbose = false;
+
+    while (in_grid(P)) {
+        double tau = -log(1-random_number());
+
+        bool absorb_photon = random_number() > P->current_albedo[dust[P->l[0]]
+                [P->l[1]][P->l[2]]];
+
+        propagate_photon(P, tau, pcount, absorb_photon, bw, verbose, nphot);
+
+        if (in_grid(P)) {
+            if (absorb_photon) {
+                absorb(P, bw);
+                if (verbose) {
+                    printf("Absorbing photon at %i  %i  %i\n", P->l[0],
+                            P->l[1], P->l[2]);
+                    printf("Absorbed in a cell with temperature: %f\n",
+                            temp[P->l[0]][P->l[1]][P->l[2]]);
+                    printf("Re-emitted with direction: %f  %f  %f\n",
+                            P->n[0], P->n[1], P->n[2]);
+                    printf("Re-emitted with frequency: %e\n", P->nu);
+                }
+            }
+            else {
+                isoscatt(P);
+                if (verbose) {
+                    printf("Scattering photon at cell  %i  %i  %i\n",
+                            P->l[0], P->l[1], P->l[2]);
+                    printf("Scattered with direction: %f  %f  %f\n",
+                            P->n[0], P->n[1], P->n[2]);
+                }
+            }
+        }
+    }
 }
 
 /* Propagate a photon through the grid a distance equivalent to tau. */
