@@ -32,7 +32,8 @@ struct Grid {
 
     Photon *emit();
     virtual double next_wall_distance(Photon *P);
-    void propagate_photon_full(Photon *P, double ***pcount, int nphot, bool bw);
+    void propagate_photon_full(Photon *P, double ***pcount, int nphot, bool bw, 
+            bool verbose);
     void propagate_photon(Photon *P, double tau, double ***pcount, bool absorb,
             bool bw, bool verbose, int nphot);
     void propagate_ray(Ray *R, bool verbose);
@@ -49,8 +50,11 @@ struct Grid {
 /* Emit a photon from the grid. */
 
 Photon *Grid::emit() {
+    /* For now I'm just assuming that you have a single star. This needs to be
+     * updated. */
     Photon *P = sources[0].emit(nspecies, dust_species);
 
+    /* Check the photon's location in the grid. */
     P->l = photon_loc(P, false);
 
     return P;
@@ -61,31 +65,49 @@ Photon *Grid::emit() {
 void Grid::absorb(Photon *P, bool bw) {
     dust_species[dust[P->l[0]][P->l[1]][P->l[2]]].absorb(P,
             temp[P->l[0]][P->l[1]][P->l[2]], bw, dust_species, nspecies);
+
+    // Check the photon's location again because there's a small chance that 
+    // the photon was absorbed on a wall, and if it was we may need to update
+    // which cell it is in if the direction has changed.
+    P->l = photon_loc(P, false);
 }
 
 /* Linker function to the dust isoscatt function. */
 
 void Grid::isoscatt(Photon *P) {
     dust_species[dust[P->l[0]][P->l[1]][P->l[2]]].isoscatt(P);
+
+    // Check the photon's location again because there's a small chance that 
+    // the photon was absorbed on a wall, and if it was we may need to update
+    // which cell it is in if the direction has changed.
+    P->l = photon_loc(P, false);
 }
 
 /* Propagate a photon through the grid until it escapes. */
 
 void Grid::propagate_photon_full(Photon *P, double ***pcount, int nphot, 
-        bool bw) {
-    bool verbose = false;
-
+        bool bw, bool verbose) {
     while (in_grid(P)) {
+        // Determin the optical depth that the photon can travel until it's
+        // next interaction.
         double tau = -log(1-random_number());
 
+        // Figure out what that next action is, absorption or scattering. This
+        // is figured out early for the sake of the continuous absorption
+        // method.
         bool absorb_photon = random_number() > P->current_albedo[dust[P->l[0]]
                 [P->l[1]][P->l[2]]];
 
+        // Move the photon to the point of it's next interaction.
         propagate_photon(P, tau, pcount, absorb_photon, bw, verbose, nphot);
 
+        // If the photon is still in the grid when it reaches it's 
+        // destination...
         if (in_grid(P)) {
+            // If the next interaction is absorption...
             if (absorb_photon) {
                 absorb(P, bw);
+                // If we've asked for verbose output, print some info.
                 if (verbose) {
                     printf("Absorbing photon at %i  %i  %i\n", P->l[0],
                             P->l[1], P->l[2]);
@@ -96,8 +118,10 @@ void Grid::propagate_photon_full(Photon *P, double ***pcount, int nphot,
                     printf("Re-emitted with frequency: %e\n", P->nu);
                 }
             }
+            // Otherwise, scatter the photon.
             else {
                 isoscatt(P);
+                // If we've asked for verbose output, print some info.
                 if (verbose) {
                     printf("Scattering photon at cell  %i  %i  %i\n",
                             P->l[0], P->l[1], P->l[2]);
@@ -115,15 +139,43 @@ void Grid::propagate_photon(Photon *P, double tau, double ***pcount,
         bool absorb, bool bw, bool verbose, int nphot) {
 
     int i = 0;
-    while ((tau > 1.0e-6) && (in_grid(P))) {
+    while ((tau > 0) && (in_grid(P))) {
+        // Calculate the distance to the next wall.
         double s1 = next_wall_distance(P);
 
+        // Calculate how far the photon can go with the current tau.
         double s2 = tau/(P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
                 dens[P->l[0]][P->l[1]][P->l[2]]);
 
+        // Determine whether to move to the next wall or to the end of tau.
         double s = s1;
         if (s2 < s1) s = s2;
 
+        // Continuously absorb the photon's energy, if the end result of the
+        // current trajectory is absorption.
+        if (absorb) {
+            pcount[P->l[0]][P->l[1]][P->l[2]] += s*
+                P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
+                dens[P->l[0]][P->l[1]][P->l[2]];
+            // If we're doing a Bjorkman & Wood simulation, update the cell to
+            // find its new temperature.
+            if (bw) {
+                update_grid(nphot,P->l,pcount);
+            }
+        }
+
+        // Remvove the tau we've used up with this stepl
+        tau -= s*P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
+                dens[P->l[0]][P->l[1]][P->l[2]];
+
+        // Move the photon to it's new position.
+        P->move(s);
+
+        // If the photon moved to the next cell, update it's location.
+        if (s1 < s2) P->l = photon_loc(P, verbose);
+        i++;
+
+        // If we've asked for verbose, print some information out.
         if (verbose) {
             printf("%2i  %7.4f  %i  %7.4f  %7.4f  %7.4f\n", i, tau, P->l[0],
                     P->r[0]/au, s1*P->n[0]/au, s2*P->n[0]/au);
@@ -132,23 +184,6 @@ void Grid::propagate_photon(Photon *P, double tau, double ***pcount,
             printf("%14i  %7.4f  %7.4f  %7.4f\n", P->l[2], P->r[2]/au, 
                     s1*P->n[2]/au, s2*P->n[2]/au);
         }
-
-        if (absorb) {
-            pcount[P->l[0]][P->l[1]][P->l[2]] += s*
-                P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
-                dens[P->l[0]][P->l[1]][P->l[2]];
-            if (bw) {
-                update_grid(nphot,P->l,pcount);
-            }
-        }
-
-        tau -= s*P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
-                dens[P->l[0]][P->l[1]][P->l[2]];
-
-        P->move(s);
-
-        if (s1 < s2) P->l = photon_loc(P, verbose);
-        i++;
     }
 }
 

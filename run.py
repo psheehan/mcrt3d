@@ -19,7 +19,7 @@ M = MCRT(G)
 C = Camera(G)
 
 t1 = time()
-M.thermal_mc(1000000,True)
+M.thermal_mc(10000000,True)
 t2 = time()
 print(t2-t1)
 

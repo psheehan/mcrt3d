@@ -34,6 +34,9 @@ void MCRT::thermal_mc_bw(int nphot) {
     for (int i=0; i<nphot; i++) {
         if (fmod(i+1,nphot/10) == 0) printf("%i\n",i+1);
 
+        //if (i == 7618224) verbose = true;
+        //else verbose = false;
+
         Photon *P = G->emit();
 
         if (verbose) {
@@ -45,7 +48,7 @@ void MCRT::thermal_mc_bw(int nphot) {
             printf("Emitted with frequency: %e\n", P->nu);
         }
 
-        G->propagate_photon_full(P, pcount, nphot, true);
+        G->propagate_photon_full(P, pcount, nphot, true, verbose);
 
         P->clean();
         delete P;
@@ -58,7 +61,7 @@ void MCRT::thermal_mc_lucy(int nphot) {
     double ***told = create3DArr(G->n1,G->n2,G->n3);
     double ***treallyold = create3DArr(G->n1,G->n2,G->n3);
 
-    int maxniter = 20;
+    int maxniter = 1;
 
     equate3DArrs(told, G->temp, G->n1, G->n2, G->n3);
 
@@ -93,7 +96,7 @@ void MCRT::lucy_iteration(int nphot, double ***pcount) {
 
         Photon *P = G->emit();
 
-        G->propagate_photon_full(P, pcount, nphot, false);
+        G->propagate_photon_full(P, pcount, nphot, false, false);
 
         P->clean();
         delete P;

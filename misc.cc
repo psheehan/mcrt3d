@@ -85,15 +85,10 @@ int find_in_arr(double val, double *arr, int n) {
     bool not_found = true;
     int l;
 
-    if (equal(val,arr[lmax],1.0e-6)) {
-        l = lmax;
-        not_found = false;
-    }
-
     while (not_found) {
         int ltest = (lmax-lmin)/2+lmin;
 
-        if ((val >= arr[ltest]) && (val < arr[ltest+1])) {
+        if ((val >= arr[ltest]) && (val <= arr[ltest+1])) {
             l = ltest;
             not_found = false;
         }
@@ -104,39 +99,20 @@ int find_in_arr(double val, double *arr, int n) {
                 lmin = ltest;
         }
     }
-
     return l;
 };
 
-/* Find the cell in an array in which the given value is located using a 
-   tree. This function overloads the previous one by allowing you to search
-   a smaller portion of the array. */
+/* Find the cell in an array in which the given value is located. This 
+ * function overloads the previous one by allowing you to search a smaller 
+ * portion of the array. */
 
 int find_in_arr(double val, double *arr, int lmin, int lmax) {
-    bool not_found = true;
     int l;
 
-    if (equal(val,arr[lmax],1.0e-6)) {
-        l = lmax;
-        not_found = false;
+    for (int i=lmin; i <= lmax; i++) {
+        if ((val >= arr[i]) && (val <= arr[i+1]))
+            l = i;
     }
-
-    while (not_found) {
-        int ltest = (lmax-lmin)/2+lmin;
-
-        if (((val > arr[ltest]) || (equal(val,arr[ltest],1.0e-6))) && 
-                (val < arr[ltest+1])) {
-            l = ltest;
-            not_found = false;
-        }
-        else {
-            if (val < arr[ltest])
-                lmax = ltest;
-            else
-                lmin = ltest;
-        }
-    }
-
     return l;
 };
 
