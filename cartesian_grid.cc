@@ -17,20 +17,20 @@ struct CartesianGrid : public Grid {
 double CartesianGrid::next_wall_distance(Photon *P) {
     double s = HUGE_VAL;
 
-    for (int i=P->l[0]; i <= P->l[0]+1; i++) {
-        double sx = (w1[i] - P->r[0])*P->invn[0];
-        if ((sx < s) && (sx > 0)) s = sx;
-    }
+    double sx1 = (w1[P->l[0]] - P->r[0])*P->invn[0];
+    if ((sx1 < s) && (sx1 > 0)) s = sx1;
+    double sx2 = (w1[P->l[0]+1] - P->r[0])*P->invn[0];
+    if ((sx2 < s) && (sx2 > 0)) s = sx2;
     
-    for (int i=P->l[1]; i <= P->l[1]+1; i++) {
-        double sy = (w2[i] - P->r[1])*P->invn[1];
-        if ((sy < s) && (sy > 0)) s = sy;
-    }
+    double sy1 = (w1[P->l[1]] - P->r[1])*P->invn[1];
+    if ((sy1 < s) && (sy1 > 0)) s = sy1;
+    double sy2 = (w1[P->l[1]+1] - P->r[1])*P->invn[1];
+    if ((sy2 < s) && (sy2 > 0)) s = sy2;
     
-    for (int i=P->l[2]; i <= P->l[2]+1; i++) {
-        double sz = (w3[i] - P->r[2])*P->invn[2];
-        if ((sz < s) && (sz > 0)) s = sz;
-    }
+    double sz1 = (w1[P->l[2]] - P->r[2])*P->invn[2];
+    if ((sz1 < s) && (sz1 > 0)) s = sz1;
+    double sz2 = (w1[P->l[2]+1] - P->r[2])*P->invn[2];
+    if ((sz2 < s) && (sz2 > 0)) s = sz2;
     
     return s;
 }
