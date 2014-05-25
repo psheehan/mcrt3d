@@ -95,7 +95,7 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P, bool verbose) {
             int lower = P->l[2]-1;
             if (lower < 0) lower = 0;
             int upper = P->l[2]+1;
-            if (upper > nw3-1) upper = nw3-1;
+            if (upper > n3-1) upper = n3-1;
             
             l[2] = find_in_arr(P->r[2],w3,lower,upper);
         }
