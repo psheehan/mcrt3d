@@ -9,7 +9,6 @@ struct CartesianGrid : public Grid {
     double next_wall_distance(Photon *P);
     Vector<int, 3> photon_loc(Photon *P, bool verbose);
     bool in_grid(Photon *P);
-    bool in_grid_raytracing(Ray *R);
 };
 
 /* Calculate the distance between the photon and the nearest wall. */
@@ -121,18 +120,6 @@ bool CartesianGrid::in_grid(Photon *P) {
         return false;
     else
         return true;
-}
-
-bool CartesianGrid::in_grid_raytracing(Ray *R) {
-    if (((R->r[0] >= w1[0]) || (equal(R->r[0],w1[0],1.0e-6))) &&
-        ((R->r[1] >= w2[0]) || (equal(R->r[1],w2[0],1.0e-6))) &&
-        ((R->r[2] >= w3[0]) || (equal(R->r[2],w3[0],1.0e-6))) &&
-        ((R->r[0] <= w1[nw1-1]) || (equal(R->r[0],w1[nw1-1],1.0e-6))) &&
-        ((R->r[1] <= w2[nw2-1]) || (equal(R->r[1],w2[nw2-1],1.0e-6))) &&
-        ((R->r[2] <= w3[nw3-1]) || (equal(R->r[2],w3[nw3-1],1.0e-6))))
-        return true;
-    else
-        return false;
 }
 
 #endif
