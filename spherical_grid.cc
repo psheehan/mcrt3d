@@ -204,11 +204,13 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P, bool verbose) {
 
 bool SphericalGrid::in_grid(Photon *P) {
 
-    double r = P->r.norm();
+    /*double r = P->r.norm();
 
     if ((r >= w1[nw1-1]) || (equal(r,w1[nw1-1],1.0e-6)))
         return false;
     else if ((r <= w1[0]) || (equal(r,w1[0],1.0e-6)))
+        return false; */
+    if ((P->l[0] >= n1) || (P->l[0] < 0))
         return false;
     else
         return true;
