@@ -41,7 +41,6 @@ struct Grid {
     void isoscatt(Photon *P);
     virtual Vector<int, 3> photon_loc(Photon *P, bool verbose);
     virtual bool in_grid(Photon *P);
-    virtual bool in_grid_raytracing(Ray *R);
     void update_grid(int nphot, Vector<int, 3> l, double ***pcount);
     void update_grid(int nphot, double ***pcount);
     double cell_lum(Vector<int, 3> l);
@@ -251,13 +250,6 @@ bool Grid::in_grid(Photon *P) {
     return true;
 }
 
-/* Determine whether a ray is in the boundaries of the grid to start the 
- * raytracing. */
-
-bool Grid::in_grid_raytracing(Ray *R) {
-    return true;
-}
-
 /* Update the temperature in a cell given the number of photons that have 
  * been absorbed in the cell. */
 
@@ -272,6 +264,10 @@ void Grid::update_grid(int nphot, Vector<int, 3> l, double ***pcount) {
             dust_species[dust[l[0]][l[1]][l[2]]].
             planck_mean_opacity(temp[l[0]][l[1]][l[2]])*
             mass[l[0]][l[1]][l[2]]),0.25);
+
+        // Make sure that there is a minimum temperature that the grid can
+        // get to.
+        if (temp[l[0]][l[1]][l[2]] < 0.1) temp[l[0]][l[1]][l[2]] = 0.1;
 
         if ((fabs(T_old-temp[l[0]][l[1]][l[2]])/T_old < 1.0e-2))
             not_converged = false;
