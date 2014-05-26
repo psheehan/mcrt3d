@@ -99,6 +99,7 @@ int find_in_arr(double val, double *arr, int n) {
                 lmin = ltest;
         }
     }
+
     return l;
 };
 
@@ -113,21 +114,19 @@ int find_in_arr(double val, double *arr, int lmin, int lmax) {
         if ((val >= arr[i]) && (val <= arr[i+1]))
             l = i;
     }
+
     return l;
 };
+
+/* Find the cell in an array in which the given value is located, but in this
+ * case the array is cyclic. */
 
 int find_in_periodic_arr(double val, double *arr, int n, int lmin, int lmax) {
     int l;
 
-    if (equal(val,arr[(lmax+n-1)%(n-1)],1.0e-6)) {
-        l = lmax;
-    }
-
-    for (int i=lmax-lmin; i>=0; i--) {
-        int index = ((lmin+i)+n-1)%(n-1);
-        if (((val > arr[index]) || 
-                (equal(val,arr[index],1.0e-6))) && 
-                (val < arr[index+1])) {
+    for (int i=lmin; i <= lmax; i++) {
+        int index = (i+n)%(n);
+        if ((val >= arr[index]) && (val <= arr[index+1])) {
             l = index;
         }
     }
@@ -157,6 +156,8 @@ void bubbleSort(double arr [], int size) {
     }
 };
 
+/* Create an empty 2-dimensional array. */
+
 double **create2DArr(int nx, int ny) {
     double **arr = new double*[nx];
     for (int i=0; i<nx; i++)
@@ -164,6 +165,8 @@ double **create2DArr(int nx, int ny) {
 
     return arr;
 };
+
+/* Create an empty 3-dimensional array. */
 
 double ***create3DArr(int nx, int ny, int nz) {
     double ***arr = new double**[nx];
@@ -175,6 +178,8 @@ double ***create3DArr(int nx, int ny, int nz) {
 
     return arr;
 };
+
+/* Create a 3-dimensional array filled with a particular value. */
 
 double ***create3DArrValue(int nx, int ny, int nz, int value) {
     double ***arr = new double**[nx];
@@ -190,12 +195,17 @@ double ***create3DArrValue(int nx, int ny, int nz, int value) {
     return arr;
 };
 
+/* Set the value of a 3-dimensional array to a constant value. */
+
 void set3DArrValue(double ***arr, double value, int nx, int ny, int nz) {
     for (int i=0; i<nx; i++)
         for (int j=0; j<ny; j++)
             for (int k=0; k<nz; k++)
                 arr[i][j][k] = value;
 }
+
+/* Set one 3-dimensional array equal to another 3-dimensional array, element
+ * by element. */
 
 void equate3DArrs(double ***arr1, double ***arr2, int nx, int ny, int nz) {
     for (int i=0; i<nx; i++)
