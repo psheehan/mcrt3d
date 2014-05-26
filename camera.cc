@@ -139,9 +139,9 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu) {
 
             R->l = G->photon_loc(R, false);
         }
-    } while ((!equal(s,HUGE_VAL,1.0e-6)) && (!G->in_grid_raytracing(R)));
+    } while ((!equal(s,HUGE_VAL,1.0e-6)) && (!G->in_grid(R)));
 
-    if (G->in_grid_raytracing(R))
+    if (G->in_grid(R))
         G->propagate_ray(R, false);
 
     double intensity = R->intensity;
