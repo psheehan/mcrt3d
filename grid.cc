@@ -183,6 +183,12 @@ void Grid::propagate_photon(Photon *P, double tau, double ***pcount,
             printf("%14i  %7.4f  %7.4f  %7.4f\n", P->l[2], P->r[2]/au, 
                     s1*P->n[2]/au, s2*P->n[2]/au);
         }
+
+        // Kill the photon if it bounces around too many times...
+        if (i > 1000) {
+            tau = -1.0;
+            printf("!!!!!!! ERROR - Killing photon because it seems to be stuck.\n");
+        }
     }
 }
 
