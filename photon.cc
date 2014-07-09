@@ -11,6 +11,8 @@ struct Photon {
     double *current_kext, *current_albedo;
     Vector<int, 3> l;
 
+    double rad, phi, theta;
+
     /* Move the photon a distance s along its direction vector. */
 
     void move(double s) {
