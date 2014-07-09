@@ -4,8 +4,8 @@ from mcrt3d import *
 from time import time
 import matplotlib.pyplot as plt
 
-from Cartesian import *
-#from Cylindrical import *
+#from Cartesian import *
+from Cylindrical import *
 #from Spherical import *
 #from YSO import *
 
