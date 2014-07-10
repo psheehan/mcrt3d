@@ -6,14 +6,14 @@
 #include "photon.cc"
 
 struct CylindricalGrid : public Grid {
-    double next_wall_distance(Photon *P);
+    double next_wall_distance(Photon *P, bool verbose);
     Vector<int, 3> photon_loc(Photon *P, bool verbose);
     bool in_grid(Photon *P);
 };
 
 /* Calculate the distance between the photon and the nearest wall. */
 
-double CylindricalGrid::next_wall_distance(Photon *P) {
+double CylindricalGrid::next_wall_distance(Photon *P, bool verbose) {
 
     //double r = sqrt(P->r[0]*P->r[0]+P->r[1]*P->r[1]);
     double r = P->rad;
@@ -25,15 +25,20 @@ double CylindricalGrid::next_wall_distance(Photon *P) {
 
     double s = HUGE_VAL;
     for (int i=P->l[0]; i <= P->l[0]+1; i++) {
-        if (r != w1[i]) {
+        if (r == w1[i]) {
+            double sr1 = (-b + fabs(b))/a;
+            if ((sr1 < s) && (sr1 > 0)) s = sr1;
+            double sr2 = (-b - fabs(b))/a;
+            if ((sr2 < s) && (sr2 > 0)) s = sr2;
+        }
+        else {
             double c = r*r - w1[i]*w1[i];
             double d = b*b - a*c;
 
             if (d >= 0) {
                 double sr1 = (-b + sqrt(d))/a;
-                double sr2 = (-b - sqrt(d))/a;
-
                 if ((sr1 < s) && (sr1 > 0)) s = sr1;
+                double sr2 = (-b - sqrt(d))/a;
                 if ((sr2 < s) && (sr2 > 0)) s = sr2;
             }
         }
