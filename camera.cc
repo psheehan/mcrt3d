@@ -130,7 +130,7 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu) {
 
     double s;
     do {
-        s = G->next_wall_distance(R);
+        s = G->next_wall_distance(R, false);
 
         if (s == HUGE_VAL)
             break;

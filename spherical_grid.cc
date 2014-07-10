@@ -6,14 +6,14 @@
 #include "photon.cc"
 
 struct SphericalGrid : public Grid {
-    double next_wall_distance(Photon *P);
+    double next_wall_distance(Photon *P, bool verbose);
     Vector<int, 3> photon_loc(Photon *P, bool verbose);
     bool in_grid(Photon *P);
 };
 
 /* Calculate the distance between the photon and the nearest wall. */
 
-double SphericalGrid::next_wall_distance(Photon *P) {
+double SphericalGrid::next_wall_distance(Photon *P, bool verbose) {
 
     double r = P->r.norm();
 

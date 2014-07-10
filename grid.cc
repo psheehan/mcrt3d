@@ -31,7 +31,7 @@ struct Grid {
     double total_lum;
 
     Photon *emit();
-    virtual double next_wall_distance(Photon *P);
+    virtual double next_wall_distance(Photon *P, bool verbose);
     void propagate_photon_full(Photon *P, double ***pcount, int nphot, bool bw, 
             bool verbose);
     void propagate_photon(Photon *P, double tau, double ***pcount, bool absorb,
@@ -140,7 +140,7 @@ void Grid::propagate_photon(Photon *P, double tau, double ***pcount,
     int i = 0;
     while ((tau > 0) && (in_grid(P))) {
         // Calculate the distance to the next wall.
-        double s1 = next_wall_distance(P);
+        double s1 = next_wall_distance(P, verbose);
 
         // Calculate how far the photon can go with the current tau.
         double s2 = tau/(P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
@@ -210,7 +210,7 @@ void Grid::propagate_ray(Ray *R, bool verbose) {
             break;
         }
 
-        double s = next_wall_distance(R);
+        double s = next_wall_distance(R, verbose);
 
         double tau_cell = s*R->current_kext[dust[R->l[0]][R->l[1]][R->l[2]]]*
                 dens[R->l[0]][R->l[1]][R->l[2]];
@@ -240,7 +240,7 @@ void Grid::propagate_ray(Ray *R, bool verbose) {
 
 /* Calculate the distance between the photon and the nearest wall. */
 
-double Grid::next_wall_distance(Photon *P) {
+double Grid::next_wall_distance(Photon *P, bool verbose) {
     return 0.0;
 }
 

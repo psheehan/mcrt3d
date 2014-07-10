@@ -6,14 +6,14 @@
 #include "photon.cc"
 
 struct CartesianGrid : public Grid {
-    double next_wall_distance(Photon *P);
+    double next_wall_distance(Photon *P, bool verbose);
     Vector<int, 3> photon_loc(Photon *P, bool verbose);
     bool in_grid(Photon *P);
 };
 
 /* Calculate the distance between the photon and the nearest wall. */
 
-double CartesianGrid::next_wall_distance(Photon *P) {
+double CartesianGrid::next_wall_distance(Photon *P, bool verbose) {
     double s = HUGE_VAL;
 
     double sx1 = (w1[P->l[0]] - P->r[0])*P->invn[0];
