@@ -34,9 +34,6 @@ void MCRT::thermal_mc_bw(int nphot) {
     for (int i=0; i<nphot; i++) {
         if (fmod(i+1,nphot/10) == 0) printf("%i\n",i+1);
 
-        //if (i == 7618224) verbose = true;
-        //else verbose = false;
-
         Photon *P = G->emit();
 
         if (verbose) {
