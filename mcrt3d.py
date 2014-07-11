@@ -49,7 +49,7 @@ class Dust:
         self.make_lookup_tables()
 
     def make_lookup_tables(self):
-        self.temp = numpy.logspace(-1,4,100).astype(float)
+        self.temp = numpy.logspace(-1,5,100).astype(float)
         self.ntemp = self.temp.size
 
         self.int_Bnu = numpy.ones(self.temp.size)
