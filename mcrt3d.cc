@@ -144,16 +144,18 @@ extern "C" {
     }
 
     void set_physical_properties(Grid *G, double *_dens, double *_temp,
-            double *_mass, int *_dust) {
+            double *_mass, double *_volume, int *_dust) {
 
         double ***dens = pymangle(G->n1, G->n2, G->n3, _dens);
         double ***temp = pymangle(G->n1, G->n2, G->n3, _temp);
         double ***mass = pymangle(G->n1, G->n2, G->n3, _mass);
+        double ***volume = pymangle(G->n1, G->n2, G->n3, _volume);
         int ***dust = pymangle(G->n1, G->n2, G->n3, _dust);
 
         G->dens = dens;
         G->temp = temp;
         G->mass = mass;
+        G->volume = volume;
         G->dust = dust;
     }
 

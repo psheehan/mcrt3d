@@ -4,14 +4,14 @@ from mcrt3d import *
 from time import time
 import matplotlib.pyplot as plt
 
-#from Cartesian import *
+from Cartesian import *
 #from Cylindrical import *
-from Spherical import *
+#from Spherical import *
 #from YSO import *
 
 G = SetupGrid()
-#images = SetupImages()
-#spectra = SetupSpectra()
+images = SetupImages()
+spectra = SetupSpectra()
 
 # Now give that all to C.
 
@@ -19,23 +19,23 @@ M = MCRT(G)
 C = Camera(G)
 
 t1 = time()
-M.thermal_mc(10000000,True)
+M.thermal_mc(10000,True)
 t2 = time()
 print(t2-t1)
 
 """
 for i in range(images.size):
     C.make_image(images[i])
+"""
 
 for i in range(spectra.size):
     C.make_image(spectra[i])
-"""
 
-for i in range(9):
-    plt.imshow(G.temp[:,:,i],origin="lower",interpolation="nearest", \
-            vmin=G.temp.min(),vmax=G.temp.max())
-    plt.colorbar()
-    plt.show()
+#for i in range(9):
+#    plt.imshow(G.temp[:,:,i],origin="lower",interpolation="nearest", \
+#            vmin=G.temp.min(),vmax=G.temp.max())
+#    plt.colorbar()
+#    plt.show()
 
 """
 plt.imshow(images[0].intensity[:,:,0],origin="lower",interpolation="nearest")

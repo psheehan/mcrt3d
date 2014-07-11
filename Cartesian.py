@@ -54,8 +54,8 @@ def SetupImages():
     nnu = 1
 
     r = (3*4.5**2)**(1./2)*au
-    incl = pi/6
-    pa = pi/3
+    incl = 0
+    pa = 0
 
     image = Image(r, incl, pa, x, y, nx, ny, nu, pixel_size, nnu)
 
@@ -69,12 +69,14 @@ def SetupSpectra():
     x = array([0.0])
     y = array([0.0])
 
-    nu = c_l / (logspace(-1,4,1000) * 1.0e-4)
-    nnu = 1000
+    #nu = c_l / (logspace(-1,4,1000) * 1.0e-4)
+    #nnu = 1000
+    nu = c_l / array([0.1300])
+    nnu = 1
 
     r = (3*4.5**2)**(1./2)*au
-    incl = pi/6
-    pa = pi/3
+    incl = 0
+    pa = 0
 
     spectrum = Image(r, incl, pa, x, y, nx, ny, nu, pixel_size, nnu)
 

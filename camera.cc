@@ -126,28 +126,27 @@ double Camera::raytrace_pixel(double x, double y, double pixel_size,
 }
 
 double Camera::raytrace(double x, double y, double pixel_size, double nu) {
+    /* Emit a ray from the given location. */
     Ray *R = emit_ray(x, y, pixel_size, nu);
 
-    double s;
-    do {
-        s = G->next_wall_distance(R, false);
+    /* Move the ray onto the grid boundary */
+    double s = G->next_wall_distance(R, false);
 
-        if (s == HUGE_VAL)
-            break;
-        else {
-            R->move(s);
+    R->move(s);
 
-            R->l = G->photon_loc(R, false);
-        }
-    } while ((!equal(s,HUGE_VAL,1.0e-6)) && (!G->in_grid(R)));
+    R->l = G->photon_loc(R, false);
 
+    /* Move the ray through the grid, calculating the intensity as you go. */
     if (G->in_grid(R))
         G->propagate_ray(R, false);
 
+    /* Check whether the run was successful or if we need to sub-pixel to get
+     * a good intensity measurement. */
     double intensity = R->intensity;
     if (R->pixel_too_large)
         intensity = -1.0;
 
+    /* Clean up the ray. */
     delete R;
 
     return intensity;

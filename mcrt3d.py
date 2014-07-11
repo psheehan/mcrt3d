@@ -228,12 +228,14 @@ class Grid:
         self.dens = dens
         self.temp = temp
         self.mass = mass
+        self.volume = volume
         self.dust = dust
 
         lib.set_physical_properties(ctypes.c_void_p(self.obj), \
                 dens.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 temp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 mass.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+                volume.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 dust.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
 
     def set_dust_species(self, dust_species):

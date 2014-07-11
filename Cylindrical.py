@@ -41,3 +41,43 @@ def SetupGrid():
     G.set_sources(sources)
 
     return G
+
+def SetupImages():
+    nx = 256
+    ny = 256
+    pixel_size = au/10
+
+    x = (arange(nx,dtype=float)-float(nx)/2)*pixel_size
+    y = (arange(ny,dtype=float)-float(ny)/2)*pixel_size
+
+    nu = array([c_l / (1300. * 1.0e-4)])
+    nnu = 1
+
+    r = (3*4.5**2)**(1./2)*au
+    incl = 0
+    pa = 0
+
+    image = Image(r, incl, pa, x, y, nx, ny, nu, pixel_size, nnu)
+
+    return array([image])
+
+def SetupSpectra():
+    nx = 1
+    ny = 1
+    pixel_size = 10*au
+
+    x = array([0.0])
+    y = array([0.0])
+
+    #nu = c_l / (logspace(-1,4,1000) * 1.0e-4)
+    #nnu = 1000
+    nu = c_l / array([0.1300])
+    nnu = 1
+
+    r = (3*4.5**2)**(1./2)*au
+    incl = pi
+    pa = 0
+
+    spectrum = Image(r, incl, pa, x, y, nx, ny, nu, pixel_size, nnu)
+
+    return array([spectrum])

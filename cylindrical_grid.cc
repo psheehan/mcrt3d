@@ -64,9 +64,9 @@ double CylindricalGrid::next_wall_distance(Photon *P, bool verbose) {
 
     // Calculate the distance to intersection with the nearest z wall.
     
-    double sz1 = (w1[P->l[2]] - P->r[2])*P->invn[2];
+    double sz1 = (w3[P->l[2]] - P->r[2])*P->invn[2];
     if ((sz1 < s) && (sz1 > 0)) s = sz1;
-    double sz2 = (w1[P->l[2]+1] - P->r[2])*P->invn[2];
+    double sz2 = (w3[P->l[2]+1] - P->r[2])*P->invn[2];
     if ((sz2 < s) && (sz2 > 0)) s = sz2;
     
     return s;
@@ -83,7 +83,13 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P, bool verbose) {
     //double r = sqrt(P->r[0]*P->r[0]+P->r[1]*P->r[1]);
     //double phi = fmod(atan2(P->r[1],P->r[0])+2*pi,2*pi);
     P->rad = sqrt(P->r[0]*P->r[0]+P->r[1]*P->r[1]);
-    P->phi = fmod(atan2(P->r[1],P->r[0])+2*pi,2*pi);
+    /* If P->rad = 0 we need to be careful about how we calculate phi. */
+    if (P->rad == 0) {
+        P->phi = fmod(P->phi+pi,2*pi);
+        P->l[1] = -1;
+    }
+    else
+        P->phi = fmod(atan2(P->r[1],P->r[0])+2*pi,2*pi);
     double r = P->rad;
     double phi = P->phi;
 
@@ -121,7 +127,7 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P, bool verbose) {
     /* Finally, update which cell the photon is in based on the direction it
      * is going. */
     
-    if ((r == w1[l[0]]) && (P->n[0]*gnx+P->n[1]*gny <= 0))
+    if ((r == w1[l[0]]) && (P->n[0]*gnx+P->n[1]*gny < 0))
         l[0] -= 1;
     else if ((r == w1[l[0]+1]) && (P->n[0]*gnx+P->n[1]*gny >= 0))
         l[0] += 1;

@@ -24,6 +24,7 @@ struct Grid {
     double ***dens;
     double ***temp;
     double ***mass;
+    double ***volume;
     Dust *dust_species;
     int ***dust;
     Source *sources;
@@ -198,14 +199,8 @@ void Grid::propagate_ray(Ray *R, bool verbose) {
 
     int i=0;
     do {
-        if (R->l[0] < 0) R->l[0] = 0;
-        if (R->l[1] < 0) R->l[1] = 0;
-        if (R->l[2] < 0) R->l[2] = 0;
-        if (R->l[0] >= nw1-1) R->l[0] = nw1-2;
-        if (R->l[1] >= nw2-1) R->l[1] = nw2-2;
-        if (R->l[2] >= nw3-1) R->l[2] = nw3-2;
-
-        if (dw1[R->l[0]] < R->pixel_size) {
+        if (volume[R->l[0]][R->l[1]][R->l[2]] < 
+                pi*R->pixel_size*R->pixel_size*R->pixel_size/6.) {
             R->pixel_too_large = true;
             break;
         }

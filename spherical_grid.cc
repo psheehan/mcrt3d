@@ -103,8 +103,18 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P, bool verbose) {
 
     double pi = 3.14159265;
     P->rad = P->r.norm();
-    P->theta = acos(P->r[2]/P->rad);
-    P->phi = fmod(atan2(P->r[1],P->r[0])+2*pi,2*pi);
+    /* If P->rad = 0 we need to be careful about how we calculate theta and 
+     * phi. */
+    if (P->rad == 0) {
+        P->theta = pi - P->theta;
+        P->l[1] = -1;
+        P->phi = fmod(P->phi + pi, 2*pi);
+        P->l[2] = -1;
+    }
+    else {
+        P->theta = acos(P->r[2]/P->rad);
+        P->phi = fmod(atan2(P->r[1],P->r[0])+2*pi,2*pi);
+    }
     double r = P->rad;
     double theta = P->theta;
     double phi = P->phi;
@@ -144,7 +154,7 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P, bool verbose) {
     /* Finally, update which cell the photon is in based on the direction it
      * is going. */
 
-    if ((r == w1[l[0]]) && (P->n[0]*gnx+P->n[1]*gny+P->n[2]*gnz <= 0))
+    if ((r == w1[l[0]]) && (P->n[0]*gnx+P->n[1]*gny+P->n[2]*gnz < 0))
         l[0] -= 1;
     else if ((r == w1[l[0]+1]) && (P->n[0]*gnx+P->n[1]*gny+P->n[2]*gnz >= 0))
         l[0] += 1;
