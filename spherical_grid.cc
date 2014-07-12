@@ -45,7 +45,7 @@ double SphericalGrid::next_wall_distance(Photon *P, bool verbose) {
 
     // Calculate the distance to the intersection with the next theta wall.
     
-    if (nw2 != 2) {
+    if ((nw2 != 2) && (r <= w1[nw1-1])) {
         double theta = P->theta;
         
         for (int i=P->l[1]; i <= P->l[1]+1; i++) {
@@ -78,7 +78,7 @@ double SphericalGrid::next_wall_distance(Photon *P, bool verbose) {
 
     // Calculate the distance to intersection with the nearest phi wall.
     
-    if (nw3 != 2) {
+    if ((nw3 != 2) && (r <= w1[nw1-1])) {
         double phi = P->phi;
         
         for (int i=P->l[2]; i <= P->l[2]+1; i++) {
