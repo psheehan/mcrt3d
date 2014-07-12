@@ -57,7 +57,7 @@ struct Camera {
 
     void make_image();
     Ray* emit_ray(double x, double y, double pixel_size, double nu);
-    double raytrace_pixel(double x, double y, double pixel_size, double nu);
+    double raytrace_pixel(double x, double y, double pixel_size, double nu, int count);
     double raytrace(double x, double y, double pixel_size, double nu);
 };
 
@@ -66,7 +66,7 @@ void Camera::make_image() {
         for (int j=0; j<image->nx; j++)
             for (int k=0; k<image->ny; k++)
                 image->intensity[j][k][i] = raytrace_pixel(image->x[j], 
-                        image->y[k], image->pixel_size, image->nu[i]);
+                        image->y[k], image->pixel_size, image->nu[i], 0);
 }
 
 Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
@@ -106,18 +106,21 @@ Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
 }
 
 double Camera::raytrace_pixel(double x, double y, double pixel_size, 
-        double nu) {
+        double nu, int count) {
+    //printf("%d\n", count);
     double intensity = raytrace(x, y, pixel_size, nu);
 
-    if (intensity < 0) {
+    count++;
+
+    if ((intensity < 0)) {// && (count < 3)) {
         double intensity1 = raytrace_pixel(x-pixel_size/4, y-pixel_size/4, 
-                pixel_size/2, nu);
+                pixel_size/2, nu, count);
         double intensity2 = raytrace_pixel(x-pixel_size/4, y+pixel_size/4, 
-                pixel_size/2, nu);
+                pixel_size/2, nu, count);
         double intensity3 = raytrace_pixel(x+pixel_size/4, y-pixel_size/4, 
-                pixel_size/2, nu);
+                pixel_size/2, nu, count);
         double intensity4 = raytrace_pixel(x+pixel_size/4, y+pixel_size/4, 
-                pixel_size/2, nu);
+                pixel_size/2, nu, count);
 
         return (intensity1+intensity2+intensity3+intensity4)/4;
     }
@@ -131,23 +134,33 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu) {
 
     /* Move the ray onto the grid boundary */
     double s = G->next_wall_distance(R, false);
+    //printf("%7.4f   %7.4f   %7.4f\n", R->r[0]/au, R->r[1]/au, R->r[2]/au);
+    //printf("%7.4f\n", s/au);
 
-    R->move(s);
+    if (s != HUGE_VAL) {
+        R->move(s);
 
-    R->l = G->photon_loc(R, false);
+        R->l = G->photon_loc(R, false);
+        //printf("%7.4f   %7.4f   %7.4f\n", R->r[0]/au, R->r[1]/au, R->r[2]/au);
 
-    /* Move the ray through the grid, calculating the intensity as you go. */
-    if (G->in_grid(R))
-        G->propagate_ray(R, false);
+        /* Move the ray through the grid, calculating the intensity as 
+         * you go. */
+        //printf("\n");
+        if (G->in_grid(R))
+            G->propagate_ray(R, false);
+        //printf("\n");
 
-    /* Check whether the run was successful or if we need to sub-pixel to get
-     * a good intensity measurement. */
-    double intensity = R->intensity;
-    if (R->pixel_too_large)
-        intensity = -1.0;
+        /* Check whether the run was successful or if we need to sub-pixel 
+         * to get a good intensity measurement. */
+        double intensity = R->intensity;
+        if (R->pixel_too_large)
+            intensity = -1.0;
 
-    /* Clean up the ray. */
-    delete R;
+        /* Clean up the ray. */
+        delete R;
 
-    return intensity;
+        return intensity;
+    }
+    else
+        return 0.0;
 }
