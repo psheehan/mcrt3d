@@ -7,6 +7,7 @@
 
 struct SphericalGrid : public Grid {
     double next_wall_distance(Photon *P, bool verbose);
+    double outer_wall_distance(Photon *P);
     Vector<int, 3> photon_loc(Photon *P, bool verbose);
     bool in_grid(Photon *P);
 };
@@ -45,7 +46,7 @@ double SphericalGrid::next_wall_distance(Photon *P, bool verbose) {
 
     // Calculate the distance to the intersection with the next theta wall.
     
-    if ((nw2 != 2) && (r <= w1[nw1-1])) {
+    if (nw2 != 2) {
         double theta = P->theta;
         
         for (int i=P->l[1]; i <= P->l[1]+1; i++) {
@@ -78,7 +79,7 @@ double SphericalGrid::next_wall_distance(Photon *P, bool verbose) {
 
     // Calculate the distance to intersection with the nearest phi wall.
     
-    if ((nw3 != 2) && (r <= w1[nw1-1])) {
+    if (nw3 != 2) {
         double phi = P->phi;
         
         for (int i=P->l[2]; i <= P->l[2]+1; i++) {
@@ -93,6 +94,28 @@ double SphericalGrid::next_wall_distance(Photon *P, bool verbose) {
         }
     }
     
+    return s;
+}
+
+/* Calculate the distance between the photon and the outermost wall. */
+
+double SphericalGrid::outer_wall_distance(Photon *P) {
+
+    double r = P->rad;
+
+    double s = HUGE_VAL;
+
+    double b = P->r*P->n;
+    double c = r*r - w1[nw1-1]*w1[nw1-1];
+    double d = b*b - c;
+
+    if (d >= 0) {
+        double sr1 = -b + sqrt(d);
+        if ((sr1 < s) && (sr1 > 0)) s = sr1;
+        double sr2 = -b - sqrt(d);
+        if ((sr2 < s) && (sr2 > 0)) s = sr2;
+    }
+
     return s;
 }
 

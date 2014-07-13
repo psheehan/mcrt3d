@@ -133,7 +133,7 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu) {
     Ray *R = emit_ray(x, y, pixel_size, nu);
 
     /* Move the ray onto the grid boundary */
-    double s = G->next_wall_distance(R, false);
+    double s = G->outer_wall_distance(R);
     //printf("%7.4f   %7.4f   %7.4f\n", R->r[0]/au, R->r[1]/au, R->r[2]/au);
     //printf("%7.4f\n", s/au);
 

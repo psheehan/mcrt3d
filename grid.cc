@@ -33,6 +33,7 @@ struct Grid {
 
     Photon *emit();
     virtual double next_wall_distance(Photon *P, bool verbose);
+    virtual double outer_wall_distance(Photon *P);
     void propagate_photon_full(Photon *P, double ***pcount, int nphot, bool bw, 
             bool verbose);
     void propagate_photon(Photon *P, double tau, double ***pcount, bool absorb,
@@ -214,11 +215,11 @@ void Grid::propagate_ray(Ray *R, bool verbose) {
                 temp[R->l[0]][R->l[1]][R->l[2]]);
 
         if (verbose) {
-            printf("%2i  %7.4f  %i  %7.4f  %7.4f\n", i, tau_cell, 
+            printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
                     R->l[0], R->r[0]/au, s*R->n[0]/au);
             printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity, R->l[1], 
                     R->r[1]/au, s*R->n[1]/au);
-            printf("%11.4f  %i  %7.4f  %7.4f\n", R->tau, R->l[2], R->r[2]/au, 
+            printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau, R->l[2], R->r[2]/au, 
                     s*R->n[2]/au);
         }
 
@@ -236,6 +237,12 @@ void Grid::propagate_ray(Ray *R, bool verbose) {
 /* Calculate the distance between the photon and the nearest wall. */
 
 double Grid::next_wall_distance(Photon *P, bool verbose) {
+    return 0.0;
+}
+
+/* Calculate the distance between the photon and the outermost wall. */
+
+double Grid::outer_wall_distance(Photon *P) {
     return 0.0;
 }
 
