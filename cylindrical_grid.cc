@@ -78,7 +78,7 @@ double CylindricalGrid::next_wall_distance(Photon *P, bool verbose) {
 double CylindricalGrid::outer_wall_distance(Photon *P) {
     double s = 0;
 
-    double r = P->rad;
+    double r = sqrt(P->r[0]*P->r[0]+P->r[1]*P->r[1]);
 
     // Calculate the distance to the intersection with the next radial wall.
     

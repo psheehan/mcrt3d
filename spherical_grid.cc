@@ -101,7 +101,7 @@ double SphericalGrid::next_wall_distance(Photon *P, bool verbose) {
 
 double SphericalGrid::outer_wall_distance(Photon *P) {
 
-    double r = P->rad;
+    double r = P->r.norm();
 
     double s = HUGE_VAL;
 
