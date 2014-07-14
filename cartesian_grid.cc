@@ -38,22 +38,39 @@ double CartesianGrid::next_wall_distance(Photon *P, bool verbose) {
 /* Calculate the distance between the photon and the outermost wall. */
 
 double CartesianGrid::outer_wall_distance(Photon *P) {
-    double s = HUGE_VAL;
+    double s = 0;
 
-    double sx1 = (w1[0] - P->r[0])*P->invn[0];
-    if ((sx1 < s) && (sx1 > 0)) s = sx1;
-    double sx2 = (w1[nw1-1] - P->r[0])*P->invn[0];
-    if ((sx2 < s) && (sx2 > 0)) s = sx2;
+    if (P->r[0] <= w1[0]) {
+        double sx = (w1[0] - P->r[0])*P->invn[0];
+        if (sx > s) s = sx;
+    }
+    else if (P->r[0] >= w1[nw1-1]) {
+        double sx = (w1[nw1-1] - P->r[0])*P->invn[0];
+        if (sx > s) s = sx;
+    }
     
-    double sy1 = (w2[0] - P->r[1])*P->invn[1];
-    if ((sy1 < s) && (sy1 > 0)) s = sy1;
-    double sy2 = (w2[nw2-1] - P->r[1])*P->invn[1];
-    if ((sy2 < s) && (sy2 > 0)) s = sy2;
+    if (P->r[1] <= w2[0]) {
+        double sy = (w2[0] - P->r[1])*P->invn[1];
+        if (sy > s) s = sy;
+    }
+    else if (P->r[1] >= w2[nw2-1]) {
+        double sy = (w2[nw2-1] - P->r[1])*P->invn[1];
+        if (sy > s) s = sy;
+    }
     
-    double sz1 = (w3[0] - P->r[2])*P->invn[2];
-    if ((sz1 < s) && (sz1 > 0)) s = sz1;
-    double sz2 = (w3[nw3-1] - P->r[2])*P->invn[2];
-    if ((sz2 < s) && (sz2 > 0)) s = sz2;
+    if (P->r[2] <= w3[0]) {
+        double sz = (w3[0] - P->r[2])*P->invn[2];
+        if (sz > s) s = sz;
+    }
+    if (P->r[2] >= w3[nw3-1]) {
+        double sz = (w3[nw3-1] - P->r[2])*P->invn[2];
+        if (sz > s) s = sz;
+    }
+
+    Vector<double, 3> newr = P->r + s*P->n;
+    if ((newr[0] < w1[0]) || (newr[0] > w1[nw1-1]) || (newr[1] < w2[0]) ||
+            (newr[1] > w2[nw2-1]) || (newr[2] < w3[0]) || (newr[2] > w3[nw3-1]))
+        s = HUGE_VAL;
     
     return s;
 }
