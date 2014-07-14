@@ -38,6 +38,6 @@ for i in range(spectra.size):
 plt.imshow(images[0].intensity[:,:,0],origin="lower",interpolation="none")
 plt.show()
 
-plt.loglog(c_l / spectra[0].nu, spectra[0].intensity[0,0,:])
-plt.axis([1e-5,1e0,1e-19,1e-9])
-plt.show()
+#plt.loglog(c_l / spectra[0].nu, spectra[0].intensity[0,0,:])
+#plt.axis([1e-5,1e0,1e-19,1e-9])
+#plt.show()

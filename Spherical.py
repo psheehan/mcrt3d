@@ -73,8 +73,8 @@ def SetupSpectra():
     nnu = 1000
 
     r = (3*4.5**2)**(1./2)*au
-    incl = 0
-    pa = 0
+    incl = pi/4
+    pa = pi/4
 
     spectrum = Image(r, incl, pa, x, y, nx, ny, nu, pixel_size, nnu)
 

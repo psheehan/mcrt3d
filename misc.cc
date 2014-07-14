@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-const double pi = 3.1415927;
+const double pi = 3.14159265;
 const double au = 1.496e13;
 const double pc = 3.086e18;
 const double R_sun = 6.955e10;
