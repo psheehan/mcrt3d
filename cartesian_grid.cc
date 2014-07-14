@@ -7,6 +7,7 @@
 
 struct CartesianGrid : public Grid {
     double next_wall_distance(Photon *P, bool verbose);
+    double outer_wall_distance(Photon *P);
     Vector<int, 3> photon_loc(Photon *P, bool verbose);
     bool in_grid(Photon *P);
 };
@@ -21,14 +22,37 @@ double CartesianGrid::next_wall_distance(Photon *P, bool verbose) {
     double sx2 = (w1[P->l[0]+1] - P->r[0])*P->invn[0];
     if ((sx2 < s) && (sx2 > 0)) s = sx2;
     
-    double sy1 = (w1[P->l[1]] - P->r[1])*P->invn[1];
+    double sy1 = (w2[P->l[1]] - P->r[1])*P->invn[1];
     if ((sy1 < s) && (sy1 > 0)) s = sy1;
-    double sy2 = (w1[P->l[1]+1] - P->r[1])*P->invn[1];
+    double sy2 = (w2[P->l[1]+1] - P->r[1])*P->invn[1];
     if ((sy2 < s) && (sy2 > 0)) s = sy2;
     
-    double sz1 = (w1[P->l[2]] - P->r[2])*P->invn[2];
+    double sz1 = (w3[P->l[2]] - P->r[2])*P->invn[2];
     if ((sz1 < s) && (sz1 > 0)) s = sz1;
-    double sz2 = (w1[P->l[2]+1] - P->r[2])*P->invn[2];
+    double sz2 = (w3[P->l[2]+1] - P->r[2])*P->invn[2];
+    if ((sz2 < s) && (sz2 > 0)) s = sz2;
+    
+    return s;
+}
+
+/* Calculate the distance between the photon and the outermost wall. */
+
+double CartesianGrid::outer_wall_distance(Photon *P) {
+    double s = HUGE_VAL;
+
+    double sx1 = (w1[0] - P->r[0])*P->invn[0];
+    if ((sx1 < s) && (sx1 > 0)) s = sx1;
+    double sx2 = (w1[nw1-1] - P->r[0])*P->invn[0];
+    if ((sx2 < s) && (sx2 > 0)) s = sx2;
+    
+    double sy1 = (w2[0] - P->r[1])*P->invn[1];
+    if ((sy1 < s) && (sy1 > 0)) s = sy1;
+    double sy2 = (w2[nw2-1] - P->r[1])*P->invn[1];
+    if ((sy2 < s) && (sy2 > 0)) s = sy2;
+    
+    double sz1 = (w3[0] - P->r[2])*P->invn[2];
+    if ((sz1 < s) && (sz1 > 0)) s = sz1;
+    double sz2 = (w3[nw3-1] - P->r[2])*P->invn[2];
     if ((sz2 < s) && (sz2 > 0)) s = sz2;
     
     return s;

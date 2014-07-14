@@ -7,6 +7,7 @@
 
 struct CylindricalGrid : public Grid {
     double next_wall_distance(Photon *P, bool verbose);
+    double outer_wall_distance(Photon *P);
     Vector<int, 3> photon_loc(Photon *P, bool verbose);
     bool in_grid(Photon *P);
 };
@@ -69,6 +70,37 @@ double CylindricalGrid::next_wall_distance(Photon *P, bool verbose) {
     double sz2 = (w3[P->l[2]+1] - P->r[2])*P->invn[2];
     if ((sz2 < s) && (sz2 > 0)) s = sz2;
     
+    return s;
+}
+
+/* Calculate the distance between the photon and the outermost wall. */
+
+double CylindricalGrid::outer_wall_distance(Photon *P) {
+    double s = HUGE_VAL;
+
+    double r = P->rad;
+
+    // Calculate the distance to the intersection with the next radial wall.
+    
+    double a = P->n[0]*P->n[0]+P->n[1]*P->n[1];
+    double b = P->r[0]*P->n[0]+P->r[1]*P->n[1];
+    double c = r*r - w1[nw1-1]*w1[nw1-1];
+    double d = b*b - a*c;
+
+    if (d >= 0) {
+        double sr1 = (-b + sqrt(d))/a;
+        if ((sr1 < s) && (sr1 > 0)) s = sr1;
+        double sr2 = (-b - sqrt(d))/a;
+        if ((sr2 < s) && (sr2 > 0)) s = sr2;
+    }
+
+    // Calculate the distance to intersection with the nearest z wall.
+    
+    double sz1 = (w3[0] - P->r[2])*P->invn[2];
+    if ((sz1 < s) && (sz1 > 0)) s = sz1;
+    double sz2 = (w3[nw3-1] - P->r[2])*P->invn[2];
+    if ((sz2 < s) && (sz2 > 0)) s = sz2;
+
     return s;
 }
 
