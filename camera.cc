@@ -100,7 +100,7 @@ Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
     R->l[1] = -1;
     R->l[2] = -1;
 
-    R->l = G->photon_loc(R, false);
+    //R->l = G->photon_loc(R, false);
     
     return R;
 }
@@ -112,7 +112,7 @@ double Camera::raytrace_pixel(double x, double y, double pixel_size,
 
     count++;
 
-    if ((intensity < 0)) {// && (count < 3)) {
+    if ((intensity < 0)) { // && (count < 3)) {
         double intensity1 = raytrace_pixel(x-pixel_size/4, y-pixel_size/4, 
                 pixel_size/2, nu, count);
         double intensity2 = raytrace_pixel(x-pixel_size/4, y+pixel_size/4, 
@@ -140,8 +140,8 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu) {
     if (s != HUGE_VAL) {
         R->move(s);
 
-        R->l = G->photon_loc(R, false);
         //printf("%7.4f   %7.4f   %7.4f\n", R->r[0]/au, R->r[1]/au, R->r[2]/au);
+        R->l = G->photon_loc(R, false);
 
         /* Move the ray through the grid, calculating the intensity as 
          * you go. */

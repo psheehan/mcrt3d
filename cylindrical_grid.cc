@@ -76,30 +76,47 @@ double CylindricalGrid::next_wall_distance(Photon *P, bool verbose) {
 /* Calculate the distance between the photon and the outermost wall. */
 
 double CylindricalGrid::outer_wall_distance(Photon *P) {
-    double s = HUGE_VAL;
+    double s = 0;
 
     double r = P->rad;
 
     // Calculate the distance to the intersection with the next radial wall.
     
-    double a = P->n[0]*P->n[0]+P->n[1]*P->n[1];
-    double b = P->r[0]*P->n[0]+P->r[1]*P->n[1];
-    double c = r*r - w1[nw1-1]*w1[nw1-1];
-    double d = b*b - a*c;
+    if (P->rad >= w1[nw1-1]) {
+        double sr = HUGE_VAL;
 
-    if (d >= 0) {
-        double sr1 = (-b + sqrt(d))/a;
-        if ((sr1 < s) && (sr1 > 0)) s = sr1;
-        double sr2 = (-b - sqrt(d))/a;
-        if ((sr2 < s) && (sr2 > 0)) s = sr2;
+        double a = P->n[0]*P->n[0]+P->n[1]*P->n[1];
+        double b = P->r[0]*P->n[0]+P->r[1]*P->n[1];
+        double c = r*r - w1[nw1-1]*w1[nw1-1];
+        double d = b*b - a*c;
+
+        if (d >= 0) {
+            double sr1 = (-b + sqrt(d))/a;
+            if ((sr1 < sr) && (sr1 > 0)) sr = sr1;
+            double sr2 = (-b - sqrt(d))/a;
+            if ((sr2 < sr) && (sr2 > 0)) sr = sr2;
+
+            if (sr > s) s = sr;
+        }
     }
 
     // Calculate the distance to intersection with the nearest z wall.
     
-    double sz1 = (w3[0] - P->r[2])*P->invn[2];
-    if ((sz1 < s) && (sz1 > 0)) s = sz1;
-    double sz2 = (w3[nw3-1] - P->r[2])*P->invn[2];
-    if ((sz2 < s) && (sz2 > 0)) s = sz2;
+    if (P->r[2] <= w3[0]) {
+        double sz = (w3[0] - P->r[2])*P->invn[2];
+        if (sz > s) s = sz;
+    }
+    else if (P->r[2] >= w3[nw3-1]) {
+        double sz = (w3[nw3-1] - P->r[2])*P->invn[2];
+        if (sz > s) s = sz;
+    }
+
+    Vector<double, 3> newr = P->r + s*P->n;
+    double newtwodr = sqrt(newr[0]*newr[0] + newr[1]*newr[1]);
+    if (equal(newtwodr, w1[nw1-1], 1.0e-6)) newtwodr = w1[nw1-1];
+
+    if ((newr[2] < w3[0]) || (newr[2] > w3[nw3-1]) || (newtwodr > w1[nw1-1]))
+        s = HUGE_VAL;
 
     return s;
 }
