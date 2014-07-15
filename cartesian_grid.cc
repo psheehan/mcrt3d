@@ -72,12 +72,15 @@ double CartesianGrid::outer_wall_distance(Photon *P, bool verbose) {
 
     Vector<double, 3> newr = P->r + s*P->n;
 
-    if (equal(newr[0],w1[0],1.0e-6)) newr[0] = w1[0];
-    else if (equal(newr[0],w1[nw1-1],1.0e-6)) newr[0] = w1[nw1-1];
-    if (equal(newr[1],w2[0],1.0e-6)) newr[1] = w2[0];
-    else if (equal(newr[1],w2[nw2-1],1.0e-6)) newr[1] = w2[nw2-1];
-    if (equal(newr[2],w3[0],1.0e-6)) newr[2] = w3[0];
-    else if (equal(newr[2],w3[nw3-1],1.0e-6)) newr[2] = w3[nw3-1];
+    if (verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
+            newr[2]/au);
+
+    if (equal(newr[0],w1[0],1.0e-10)) newr[0] = w1[0];
+    else if (equal(newr[0],w1[nw1-1],1.0e-10)) newr[0] = w1[nw1-1];
+    if (equal(newr[1],w2[0],1.0e-10)) newr[1] = w2[0];
+    else if (equal(newr[1],w2[nw2-1],1.0e-10)) newr[1] = w2[nw2-1];
+    if (equal(newr[2],w3[0],1.0e-10)) newr[2] = w3[0];
+    else if (equal(newr[2],w3[nw3-1],1.0e-10)) newr[2] = w3[nw3-1];
 
     if (verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
             newr[2]/au);
