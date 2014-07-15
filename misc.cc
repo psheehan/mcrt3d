@@ -76,6 +76,13 @@ bool equal(double x, double y, double tol) {
         return false;
 };
 
+bool equal_zero(double x, double tol) {
+    if (fabs(x) < tol)
+        return true;
+    else
+        return false;
+};
+
 /* Find the cell in an array in which the given value is located using a 
    tree. */
 

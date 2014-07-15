@@ -113,9 +113,18 @@ double CylindricalGrid::outer_wall_distance(Photon *P, bool verbose) {
 
     Vector<double, 3> newr = P->r + s*P->n;
     double newtwodr = sqrt(newr[0]*newr[0] + newr[1]*newr[1]);
-    if (equal(newtwodr, w1[nw1-1], 1.0e-6)) newtwodr = w1[nw1-1];
-    if (equal(newr[2],w3[0],1.0e-6)) newr[2] = w3[0];
-    else if (equal(newr[2],w3[nw3-1],1.0e-6)) newr[2] = w3[nw3-1];
+
+    if (verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
+            newr[2]/au);
+    if (verbose) printf("%20.17f\n", newtwodr/au);
+
+    if (equal(newtwodr, w1[nw1-1], 1.0e-10)) newtwodr = w1[nw1-1];
+    if (equal(newr[2],w3[0],1.0e-10)) newr[2] = w3[0];
+    else if (equal(newr[2],w3[nw3-1],1.0e-10)) newr[2] = w3[nw3-1];
+
+    if (verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
+            newr[2]/au);
+    if (verbose) printf("%20.17f\n", newtwodr/au);
 
     if ((newr[2] < w3[0]) || (newr[2] > w3[nw3-1]) || (newtwodr > w1[nw1-1]))
         s = HUGE_VAL;
@@ -177,10 +186,13 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P, bool verbose) {
 
     /* Finally, update which cell the photon is in based on the direction it
      * is going. */
+
+    double nr = P->n[0]*gnx + P->n[1]*gny;
+    if (equal_zero(nr, 1.0e-6)) nr = 0.0;
     
-    if ((r == w1[l[0]]) && (P->n[0]*gnx+P->n[1]*gny < 0))
+    if ((r == w1[l[0]]) && (nr < 0))
         l[0] -= 1;
-    else if ((r == w1[l[0]+1]) && (P->n[0]*gnx+P->n[1]*gny >= 0))
+    else if ((r == w1[l[0]+1]) && (nr >= 0))
         l[0] += 1;
 
     // Find the location in the phi grid.
