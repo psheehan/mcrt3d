@@ -66,7 +66,6 @@ void Camera::make_image() {
         for (int j=0; j<image->nx; j++)
             for (int k=0; k<image->ny; k++) {
                 bool verbose = false;
-                if ((j == 173) && (k == 173)) verbose = true;
                 if (verbose) printf("%d   %d\n", j, k);
                 image->intensity[j][k][i] = raytrace_pixel(image->x[j], 
                         image->y[k], image->pixel_size, image->nu[i], 0, verbose);
@@ -145,7 +144,7 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu, bool v
         R->move(s);
 
         if (verbose) printf("%7.4f   %7.4f   %7.4f\n", R->r[0]/au, R->r[1]/au, R->r[2]/au);
-        R->l = G->photon_loc(R, false);
+        R->l = G->photon_loc(R, verbose);
 
         /* Move the ray through the grid, calculating the intensity as 
          * you go. */
