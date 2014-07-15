@@ -7,7 +7,7 @@
 
 struct SphericalGrid : public Grid {
     double next_wall_distance(Photon *P, bool verbose);
-    double outer_wall_distance(Photon *P);
+    double outer_wall_distance(Photon *P, bool verbose);
     Vector<int, 3> photon_loc(Photon *P, bool verbose);
     bool in_grid(Photon *P);
 };
@@ -99,7 +99,7 @@ double SphericalGrid::next_wall_distance(Photon *P, bool verbose) {
 
 /* Calculate the distance between the photon and the outermost wall. */
 
-double SphericalGrid::outer_wall_distance(Photon *P) {
+double SphericalGrid::outer_wall_distance(Photon *P, bool verbose) {
 
     double r = P->r.norm();
 

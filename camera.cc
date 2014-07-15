@@ -57,16 +57,20 @@ struct Camera {
 
     void make_image();
     Ray* emit_ray(double x, double y, double pixel_size, double nu);
-    double raytrace_pixel(double x, double y, double pixel_size, double nu, int count);
-    double raytrace(double x, double y, double pixel_size, double nu);
+    double raytrace_pixel(double x, double y, double pixel_size, double nu, int count, bool verbose);
+    double raytrace(double x, double y, double pixel_size, double nu, bool verbose);
 };
 
 void Camera::make_image() {
     for (int i=0; i<image->nnu; i++)
         for (int j=0; j<image->nx; j++)
-            for (int k=0; k<image->ny; k++)
+            for (int k=0; k<image->ny; k++) {
+                bool verbose = false;
+                if ((j == 173) && (k == 173)) verbose = true;
+                if (verbose) printf("%d   %d\n", j, k);
                 image->intensity[j][k][i] = raytrace_pixel(image->x[j], 
-                        image->y[k], image->pixel_size, image->nu[i], 0);
+                        image->y[k], image->pixel_size, image->nu[i], 0, verbose);
+            }
 }
 
 Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
@@ -106,21 +110,21 @@ Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
 }
 
 double Camera::raytrace_pixel(double x, double y, double pixel_size, 
-        double nu, int count) {
+        double nu, int count, bool verbose) {
     //printf("%d\n", count);
-    double intensity = raytrace(x, y, pixel_size, nu);
+    double intensity = raytrace(x, y, pixel_size, nu, verbose);
 
     count++;
 
-    if ((intensity < 0)) { // && (count < 3)) {
+    if ((intensity < 0) && (count < 1)) {
         double intensity1 = raytrace_pixel(x-pixel_size/4, y-pixel_size/4, 
-                pixel_size/2, nu, count);
+                pixel_size/2, nu, count, verbose);
         double intensity2 = raytrace_pixel(x-pixel_size/4, y+pixel_size/4, 
-                pixel_size/2, nu, count);
+                pixel_size/2, nu, count, verbose);
         double intensity3 = raytrace_pixel(x+pixel_size/4, y-pixel_size/4, 
-                pixel_size/2, nu, count);
+                pixel_size/2, nu, count, verbose);
         double intensity4 = raytrace_pixel(x+pixel_size/4, y+pixel_size/4, 
-                pixel_size/2, nu, count);
+                pixel_size/2, nu, count, verbose);
 
         return (intensity1+intensity2+intensity3+intensity4)/4;
     }
@@ -128,27 +132,27 @@ double Camera::raytrace_pixel(double x, double y, double pixel_size,
         return intensity;
 }
 
-double Camera::raytrace(double x, double y, double pixel_size, double nu) {
+double Camera::raytrace(double x, double y, double pixel_size, double nu, bool verbose) {
     /* Emit a ray from the given location. */
     Ray *R = emit_ray(x, y, pixel_size, nu);
 
     /* Move the ray onto the grid boundary */
-    double s = G->outer_wall_distance(R);
-    //printf("%7.4f   %7.4f   %7.4f\n", R->r[0]/au, R->r[1]/au, R->r[2]/au);
-    //printf("%7.4f\n", s/au);
+    double s = G->outer_wall_distance(R, verbose);
+    if (verbose) printf("%7.4f   %7.4f   %7.4f\n", R->r[0]/au, R->r[1]/au, R->r[2]/au);
+    if (verbose) printf("%7.4f\n", s/au);
 
     if (s != HUGE_VAL) {
         R->move(s);
 
-        //printf("%7.4f   %7.4f   %7.4f\n", R->r[0]/au, R->r[1]/au, R->r[2]/au);
+        if (verbose) printf("%7.4f   %7.4f   %7.4f\n", R->r[0]/au, R->r[1]/au, R->r[2]/au);
         R->l = G->photon_loc(R, false);
 
         /* Move the ray through the grid, calculating the intensity as 
          * you go. */
-        //printf("\n");
+        if (verbose) printf("\n");
         if (G->in_grid(R))
-            G->propagate_ray(R, false);
-        //printf("\n");
+            G->propagate_ray(R, verbose);
+        if (verbose) printf("\n");
 
         /* Check whether the run was successful or if we need to sub-pixel 
          * to get a good intensity measurement. */

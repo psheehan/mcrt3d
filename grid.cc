@@ -33,7 +33,7 @@ struct Grid {
 
     Photon *emit();
     virtual double next_wall_distance(Photon *P, bool verbose);
-    virtual double outer_wall_distance(Photon *P);
+    virtual double outer_wall_distance(Photon *P, bool verbose);
     void propagate_photon_full(Photon *P, double ***pcount, int nphot, bool bw, 
             bool verbose);
     void propagate_photon(Photon *P, double tau, double ***pcount, bool absorb,
@@ -242,7 +242,7 @@ double Grid::next_wall_distance(Photon *P, bool verbose) {
 
 /* Calculate the distance between the photon and the outermost wall. */
 
-double Grid::outer_wall_distance(Photon *P) {
+double Grid::outer_wall_distance(Photon *P, bool verbose) {
     return 0.0;
 }
 

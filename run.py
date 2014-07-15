@@ -4,8 +4,8 @@ from mcrt3d import *
 from time import time
 import matplotlib.pyplot as plt
 
-#from Cartesian import *
-from Cylindrical import *
+from Cartesian import *
+#from Cylindrical import *
 #from Spherical import *
 #from YSO import *
 
@@ -26,8 +26,8 @@ print(t2-t1)
 for i in range(images.size):
     C.make_image(images[i])
 
-for i in range(spectra.size):
-    C.make_image(spectra[i])
+#for i in range(spectra.size):
+#    C.make_image(spectra[i])
 
 #for i in range(9):
 #    plt.imshow(G.temp[:,:,i],origin="lower",interpolation="nearest", \
