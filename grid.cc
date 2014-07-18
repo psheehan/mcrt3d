@@ -148,9 +148,13 @@ void Grid::propagate_photon(Photon *P, double tau, double ***pcount,
         double s2 = tau/(P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
                 dens[P->l[0]][P->l[1]][P->l[2]]);
 
+        // Calculate how far the photon can go before running into a source.
+        double s3 = sources[0].intercept_distance(P);
+
         // Determine whether to move to the next wall or to the end of tau.
         double s = s1;
-        if (s2 < s1) s = s2;
+        if (s2 < s) s = s2;
+        if (s3 < s) s = s3;
 
         // Continuously absorb the photon's energy, if the end result of the
         // current trajectory is absorption.
@@ -184,6 +188,14 @@ void Grid::propagate_photon(Photon *P, double tau, double ***pcount,
                     s1*P->n[1]/au, s2*P->n[1]/au);
             printf("%14i  %7.4f  %7.4f  %7.4f\n", P->l[2], P->r[2]/au, 
                     s1*P->n[2]/au, s2*P->n[2]/au);
+        }
+
+        // If the distance to the star is the shortest distance, kill the 
+        // photon.
+        if (s3 == s) {
+            P->l[0] = nw1;
+            P->l[1] = nw2;
+            P->l[2] = nw3;
         }
 
         // Kill the photon if it bounces around too many times...

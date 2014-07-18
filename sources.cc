@@ -91,15 +91,17 @@ double Source::intercept_distance(Photon *P) {
 
     double r = P->rad;
 
-    double b = P->r*P->n;
-    double c = r*r - radius*radius;
-    double d = b*b - c;
+    if (!equal(r, radius, 1.0e-6)) {
+        double b = P->r*P->n;
+        double c = r*r - radius*radius;
+        double d = b*b - c;
 
-    if (d >= 0) {
-        double sr1 = -b + sqrt(d);
-        if ((sr1 < s) && (sr1 > 0)) s = sr1;
-        double sr2 = -b - sqrt(d);
-        if ((sr2 < s) && (sr2 > 0)) s = sr2;
+        if (d >= 0) {
+            double sr1 = -b + sqrt(d);
+            if ((sr1 < s) && (sr1 > 0)) s = sr1;
+            double sr2 = -b - sqrt(d);
+            if ((sr2 < s) && (sr2 > 0)) s = sr2;
+        }
     }
 
     return s;
