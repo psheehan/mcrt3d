@@ -115,7 +115,7 @@ double Camera::raytrace_pixel(double x, double y, double pixel_size,
 
     count++;
 
-    if ((intensity < 0) && (count < 1)) {
+    if ((intensity < 0)) { // && (count < 1)) {
         double intensity1 = raytrace_pixel(x-pixel_size/4, y-pixel_size/4, 
                 pixel_size/2, nu, count, verbose);
         double intensity2 = raytrace_pixel(x-pixel_size/4, y+pixel_size/4, 
