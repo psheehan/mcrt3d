@@ -89,7 +89,7 @@ double Source::random_nu() {
 double Source::intercept_distance(Photon *P) {
     double s = HUGE_VAL;
 
-    double r = P->rad;
+    double r = P->r.norm();
 
     if (!equal(r, radius, 1.0e-6)) {
         double b = P->r*P->n;
