@@ -14,7 +14,7 @@ struct MCRT {
     void thermal_mc(int nphot, bool bw);
     void thermal_mc_bw(int nphot);
     void thermal_mc_lucy(int nphot);
-    void lucy_iteration(int nphot, double ***pcount);
+    void lucy_iteration(int nphot, double ****pcount);
 };
 
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
@@ -28,7 +28,7 @@ void MCRT::thermal_mc(int nphot, bool bw) {
 }
 
 void MCRT::thermal_mc_bw(int nphot) {
-    double ***pcount = create3DArrValue(G->n1, G->n2, G->n3, 0);
+    double ****pcount = create4DArrValue(G->nspecies, G->n1, G->n2, G->n3, 0);
     bool verbose = false;
 
     for (int i=0; i<nphot; i++) {
@@ -41,7 +41,7 @@ void MCRT::thermal_mc_bw(int nphot) {
             printf("Emitted with direction: %f  %f  %f\n", P->n[0], P->n[1], 
                     P->n[2]);
             printf("Emitted from a cell with temperature: %f\n", 
-                    G->temp[P->l[0]][P->l[1]][P->l[2]]);
+                    G->temp[0][P->l[0]][P->l[1]][P->l[2]]);
             printf("Emitted with frequency: %e\n", P->nu);
         }
 
@@ -54,28 +54,28 @@ void MCRT::thermal_mc_bw(int nphot) {
 }
 
 void MCRT::thermal_mc_lucy(int nphot) {
-    double ***pcount = create3DArrValue(G->n1, G->n2, G->n3, 0);
+    double ****pcount = create4DArrValue(G->nspecies, G->n1, G->n2, G->n3, 0);
     double ***told = create3DArr(G->n1,G->n2,G->n3);
     double ***treallyold = create3DArr(G->n1,G->n2,G->n3);
 
     int maxniter = 1;
 
-    equate3DArrs(told, G->temp, G->n1, G->n2, G->n3);
+    equate3DArrs(told, G->temp[0], G->n1, G->n2, G->n3);
 
     int i = 1;
     while (i <= maxniter) {
         printf("Starting iteration # %i \n\n", i);
 
         equate3DArrs(treallyold, told, G->n1, G->n2, G->n3);
-        equate3DArrs(told, G->temp, G->n1, G->n2, G->n3);
+        equate3DArrs(told, G->temp[0], G->n1, G->n2, G->n3);
 
         lucy_iteration(nphot, pcount);
 
         G->update_grid(nphot, pcount);
-        set3DArrValue(pcount, 0.0, G->n1, G->n2, G->n3);
+        set4DArrValue(pcount, 0.0, G->nspecies, G->n1, G->n2, G->n3);
 
         if (i > 2)
-            if (converged(G->temp, told, treallyold, G->n1, G->n2, G->n3))
+            if (converged(G->temp[0], told, treallyold, G->n1, G->n2, G->n3))
                 i = maxniter;
 
         i++;
@@ -87,7 +87,7 @@ void MCRT::thermal_mc_lucy(int nphot) {
     delete pcount;
 }
 
-void MCRT::lucy_iteration(int nphot, double ***pcount) {
+void MCRT::lucy_iteration(int nphot, double ****pcount) {
     for (int i=0; i<nphot; i++) {
         if (fmod(i+1,nphot/10) == 0) printf("%i\n",i+1);
 
@@ -146,9 +146,9 @@ extern "C" {
     void set_physical_properties(Grid *G, double *_dens, double *_temp,
             double *_mass, double *_volume) {
 
-        double ***dens = pymangle(G->n1, G->n2, G->n3, _dens);
-        double ***temp = pymangle(G->n1, G->n2, G->n3, _temp);
-        double ***mass = pymangle(G->n1, G->n2, G->n3, _mass);
+        double ****dens = pymangle(1, G->n1, G->n2, G->n3, _dens);
+        double ****temp = pymangle(1, G->n1, G->n2, G->n3, _temp);
+        double ****mass = pymangle(1, G->n1, G->n2, G->n3, _mass);
         double ***volume = pymangle(G->n1, G->n2, G->n3, _volume);
 
         G->dens = dens;
@@ -253,8 +253,8 @@ extern "C" {
 
     /* Function to test that everything is being set up correctly. */
 
-    void test(Grid *G) {
-        printf("%i\n", G->nw1);
+    void test(double *_test) {
+        printf("Hello!\n");
     }
 
     /* Function to run a thermal monte carlo simulation. */

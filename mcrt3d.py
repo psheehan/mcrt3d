@@ -225,16 +225,16 @@ class Grid:
         mass = dens * volume
         temp = numpy.ones((self.nw1-1,self.nw2-1,self.nw3-1),dtype=float)
 
-        self.dens = dens
-        self.temp = temp
-        self.mass = mass
+        self.dens = numpy.array([dens])
+        self.temp = numpy.array([temp])
+        self.mass = numpy.array([mass])
         self.volume = volume
         self.dust = dust
 
         lib.set_physical_properties(ctypes.c_void_p(self.obj), \
-                dens.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                temp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                mass.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+                self.dens.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+                self.temp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+                self.mass.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 volume.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
 
     def set_dust_species(self, dust_species):

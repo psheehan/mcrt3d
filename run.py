@@ -30,7 +30,7 @@ for i in range(images.size):
 #    C.make_image(spectra[i])
 
 #for i in range(9):
-#    plt.imshow(G.temp[:,:,i],origin="lower",interpolation="nearest", \
+#    plt.imshow(G.temp[0,:,:,i],origin="lower",interpolation="nearest", \
 #            vmin=G.temp.min(),vmax=G.temp.max())
 #    plt.colorbar()
 #    plt.show()
