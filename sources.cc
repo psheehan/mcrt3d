@@ -17,14 +17,14 @@ struct Source {
     double *Bnu;
     int nnu;
 
-    Photon *emit(int nspecies, Dust *species);
+    Photon *emit(int nphot, int nspecies, Dust *species);
     double intercept_distance(Photon *P);
     double random_nu();
 };
 
 /* Emit a photon from the source. */
 
-Photon *Source::emit(int nspecies, Dust *species) {
+Photon *Source::emit(int nphot, int nspecies, Dust *species) {
     Photon *P = new Photon();
 
     double theta = pi*random_number();
@@ -58,6 +58,8 @@ Photon *Source::emit(int nspecies, Dust *species) {
     P->l[0] = -1;
     P->l[1] = -1;
     P->l[2] = -1;
+
+    P->energy = luminosity / nphot;
 
     P->nu = random_nu();
 

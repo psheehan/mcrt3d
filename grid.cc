@@ -31,29 +31,29 @@ struct Grid {
     Source *sources;
     double total_lum;
 
-    Photon *emit();
+    Photon *emit(int nphot);
     virtual double next_wall_distance(Photon *P, bool verbose);
     virtual double outer_wall_distance(Photon *P, bool verbose);
-    void propagate_photon_full(Photon *P, double ****pcount, int nphot, 
+    void propagate_photon_full(Photon *P, double ****energy, int nphot, 
             bool bw, bool verbose);
-    void propagate_photon(Photon *P, double tau, double ****pcount, bool absorb,
+    void propagate_photon(Photon *P, double tau, double ****energy, bool absorb,
             bool bw, bool verbose, int nphot);
     void propagate_ray(Ray *R, bool verbose);
     void absorb(Photon *P, int idust, bool bw);
     void isoscatt(Photon *P, int idust);
     virtual Vector<int, 3> photon_loc(Photon *P, bool verbose);
     virtual bool in_grid(Photon *P);
-    void update_grid(int nphot, Vector<int, 3> l, double ****pcount);
-    void update_grid(int nphot, double ****pcount);
+    void update_grid(int nphot, Vector<int, 3> l, double ****energy);
+    void update_grid(int nphot, double ****energy);
     double cell_lum(Vector<int, 3> l);
 };
 
 /* Emit a photon from the grid. */
 
-Photon *Grid::emit() {
+Photon *Grid::emit(int nphot) {
     /* For now I'm just assuming that you have a single star. This needs to be
      * updated. */
-    Photon *P = sources[0].emit(nspecies, dust_species);
+    Photon *P = sources[0].emit(nphot, nspecies, dust_species);
 
     /* Check the photon's location in the grid. */
     P->l = photon_loc(P, false);
@@ -86,7 +86,7 @@ void Grid::isoscatt(Photon *P, int idust) {
 
 /* Propagate a photon through the grid until it escapes. */
 
-void Grid::propagate_photon_full(Photon *P, double ****pcount, int nphot, 
+void Grid::propagate_photon_full(Photon *P, double ****energy, int nphot, 
         bool bw, bool verbose) {
     while (in_grid(P)) {
         // Determin the optical depth that the photon can travel until it's
@@ -128,7 +128,7 @@ void Grid::propagate_photon_full(Photon *P, double ****pcount, int nphot,
         bool absorb_photon = random_number() > albedo;
 
         // Move the photon to the point of it's next interaction.
-        propagate_photon(P, tau, pcount, absorb_photon, bw, verbose, nphot);
+        propagate_photon(P, tau, energy, absorb_photon, bw, verbose, nphot);
 
         // If the photon is still in the grid when it reaches it's 
         // destination...
@@ -164,7 +164,7 @@ void Grid::propagate_photon_full(Photon *P, double ****pcount, int nphot,
 
 /* Propagate a photon through the grid a distance equivalent to tau. */
 
-void Grid::propagate_photon(Photon *P, double tau, double ****pcount, 
+void Grid::propagate_photon(Photon *P, double tau, double ****energy, 
         bool absorb, bool bw, bool verbose, int nphot) {
 
     int i = 0;
@@ -192,13 +192,13 @@ void Grid::propagate_photon(Photon *P, double tau, double ****pcount,
         // current trajectory is absorption.
         if (absorb) {
             for (int idust=0; idust<nspecies; idust++)
-                pcount[idust][P->l[0]][P->l[1]][P->l[2]] += 
+                energy[idust][P->l[0]][P->l[1]][P->l[2]] += P->energy*
                     s*P->current_kext[idust]*
                     dens[idust][P->l[0]][P->l[1]][P->l[2]];
             // If we're doing a Bjorkman & Wood simulation, update the cell to
             // find its new temperature.
             if (bw) {
-                update_grid(nphot,P->l,pcount);
+                update_grid(nphot,P->l,energy);
             }
         }
 
@@ -310,15 +310,15 @@ bool Grid::in_grid(Photon *P) {
 /* Update the temperature in a cell given the number of photons that have 
  * been absorbed in the cell. */
 
-void Grid::update_grid(int nphot, Vector<int, 3> l, double ****pcount) {
+void Grid::update_grid(int nphot, Vector<int, 3> l, double ****energy) {
     bool not_converged = true;
 
     for (int idust=0; idust<nspecies; idust++) {
         while (not_converged) {
             double T_old = temp[idust][l[0]][l[1]][l[2]];
 
-            temp[idust][l[0]][l[1]][l[2]]=pow(pcount[idust][l[0]][l[1]][l[2]]*
-                sources[0].luminosity/(4*sigma*nphot*dust_species[idust].\
+            temp[idust][l[0]][l[1]][l[2]]=pow(energy[idust][l[0]][l[1]][l[2]]/
+                (4*sigma*dust_species[idust].\
                 planck_mean_opacity(temp[idust][l[0]][l[1]][l[2]])*
                 mass[idust][l[0]][l[1]][l[2]]),0.25);
 
@@ -333,11 +333,11 @@ void Grid::update_grid(int nphot, Vector<int, 3> l, double ****pcount) {
     }
 }
 
-void Grid::update_grid(int nphot, double ****pcount) {
+void Grid::update_grid(int nphot, double ****energy) {
     for (int i=0; i<nw1-1; i++)
         for (int j=0; j<nw2-1; j++)
             for (int k=0; k<nw3-1; k++)
-                update_grid(nphot, Vector<int, 3>(i,j,k), pcount);
+                update_grid(nphot, Vector<int, 3>(i,j,k), energy);
 }
 
 /* Calculate the luminosity of the cell indicated by l. */

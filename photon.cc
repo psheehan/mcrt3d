@@ -4,6 +4,7 @@
 #include "vector.cc"
 
 struct Photon {
+    double energy;
     double nu;
     Vector<double, 3> r;
     Vector<double, 3> n;
