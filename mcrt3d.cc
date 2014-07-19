@@ -14,7 +14,7 @@ struct MCRT {
     void thermal_mc(int nphot, bool bw);
     void thermal_mc_bw(int nphot);
     void thermal_mc_lucy(int nphot);
-    void lucy_iteration(int nphot, double ****energy);
+    void lucy_iteration(int nphot);
 };
 
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
@@ -28,7 +28,6 @@ void MCRT::thermal_mc(int nphot, bool bw) {
 }
 
 void MCRT::thermal_mc_bw(int nphot) {
-    double ****energy = create4DArrValue(G->nspecies, G->n1, G->n2, G->n3, 0);
     bool verbose = false;
 
     for (int i=0; i<nphot; i++) {
@@ -45,7 +44,7 @@ void MCRT::thermal_mc_bw(int nphot) {
             printf("Emitted with frequency: %e\n", P->nu);
         }
 
-        G->propagate_photon_full(P, energy, nphot, true, verbose);
+        G->propagate_photon_full(P, nphot, true, verbose);
 
         P->clean();
         delete P;
@@ -54,7 +53,6 @@ void MCRT::thermal_mc_bw(int nphot) {
 }
 
 void MCRT::thermal_mc_lucy(int nphot) {
-    double ****energy = create4DArrValue(G->nspecies, G->n1, G->n2, G->n3, 0);
     double ****told = create4DArr(G->nspecies, G->n1,G->n2,G->n3);
     double ****treallyold = create4DArr(G->nspecies, G->n1,G->n2,G->n3);
 
@@ -69,10 +67,10 @@ void MCRT::thermal_mc_lucy(int nphot) {
         equate4DArrs(treallyold, told, G->nspecies, G->n1, G->n2, G->n3);
         equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
 
-        lucy_iteration(nphot, energy);
+        lucy_iteration(nphot);
 
-        G->update_grid(nphot, energy);
-        set4DArrValue(energy, 0.0, G->nspecies, G->n1, G->n2, G->n3);
+        G->update_grid(nphot);
+        set4DArrValue(G->energy, 0.0, G->nspecies, G->n1, G->n2, G->n3);
 
         if (i > 2)
             if (converged(G->temp, told, treallyold, G->nspecies, G->n1, 
@@ -85,16 +83,15 @@ void MCRT::thermal_mc_lucy(int nphot) {
 
     delete told;
     delete treallyold;
-    delete energy;
 }
 
-void MCRT::lucy_iteration(int nphot, double ****energy) {
+void MCRT::lucy_iteration(int nphot) {
     for (int i=0; i<nphot; i++) {
         if (fmod(i+1,nphot/10) == 0) printf("%i\n",i+1);
 
         Photon *P = G->emit(nphot, i);
 
-        G->propagate_photon_full(P, energy, nphot, false, false);
+        G->propagate_photon_full(P, nphot, false, false);
 
         P->clean();
         delete P;
@@ -156,6 +153,7 @@ extern "C" {
         G->temp = temp;
         G->mass = mass;
         G->volume = volume;
+        G->energy = create4DArrValue(1, G->n1, G->n2, G->n3, 0);
     }
 
     void create_dust_species_array(Grid *G, int nspecies) {

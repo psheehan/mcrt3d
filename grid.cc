@@ -22,6 +22,7 @@ struct Grid {
     double *dw2;
     double *dw3;
     double ****dens;
+    double ****energy;
     double ****temp;
     double ****mass;
     double ***volume;
@@ -34,17 +35,17 @@ struct Grid {
     Photon *emit(int nphot, int iphot);
     virtual double next_wall_distance(Photon *P, bool verbose);
     virtual double outer_wall_distance(Photon *P, bool verbose);
-    void propagate_photon_full(Photon *P, double ****energy, int nphot, 
+    void propagate_photon_full(Photon *P, int nphot, 
             bool bw, bool verbose);
-    void propagate_photon(Photon *P, double tau, double ****energy, bool absorb,
+    void propagate_photon(Photon *P, double tau, bool absorb,
             bool bw, bool verbose, int nphot);
     void propagate_ray(Ray *R, bool verbose);
     void absorb(Photon *P, int idust, bool bw);
     void isoscatt(Photon *P, int idust);
     virtual Vector<int, 3> photon_loc(Photon *P, bool verbose);
     virtual bool in_grid(Photon *P);
-    void update_grid(int nphot, Vector<int, 3> l, double ****energy);
-    void update_grid(int nphot, double ****energy);
+    void update_grid(int nphot, Vector<int, 3> l);
+    void update_grid(int nphot);
     double cell_lum(Vector<int, 3> l);
 };
 
@@ -95,7 +96,7 @@ void Grid::isoscatt(Photon *P, int idust) {
 
 /* Propagate a photon through the grid until it escapes. */
 
-void Grid::propagate_photon_full(Photon *P, double ****energy, int nphot, 
+void Grid::propagate_photon_full(Photon *P, int nphot, 
         bool bw, bool verbose) {
     while (in_grid(P)) {
         // Determin the optical depth that the photon can travel until it's
@@ -137,7 +138,7 @@ void Grid::propagate_photon_full(Photon *P, double ****energy, int nphot,
         bool absorb_photon = random_number() > albedo;
 
         // Move the photon to the point of it's next interaction.
-        propagate_photon(P, tau, energy, absorb_photon, bw, verbose, nphot);
+        propagate_photon(P, tau, absorb_photon, bw, verbose, nphot);
 
         // If the photon is still in the grid when it reaches it's 
         // destination...
@@ -173,7 +174,7 @@ void Grid::propagate_photon_full(Photon *P, double ****energy, int nphot,
 
 /* Propagate a photon through the grid a distance equivalent to tau. */
 
-void Grid::propagate_photon(Photon *P, double tau, double ****energy, 
+void Grid::propagate_photon(Photon *P, double tau,
         bool absorb, bool bw, bool verbose, int nphot) {
 
     int i = 0;
@@ -207,7 +208,7 @@ void Grid::propagate_photon(Photon *P, double tau, double ****energy,
             // If we're doing a Bjorkman & Wood simulation, update the cell to
             // find its new temperature.
             if (bw) {
-                update_grid(nphot,P->l,energy);
+                update_grid(nphot,P->l);
             }
         }
 
@@ -319,7 +320,7 @@ bool Grid::in_grid(Photon *P) {
 /* Update the temperature in a cell given the number of photons that have 
  * been absorbed in the cell. */
 
-void Grid::update_grid(int nphot, Vector<int, 3> l, double ****energy) {
+void Grid::update_grid(int nphot, Vector<int, 3> l) {
     bool not_converged = true;
 
     for (int idust=0; idust<nspecies; idust++) {
@@ -342,11 +343,11 @@ void Grid::update_grid(int nphot, Vector<int, 3> l, double ****energy) {
     }
 }
 
-void Grid::update_grid(int nphot, double ****energy) {
+void Grid::update_grid(int nphot) {
     for (int i=0; i<nw1-1; i++)
         for (int j=0; j<nw2-1; j++)
             for (int k=0; k<nw3-1; k++)
-                update_grid(nphot, Vector<int, 3>(i,j,k), energy);
+                update_grid(nphot, Vector<int, 3>(i,j,k));
 }
 
 /* Calculate the luminosity of the cell indicated by l. */
