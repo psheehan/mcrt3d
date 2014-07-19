@@ -177,6 +177,7 @@ void Grid::propagate_photon_full(Photon *P, int nphot,
 void Grid::propagate_photon(Photon *P, double tau,
         bool absorb, bool bw, bool verbose, int nphot) {
 
+    bool absorbed_by_source = false;
     int i = 0;
     while ((tau > 0) && (in_grid(P))) {
         // Calculate the distance to the next wall.
@@ -190,13 +191,20 @@ void Grid::propagate_photon(Photon *P, double tau,
 
         double s2 = tau/alpha;
 
-        // Calculate how far the photon can go before running into a source.
-        double s3 = sources[0].intercept_distance(P);
-
         // Determine whether to move to the next wall or to the end of tau.
         double s = s1;
         if (s2 < s) s = s2;
-        if (s3 < s) s = s3;
+
+        // Calculate how far the photon can go before running into a source.
+        for (int isource=0; isource<nsources; isource++) {
+            double s3 = sources[isource].intercept_distance(P);
+
+            if (s3 < s) {
+                s = s3;
+                absorbed_by_source = true;
+            }
+        }
+
 
         // Continuously absorb the photon's energy, if the end result of the
         // current trajectory is absorption.
@@ -234,7 +242,7 @@ void Grid::propagate_photon(Photon *P, double tau,
 
         // If the distance to the star is the shortest distance, kill the 
         // photon.
-        if (s3 == s) {
+        if (absorbed_by_source) {
             P->l[0] = nw1;
             P->l[1] = nw2;
             P->l[2] = nw3;
