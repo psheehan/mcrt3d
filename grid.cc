@@ -26,7 +26,6 @@ struct Grid {
     double ***mass;
     double ***volume;
     Dust *dust_species;
-    int ***dust;
     Source *sources;
     int nspecies;
     double total_lum;
@@ -64,8 +63,8 @@ Photon *Grid::emit() {
 /* Linker function to the dust absorb function. */
 
 void Grid::absorb(Photon *P, bool bw) {
-    dust_species[dust[P->l[0]][P->l[1]][P->l[2]]].absorb(P,
-            temp[P->l[0]][P->l[1]][P->l[2]], bw, dust_species, nspecies);
+    dust_species[0].absorb(P, temp[P->l[0]][P->l[1]][P->l[2]], bw, 
+            dust_species, nspecies);
 
     // Check the photon's location again because there's a small chance that 
     // the photon was absorbed on a wall, and if it was we may need to update
@@ -76,7 +75,7 @@ void Grid::absorb(Photon *P, bool bw) {
 /* Linker function to the dust isoscatt function. */
 
 void Grid::isoscatt(Photon *P) {
-    dust_species[dust[P->l[0]][P->l[1]][P->l[2]]].isoscatt(P);
+    dust_species[0].isoscatt(P);
 
     // Check the photon's location again because there's a small chance that 
     // the photon was absorbed on a wall, and if it was we may need to update
@@ -96,8 +95,7 @@ void Grid::propagate_photon_full(Photon *P, double ***pcount, int nphot,
         // Figure out what that next action is, absorption or scattering. This
         // is figured out early for the sake of the continuous absorption
         // method.
-        bool absorb_photon = random_number() > P->current_albedo[dust[P->l[0]]
-                [P->l[1]][P->l[2]]];
+        bool absorb_photon = random_number() > P->current_albedo[0];
 
         // Move the photon to the point of it's next interaction.
         propagate_photon(P, tau, pcount, absorb_photon, bw, verbose, nphot);
@@ -145,8 +143,7 @@ void Grid::propagate_photon(Photon *P, double tau, double ***pcount,
         double s1 = next_wall_distance(P, verbose);
 
         // Calculate how far the photon can go with the current tau.
-        double s2 = tau/(P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
-                dens[P->l[0]][P->l[1]][P->l[2]]);
+        double s2 = tau/(P->current_kext[0]*dens[P->l[0]][P->l[1]][P->l[2]]);
 
         // Calculate how far the photon can go before running into a source.
         double s3 = sources[0].intercept_distance(P);
@@ -159,8 +156,7 @@ void Grid::propagate_photon(Photon *P, double tau, double ***pcount,
         // Continuously absorb the photon's energy, if the end result of the
         // current trajectory is absorption.
         if (absorb) {
-            pcount[P->l[0]][P->l[1]][P->l[2]] += s*
-                P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
+            pcount[P->l[0]][P->l[1]][P->l[2]] += s*P->current_kext[0]*
                 dens[P->l[0]][P->l[1]][P->l[2]];
             // If we're doing a Bjorkman & Wood simulation, update the cell to
             // find its new temperature.
@@ -170,8 +166,7 @@ void Grid::propagate_photon(Photon *P, double tau, double ***pcount,
         }
 
         // Remvove the tau we've used up with this stepl
-        tau -= s*P->current_kext[dust[P->l[0]][P->l[1]][P->l[2]]]*
-                dens[P->l[0]][P->l[1]][P->l[2]];
+        tau -= s*P->current_kext[0]*dens[P->l[0]][P->l[1]][P->l[2]];
 
         // Move the photon to it's new position.
         P->move(s);
@@ -220,8 +215,7 @@ void Grid::propagate_ray(Ray *R, bool verbose) {
 
         double s = next_wall_distance(R, verbose);
 
-        double tau_cell = s*R->current_kext[dust[R->l[0]][R->l[1]][R->l[2]]]*
-                dens[R->l[0]][R->l[1]][R->l[2]];
+        double tau_cell = s*R->current_kext[0]*dens[R->l[0]][R->l[1]][R->l[2]];
 
         double intensity_cell = (1.0-exp(-tau_cell))*planck_function(R->nu,
                 temp[R->l[0]][R->l[1]][R->l[2]]);
@@ -281,8 +275,7 @@ void Grid::update_grid(int nphot, Vector<int, 3> l, double ***pcount) {
 
         temp[l[0]][l[1]][l[2]]=pow(pcount[l[0]][l[1]][l[2]]*
             sources[0].luminosity/(4*sigma*nphot*
-            dust_species[dust[l[0]][l[1]][l[2]]].
-            planck_mean_opacity(temp[l[0]][l[1]][l[2]])*
+            dust_species[0].planck_mean_opacity(temp[l[0]][l[1]][l[2]])*
             mass[l[0]][l[1]][l[2]]),0.25);
 
         // Make sure that there is a minimum temperature that the grid can
@@ -304,7 +297,7 @@ void Grid::update_grid(int nphot, double ***pcount) {
 /* Calculate the luminosity of the cell indicated by l. */
 
 double Grid::cell_lum(Vector<int, 3> l) {
-    return 4*mass[l[0]][l[1]][l[2]]*dust_species[dust[l[0]][l[1]][l[2]]].
+    return 4*mass[l[0]][l[1]][l[2]]*dust_species[0].
         planck_mean_opacity(temp[l[0]][l[1]][l[2]])*sigma*
         pow(temp[l[0]][l[1]][l[2]],4);
 }

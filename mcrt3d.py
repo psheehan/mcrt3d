@@ -235,8 +235,7 @@ class Grid:
                 dens.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 temp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 mass.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                volume.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                dust.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+                volume.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
 
     def set_dust_species(self, dust_species):
         self.dust_species = dust_species
