@@ -221,6 +221,64 @@ void equate3DArrs(double ***arr1, double ***arr2, int nx, int ny, int nz) {
                 arr1[i][j][k] = arr2[i][j][k];
 }
 
+/* Create an empty 4-dimensional array. */
+
+double ****create4DArr(int nx, int ny, int nz, int nq) {
+    double ****arr = new double***[nx];
+    for (int i=0; i<nx; i++) {
+        arr[i] = new double**[ny];
+        for (int j=0; j<ny; j++) {
+            arr[i][j] = new double*[nz];
+            for (int k=0; k<nz; k++)
+                arr[i][j][k] = new double[nq];
+        }
+    }
+
+    return arr;
+};
+
+/* Create a 3-dimensional array filled with a particular value. */
+
+double ****create4DArrValue(int nx, int ny, int nz, int nq, int value) {
+    double ****arr = new double***[nx];
+    for (int i=0; i<nx; i++) {
+        arr[i] = new double**[ny];
+        for (int j=0; j<ny; j++) {
+            arr[i][j] = new double*[nz];
+            for (int k=0; k<nz; k++) {
+                arr[i][j][k] = new double[nz];
+                for (int l=0; l<nq; l++)
+                    arr[i][j][k][l] = value;
+            }
+        }
+    }
+
+    return arr;
+};
+
+/* Set the value of a 4-dimensional array to a constant value. */
+
+void set4DArrValue(double ****arr, double value, int nx, int ny, int nz, 
+        int nq) {
+    for (int i=0; i<nx; i++)
+        for (int j=0; j<ny; j++)
+            for (int k=0; k<nz; k++)
+                for (int l=0; l<nq; l++)
+                    arr[i][j][k][l] = value;
+}
+
+/* Set one 4-dimensional array equal to another 4-dimensional array, element
+ * by element. */
+
+void equate4DArrs(double ****arr1, double ****arr2, int nx, int ny, int nz, 
+        int nq) {
+    for (int i=0; i<nx; i++)
+        for (int j=0; j<ny; j++)
+            for (int k=0; k<nz; k++)
+                for (int l=0; l<nq; l++)
+                    arr1[i][j][k][l] = arr2[i][j][k][l];
+}
+
 double delta(double x1, double x2) {
     double d1 = x1/x2;
     double d2 = x2/x1;
