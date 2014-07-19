@@ -289,43 +289,48 @@ double delta(double x1, double x2) {
     return delt;
 }
 
-double quantile(double ***R, double p, int nx, int ny, int nz) {
-    double *Rline = new double[nx*ny*nz];
+double quantile(double ****R, double p, int nx, int ny, int nz, int nq) {
+    double *Rline = new double[nx*ny*nz*nq];
 
     for (int i=0; i<nx; i++)
         for (int j=0; j<ny; j++)
             for (int k=0; k<nz; k++)
-                Rline[i*ny*nz+j*nz+k] = R[i][j][k];
+                for (int l=0; l<nq; l++)
+                    Rline[i*ny*nz*nq+j*nz*nq+k*nq+l] = R[i][j][k][l];
 
-    bubbleSort(Rline, nx*ny*nz);
+    bubbleSort(Rline, nx*ny*nz*nq);
 
-    double quant = Rline[int(p*nx*ny*nz)];
+    double quant = Rline[int(p*nx*ny*nz*nq)];
 
     delete Rline;
 
     return quant;
 }
 
-bool converged(double ***newArr, double ***oldArr, double ***reallyoldArr,
-        int n1, int n2, int n3) {
+bool converged(double ****newArr, double ****oldArr, double ****reallyoldArr,
+        int n1, int n2, int n3, int n4) {
     double Qthresh = 2.0;
     double Delthresh = 1.1;
     double p = 0.99;
 
-    double ***R = create3DArr(n1, n2, n3);
-    double ***Rold = create3DArr(n1, n2, n3);
+    double ****R = create4DArr(n1, n2, n3, n4);
+    double ****Rold = create4DArr(n1, n2, n3, n4);
 
     for (int i=0; i<n1; i++) {
         for (int j=0; j<n2; j++) {
             for (int k=0; k<n3; k++) {
-                R[i][j][k] = delta(oldArr[i][j][k],newArr[i][j][k]);
-                Rold[i][j][k] = delta(reallyoldArr[i][j][k],newArr[i][j][k]);
+                for (int l=0; l<n4; l++) {
+                    R[i][j][k][l] = delta(oldArr[i][j][k][l], 
+                            newArr[i][j][k][l]);
+                    Rold[i][j][k][l] = delta(reallyoldArr[i][j][k][l],
+                            newArr[i][j][k][l]);
+                }
             }
         }
     }
 
-    double Q = quantile(R,p,n1,n2,n3);
-    double Qold = quantile(Rold,p,n1,n2,n3);
+    double Q = quantile(R,p,n1,n2,n3,n4);
+    double Qold = quantile(Rold,p,n1,n2,n3,n4);
     printf("%f   %f\n", Q, Qold);
 
     double Del = delta(Qold,Q);

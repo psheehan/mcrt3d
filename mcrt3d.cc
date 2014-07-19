@@ -55,19 +55,19 @@ void MCRT::thermal_mc_bw(int nphot) {
 
 void MCRT::thermal_mc_lucy(int nphot) {
     double ****pcount = create4DArrValue(G->nspecies, G->n1, G->n2, G->n3, 0);
-    double ***told = create3DArr(G->n1,G->n2,G->n3);
-    double ***treallyold = create3DArr(G->n1,G->n2,G->n3);
+    double ****told = create4DArr(G->nspecies, G->n1,G->n2,G->n3);
+    double ****treallyold = create4DArr(G->nspecies, G->n1,G->n2,G->n3);
 
-    int maxniter = 1;
+    int maxniter = 10;
 
-    equate3DArrs(told, G->temp[0], G->n1, G->n2, G->n3);
+    equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
 
     int i = 1;
     while (i <= maxniter) {
         printf("Starting iteration # %i \n\n", i);
 
-        equate3DArrs(treallyold, told, G->n1, G->n2, G->n3);
-        equate3DArrs(told, G->temp[0], G->n1, G->n2, G->n3);
+        equate4DArrs(treallyold, told, G->nspecies, G->n1, G->n2, G->n3);
+        equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
 
         lucy_iteration(nphot, pcount);
 
@@ -75,7 +75,8 @@ void MCRT::thermal_mc_lucy(int nphot) {
         set4DArrValue(pcount, 0.0, G->nspecies, G->n1, G->n2, G->n3);
 
         if (i > 2)
-            if (converged(G->temp[0], told, treallyold, G->n1, G->n2, G->n3))
+            if (converged(G->temp, told, treallyold, G->nspecies, G->n1, 
+                        G->n2, G->n3))
                 i = maxniter;
 
         i++;
