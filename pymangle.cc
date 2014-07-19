@@ -63,10 +63,10 @@ T**** pymangle(int nx, int ny, int nz, int nq, T* data_from_python) {
     m = (T****) malloc(sizeof(T***)*nx);
     assert( m != (T****)NULL );
     m[0] = (T***) malloc(sizeof(T**)*nx*ny);
-    assert( m[0] != (T**)NULL );
+    assert( m[0] != (T***)NULL );
     m[0][0] = (T**) malloc(sizeof(T*)*nx*ny*nz);
     assert( m[0][0] != (T**)NULL );
-    m[0][0] = data_from_python;
+    m[0][0][0] = data_from_python;
     for(int j=1; j<ny; j++) m[0][j] = m[0][j-1] + nz;
     for(int i=1; i<nx; i++) {
         m[i] = m[i-1] + ny;
