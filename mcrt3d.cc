@@ -34,7 +34,7 @@ void MCRT::thermal_mc_bw(int nphot) {
     for (int i=0; i<nphot; i++) {
         if (fmod(i+1,nphot/10) == 0) printf("%i\n",i+1);
 
-        Photon *P = G->emit(nphot);
+        Photon *P = G->emit(nphot, i);
 
         if (verbose) {
             printf("Emitting photon # %i\n", i);
@@ -92,7 +92,7 @@ void MCRT::lucy_iteration(int nphot, double ****energy) {
     for (int i=0; i<nphot; i++) {
         if (fmod(i+1,nphot/10) == 0) printf("%i\n",i+1);
 
-        Photon *P = G->emit(nphot);
+        Photon *P = G->emit(nphot, i);
 
         G->propagate_photon_full(P, energy, nphot, false, false);
 
@@ -170,6 +170,7 @@ extern "C" {
 
     void create_sources_array(Grid *G, int nsources) {
         G->sources = new Source[nsources];
+        G->nsources = nsources;
     }
 
     void set_sources(Grid *G, Source *S, int index) {

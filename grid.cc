@@ -31,7 +31,7 @@ struct Grid {
     Source *sources;
     double total_lum;
 
-    Photon *emit(int nphot);
+    Photon *emit(int nphot, int iphot);
     virtual double next_wall_distance(Photon *P, bool verbose);
     virtual double outer_wall_distance(Photon *P, bool verbose);
     void propagate_photon_full(Photon *P, double ****energy, int nphot, 
@@ -50,10 +50,19 @@ struct Grid {
 
 /* Emit a photon from the grid. */
 
-Photon *Grid::emit(int nphot) {
-    /* For now I'm just assuming that you have a single star. This needs to be
-     * updated. */
-    Photon *P = sources[0].emit(nphot, nspecies, dust_species);
+Photon *Grid::emit(int nphot, int iphot) {
+    /* Cycle through the various stars, having them emit photons one after 
+     * another. This way each source will get the same nuber of photons 
+     * +/- 1. */
+    int isource = 0;
+    int photons_per_source = nphot;
+    if (nsources > 1) {
+        int isource = fmod(iphot, nsources);
+        int photons_per_source = int(nphot/nsources);
+    }
+
+    Photon *P = sources[isource].emit(photons_per_source, nspecies, 
+            dust_species);
 
     /* Check the photon's location in the grid. */
     P->l = photon_loc(P, false);
