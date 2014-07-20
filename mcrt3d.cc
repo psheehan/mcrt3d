@@ -152,14 +152,14 @@ extern "C" {
         G->energy = create4DArrValue(1, G->n1, G->n2, G->n3, 0);
     }
 
-    void create_dust_species_array(Grid *G, int nspecies) {
+    void create_dust_array(Grid *G, int nspecies) {
         G->nspecies = nspecies;
 
-        G->dust_species = new Dust[nspecies];
+        G->dust = new Dust[nspecies];
     }
 
-    void set_dust_species(Grid *G, Dust *D, int index) {
-        G->dust_species[index] = *D;
+    void set_dust(Grid *G, Dust *D, int index) {
+        G->dust[index] = *D;
     }
 
     void create_sources_array(Grid *G, int nsources) {

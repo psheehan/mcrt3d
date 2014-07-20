@@ -24,7 +24,7 @@ struct Grid {
     double ****mass;
     double ***volume;
     int nspecies;
-    Dust *dust_species;
+    Dust *dust;
     int nsources;
     Source *sources;
     double total_lum;
@@ -60,7 +60,7 @@ Photon *Grid::emit(int nphot, int iphot) {
     }
 
     Photon *P = sources[isource].emit(photons_per_source, nspecies, 
-            dust_species);
+            dust);
 
     /* Check the photon's location in the grid. */
     P->l = photon_loc(P, false);
@@ -71,8 +71,8 @@ Photon *Grid::emit(int nphot, int iphot) {
 /* Linker function to the dust absorb function. */
 
 void Grid::absorb(Photon *P, int idust, bool bw) {
-    dust_species[idust].absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], bw, 
-            dust_species, nspecies);
+    dust[idust].absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], bw, 
+            dust, nspecies);
 
     // Check the photon's location again because there's a small chance that 
     // the photon was absorbed on a wall, and if it was we may need to update
@@ -83,7 +83,7 @@ void Grid::absorb(Photon *P, int idust, bool bw) {
 /* Linker function to the dust isoscatt function. */
 
 void Grid::isoscatt(Photon *P, int idust) {
-    dust_species[idust].isoscatt(P);
+    dust[idust].isoscatt(P);
 
     // Check the photon's location again because there's a small chance that 
     // the photon was absorbed on a wall, and if it was we may need to update
@@ -333,7 +333,7 @@ void Grid::update_grid(int nphot, Vector<int, 3> l) {
             double T_old = temp[idust][l[0]][l[1]][l[2]];
 
             temp[idust][l[0]][l[1]][l[2]]=pow(energy[idust][l[0]][l[1]][l[2]]/
-                (4*sigma*dust_species[idust].\
+                (4*sigma*dust[idust].\
                 planck_mean_opacity(temp[idust][l[0]][l[1]][l[2]])*
                 mass[idust][l[0]][l[1]][l[2]]),0.25);
 
@@ -358,7 +358,7 @@ void Grid::update_grid(int nphot) {
 /* Calculate the luminosity of the cell indicated by l. */
 
 double Grid::cell_lum(Vector<int, 3> l) {
-    return 4*mass[0][l[0]][l[1]][l[2]]*dust_species[0].
+    return 4*mass[0][l[0]][l[1]][l[2]]*dust[0].
         planck_mean_opacity(temp[0][l[0]][l[1]][l[2]])*sigma*
         pow(temp[0][l[0]][l[1]][l[2]],4);
 }

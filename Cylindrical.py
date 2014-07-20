@@ -25,18 +25,18 @@ def SetupGrid():
 
     # Set up the dust.
 
-    dust_species = array([Dust()])
+    dust = array([Dust()])
 
-    dust_species[0].set_properties_from_file("dustkappa_yso.inp")
+    dust[0].set_properties_from_file("dustkappa_yso.inp")
 
-    G.set_dust_species(dust_species)
+    G.set_dust(dust)
 
     # Set up the source.
 
     sources = array([Source()])
 
     sources[0].set_parameters(0.0,0.0,0.0,Msun,Rsun,4000.0)
-    sources[0].set_blackbody_spectrum(dust_species[0].nu)
+    sources[0].set_blackbody_spectrum(dust[0].nu)
 
     G.set_sources(sources)
 

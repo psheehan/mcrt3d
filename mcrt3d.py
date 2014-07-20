@@ -159,7 +159,7 @@ class Grid:
         self.obj = lib.new_CartesianGrid()
         self.grid_type = "Cartesian"
 
-        self.set_walls(z,y,x)
+        self.set_walls(x,y,z)
 
     def set_cylindrical_grid(self,r,phi,z):
         self.obj = lib.new_CylindricalGrid()
@@ -184,7 +184,7 @@ class Grid:
                 w2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 w3.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
 
-    def set_physical_properties(self, dens, dust):
+    def set_physical_properties(self, dens):
         volume = numpy.ones(dens.shape ,dtype=float)
         for i in range(volume.shape[0]):
             for j in range(volume.shape[1]):
@@ -209,7 +209,6 @@ class Grid:
         self.temp = numpy.array([temp])
         self.mass = numpy.array([mass])
         self.volume = volume
-        self.dust = dust
 
         lib.set_physical_properties(ctypes.c_void_p(self.obj), \
                 self.dens.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
@@ -217,15 +216,14 @@ class Grid:
                 self.mass.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 volume.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
 
-    def set_dust_species(self, dust_species):
-        self.dust_species = dust_species
+    def set_dust(self, dust):
+        self.dust = dust
 
-        lib.create_dust_species_array(ctypes.c_void_p(self.obj), \
-                dust_species.size)
+        lib.create_dust_array(ctypes.c_void_p(self.obj), dust.size)
 
-        for i in range(dust_species.size):
-            lib.set_dust_species(ctypes.c_void_p(self.obj), \
-                    ctypes.c_void_p(dust_species[i].obj),i)
+        for i in range(dust.size):
+            lib.set_dust(ctypes.c_void_p(self.obj), \
+                    ctypes.c_void_p(dust[i].obj),i)
 
     def set_sources(self, sources):
         self.sources = sources
