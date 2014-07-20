@@ -124,8 +124,7 @@ extern "C" {
     }
 
     void set_walls(Grid *G, int n1, int n2, int n3, int nw1, int nw2, int nw3, 
-            double *w1, double *w2, double *w3, double *dw1, double *dw2, 
-            double *dw3) {
+            double *w1, double *w2, double *w3) {
 
         G->n1 = n1;
         G->n2 = n2;
@@ -136,9 +135,6 @@ extern "C" {
         G->w1 = w1;
         G->w2 = w2;
         G->w3 = w3;
-        G->dw1 = dw1;
-        G->dw2 = dw2;
-        G->dw3 = dw3;
     }
 
     void set_physical_properties(Grid *G, double *_dens, double *_temp,

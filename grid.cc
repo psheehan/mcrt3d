@@ -18,9 +18,6 @@ struct Grid {
     double *w1;
     double *w2;
     double *w3;
-    double *dw1;
-    double *dw2;
-    double *dw3;
     double ****dens;
     double ****energy;
     double ****temp;

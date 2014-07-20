@@ -1,6 +1,7 @@
 import ctypes
 import numpy
 from pdspy import misc
+from pdspy import modeling
 
 au = 1.496e13
 c_l = 2.99792458e10
@@ -177,38 +178,17 @@ class Grid:
         self.w2 = w2
         self.w3 = w3
 
-        self.n1 = w1.size-1
-        self.n2 = w2.size-1
-        self.n3 = w3.size-1
-
-        self.nw1 = w1.size
-        self.nw2 = w2.size
-        self.nw3 = w3.size
-
-        self.dw1 = numpy.zeros(self.nw1)
-        self.dw2 = numpy.zeros(self.nw2)
-        self.dw3 = numpy.zeros(self.nw3)
-        self.dw1[0:self.nw1-1] = w1[1:self.nw1] - w1[0:self.nw1-1]
-        self.dw2[0:self.nw2-1] = w2[1:self.nw2] - w2[0:self.nw2-1]
-        self.dw3[0:self.nw3-1] = w3[1:self.nw3] - w3[0:self.nw3-1]
-        self.dw1[self.nw1-1] = self.dw1[self.nw1-2]
-        self.dw2[self.nw2-1] = self.dw2[self.nw2-2]
-        self.dw3[self.nw3-1] = self.dw3[self.nw3-2]
-
         lib.set_walls(ctypes.c_void_p(self.obj), w1.size-1, w2.size-1, \
                 w3.size-1, w1.size, w2.size, w3.size, \
                 w1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 w2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                w3.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.dw1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.dw2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.dw3.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+                w3.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
 
     def set_physical_properties(self, dens, dust):
-        volume = numpy.ones((self.nw1-1,self.nw2-1,self.nw3-1),dtype=float)
-        for i in range(self.nw1-1):
-            for j in range(self.nw2-1):
-                for k in range(self.nw3-1):
+        volume = numpy.ones(dens.shape ,dtype=float)
+        for i in range(volume.shape[0]):
+            for j in range(volume.shape[1]):
+                for k in range(volume.shape[2]):
                     if (self.grid_type == "Cartesian"):
                         volume[i,j,k] = (self.w1[i+1] - self.w1[i])* \
                             (self.w2[j+1] - self.w2[j])* \
@@ -223,7 +203,7 @@ class Grid:
                             (numpy.cos(self.w2[j]) - numpy.cos(self.w2[j+1]))/3
 
         mass = dens * volume
-        temp = numpy.ones((self.nw1-1,self.nw2-1,self.nw3-1),dtype=float)
+        temp = numpy.ones(dens.shape ,dtype=float)
 
         self.dens = numpy.array([dens])
         self.temp = numpy.array([temp])
