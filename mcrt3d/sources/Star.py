@@ -1,19 +1,40 @@
+import ctypes
 import numpy
 import h5py
+import os
+from .. import misc
 from ..constants.physics import sigma
-from ..constants.astronomy import L_sun, R_sun
+
+lib = ctypes.cdll.LoadLibrary(os.path.dirname(__file__)+ \
+        '/../../src/libmcrt3d.so')
+lib.new_Source.restype = ctypes.c_void_p
 
 class Star:
-    def __init__(self, mass=0.5, luminosity=1.0, temperature=4000., x=0.0, \
-            y=0.0, z=0.0):
-        self.mass = mass
-        self.luminosity = luminosity
-        self.temperature = temperature
-        self.radius = (luminosity*L_sun/ \
-                (4*numpy.pi*sigma*temperature**4))**(1./2)/R_sun
+    def __init__(self):
+        self.obj = lib.new_Source()
+
+    def set_parameters(self, x, y, z, mass, radius, temperature):
         self.x = x
         self.y = y
         self.z = z
+        self.mass = mass
+        self.radius = radius
+        self.temperature = temperature
+        self.luminosity = 4*numpy.pi*radius**2 * sigma*temperature**4
+
+        lib.set_parameters(ctypes.c_void_p(self.obj), ctypes.c_double(x), \
+                ctypes.c_double(y), ctypes.c_double(z), ctypes.c_double(mass), \
+                ctypes.c_double(radius), ctypes.c_double(temperature))
+
+    def set_blackbody_spectrum(self, nu):
+        self.nu = nu
+        self.Bnu = misc.B_nu(nu, self.temperature)
+        self.luminosity = 4*numpy.pi*self.radius**2*sigma*self.temperature**4
+
+        lib.set_blackbody_spectrum(ctypes.c_void_p(self.obj), self.nu.size, \
+                self.nu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+                self.Bnu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+                ctypes.c_double(self.luminosity))
 
     def read(self, filename=None, usefile=None):
         if (usefile == None):

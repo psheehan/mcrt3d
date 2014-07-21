@@ -1,0 +1,1 @@
+from .Star import Star

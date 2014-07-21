@@ -1,144 +1,17 @@
+import ctypes
 import numpy
-import scipy
 import h5py
-from ..constants.physics import c
-from ..constants.math import pi
-from .bhmie import bhmie
-from .bhcoat import bhcoat
+import os
+from ..constants.physics import c, sigma, k
+from .. import misc
+
+lib = ctypes.cdll.LoadLibrary(os.path.dirname(__file__)+ \
+        '/../../src/libmcrt3d.so')
+lib.new_Dust.restype = ctypes.c_void_p
 
 class Dust:
-
-    def add_coat(self, coat):
-        self.coat = coat
-
-    def calculate_optical_constants_on_wavelength_grid(self, lam):
-        f = scipy.interpolate.interp1d(self.lam, self.n)
-        n = f(lam)
-        f = scipy.interpolate.interp1d(self.lam, self.k)
-        k = f(lam)
-
-        self.lam = lam
-        self.nu = c / self.lam
-
-        self.n = n
-        self.k = k
-        self.m = self.n + 1j*self.k
-
-    def calculate_size_distribution_opacity(self, amin, amax, p, \
-            coat_volume_fraction=0.0):
-        na = int(round(numpy.log10(amax) - numpy.log10(amin))*100+1)
-        a = numpy.logspace(numpy.log10(amin),numpy.log10(amax),na)
-        kabsgrid = numpy.zeros((self.lam.size,na))
-        kscagrid = numpy.zeros((self.lam.size,na))
-        
-        normfunc = a**(3-p)
-        
-        for i in range(na):
-            self.calculate_opacity(a[i], \
-                    coat_volume_fraction=coat_volume_fraction)
-            
-            kabsgrid[:,i] = self.kabs*normfunc[i]
-            kscagrid[:,i] = self.ksca*normfunc[i]
-        
-        norm = scipy.integrate.trapz(normfunc,x=a)
-        
-        self.kabs = scipy.integrate.trapz(kabsgrid,x=a)/norm
-        self.ksca = scipy.integrate.trapz(kscagrid,x=a)/norm
-        self.kext = self.kabs + self.ksca
-        self.albedo = self.ksca / self.kext
-
-    def calculate_opacity(self, a, coat_volume_fraction=0.0):
-        self.kabs = numpy.zeros(self.lam.size)
-        self.ksca = numpy.zeros(self.lam.size)
-        
-        if not hasattr(self, 'coat'):
-            mdust = 4*pi*a**3/3*self.rho
-            
-            for i in range(self.lam.size):
-                x = 2*pi*a/self.lam[i]
-                
-                S1,S2,Qext,Qsca,Qback,gsca=bhmie(x,self.m[i],1000)
-                
-                Qabs = Qext - Qsca
-                
-                self.kabs[i] = pi*a**2*Qabs/mdust
-                self.ksca[i] = pi*a**2*Qsca/mdust
-        
-        else:
-            a_coat = a*(1+coat_volume_fraction)**(1./3)
-
-            mdust = 4*pi*a**3/3*self.rho+ \
-                    4*pi/3*(a_coat**3-a**3)*self.coat.rho
-            
-            for i in range(self.lam.size):
-                x = 2*pi*a/self.lam[i]
-                y = 2*pi*a_coat/self.lam[i]
-                
-                Qext,Qsca,Qback=bhcoat(x,y,self.m[i],self.coat.m[i])
-                
-                Qabs = Qext - Qsca
-                
-                self.kabs[i] = pi*a_coat**2*Qabs/mdust
-                self.ksca[i] = pi*a_coat**2*Qsca/mdust
-
-        self.kext = self.kabs + self.ksca
-        self.albedo = self.ksca / self.kext
-
-    def set_density(self, rho):
-        self.rho = rho
-
-    def set_optical_constants(self, lam, n, k):
-        self.lam = lam
-        self.nu = c / self.lam
-
-        self.n = n
-        self.k = k
-        self.m = n+1j*k
-
-    def set_optical_constants_from_draine(self, filename):
-        opt_data = numpy.loadtxt(filename)
-
-        self.lam = numpy.flipud(opt_data[:,0])*1.0e-4
-        self.nu = c / self.lam
-
-        self.n = numpy.flipud(opt_data[:,3])+1.0
-        self.k = numpy.flipud(opt_data[:,4])
-        self.m = self.n+1j*self.k
-
-    def set_optical_constants_from_henn(self, filename):
-        opt_data = numpy.loadtxt(filename)
-
-        self.lam = opt_data[:,0]*1.0e-4
-        self.nu = c / self.lam
-
-        self.n = opt_data[:,1]
-        self.k = opt_data[:,2]
-        self.m = self.n+1j*self.k
-
-    def set_optical_constants_from_jena(self, filename, type="standard"):
-        opt_data = numpy.loadtxt(filename)
-
-        if type == "standard":
-            self.lam = numpy.flipud(1./opt_data[:,0])
-            self.n = numpy.flipud(opt_data[:,1])
-            self.k = numpy.flipud(opt_data[:,2])
-        elif type == "umwave":
-            self.lam = numpy.flipud(opt_data[:,0])*1.0e-4
-            self.n = numpy.flipud(opt_data[:,1])
-            self.k = numpy.flipud(opt_data[:,2])
-
-        self.nu = c / self.lam
-        self.m = self.n+1j*self.k
-
-    def set_optical_constants_from_oss(self, filename):
-        opt_data = numpy.loadtxt(filename)
-        
-        self.lam = opt_data[:,0] # in cm
-        self.nu = c / self.lam
-
-        self.n = opt_data[:,1]
-        self.k = opt_data[:,2]
-        self.m = self.n+1j*self.k
+    def __init__(self):
+        self.obj = lib.new_Dust()
 
     def set_properties(self, lam, kabs, ksca):
         self.lam = lam
@@ -149,6 +22,16 @@ class Dust:
         self.kext = self.kabs + self.ksca
         self.albedo = self.ksca / self.kext
 
+        lib.set_optical_properties(ctypes.c_void_p(self.obj), self.lam.size, \
+            self.nu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.lam.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.kabs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.ksca.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.kext.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.albedo.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+
+        self.make_lookup_tables()
+
     def set_properties_from_file(self, filename=None, usefile=None):
         if (usefile == None):
             f = h5py.File(filename, "r")
@@ -158,16 +41,6 @@ class Dust:
         self.lam = f['lam'].value
         self.nu = c / self.lam
 
-        if ('n' in f):
-            self.n = f['n'].value
-        if ('k' in f):
-            self.k = f['k'].value
-        if (hasattr(self, 'n') and hasattr(self, 'k')):
-            self.m = self.n + 1j*self.k
-
-        if ('rho' in f):
-            self.rho = f['rho'].value[0]
-
         if ('kabs' in f):
             self.kabs = f['kabs'].value
         if ('ksca' in f):
@@ -176,12 +49,116 @@ class Dust:
             self.kext = self.kabs + self.ksca
             self.albedo = self.ksca / self.kext
 
-        if ('coat' in f):
-            self.coat = Dust()
-            self.coat.set_properties_from_file(usefile=f['coat'])
-
         if (usefile == None):
             f.close()
+
+        lib.set_optical_properties(ctypes.c_void_p(self.obj), self.lam.size, \
+            self.nu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.lam.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.kabs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.ksca.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.kext.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.albedo.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+
+        self.make_lookup_tables()
+
+    def set_properties_from_radmc3d(self, filename):
+        data = numpy.loadtxt(filename, skiprows=2)
+
+        self.lam = data[:,0].copy() * 1.0e-4
+        self.nu = c / self.lam
+        self.kabs = data[:,1].copy()
+        self.ksca = data[:,2].copy()
+        self.kext = self.kabs + self.ksca
+        self.albedo = self.ksca / self.kext
+
+        lib.set_optical_properties(ctypes.c_void_p(self.obj), self.lam.size, \
+            self.nu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.lam.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.kabs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.ksca.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.kext.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+            self.albedo.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+
+        self.make_lookup_tables()
+
+    def make_lookup_tables(self):
+        self.temp = numpy.logspace(-1,5,100).astype(float)
+        self.ntemp = self.temp.size
+
+        self.int_Bnu = numpy.ones(self.temp.size)
+        self.int_Bnukext = numpy.ones(self.temp.size)
+        self.int_dBnukext = numpy.ones(self.temp.size)
+        for i in range(self.temp.size-1):
+            Bnu = misc.B_nu(self.nu,self.temp[i])
+            dBnu = misc.dB_nu(self.nu,self.temp[i])
+
+            self.int_Bnu[i] = numpy.trapz(Bnu,x=self.nu)
+            self.int_Bnukext[i] = numpy.trapz(Bnu*self.kext,x=self.nu)
+            self.int_dBnukext[i] = numpy.trapz(dBnu*self.kext,x=self.nu)
+        self.planck_opacity = -self.int_Bnukext/(sigma*self.temp**4/numpy.pi)
+
+        self.dplanck_opacity_dT = numpy.zeros(self.temp.size)
+        self.dint_dBnukext_dT = numpy.zeros(self.temp.size)
+        for i in range(self.temp.size-1):
+            self.dplanck_opacity_dT[i] = (self.planck_opacity[i+1]- \
+                    self.planck_opacity[i])/(self.temp[i+1]-self.temp[i])
+            self.dint_dBnukext_dT[i] = (self.int_dBnukext[i+1]- \
+                    self.int_dBnukext[i])/(self.temp[i+1]-self.temp[i])
+
+        self.dkextdnu = numpy.zeros(self.nu.size)
+        self.dalbedodnu = numpy.zeros(self.nu.size)
+        for i in range(self.nu.size-1):
+            self.dkextdnu[i] = (self.kext[i+1]-self.kext[i])/(self.nu[i+1]- \
+                    self.nu[i])
+            self.dalbedodnu[i] = (self.albedo[i+1]-self.albedo[i])/ \
+                    (self.nu[i+1]-self.nu[i])
+
+        self.Bnu = numpy.zeros((self.temp.size,self.nu.size))
+        self.dBnu = numpy.zeros((self.temp.size,self.nu.size))
+        self.dBnudT = numpy.zeros((self.temp.size,self.nu.size))
+        self.ddBnudT = numpy.zeros((self.temp.size,self.nu.size))
+        self.int_Bnu_knu_nu = numpy.zeros((self.temp.size,self.nu.size))
+        self.int_dBnu_knu_nu = numpy.zeros((self.temp.size,self.nu.size))
+        for i in range(self.temp.size):
+            self.Bnu[i,:] = misc.B_nu(self.nu,self.temp[i])
+            self.dBnu[i,:] = misc.dB_nu(self.nu,self.temp[i])
+
+            if (i < self.temp.size-1):
+                self.dBnudT[i,:] = (misc.B_nu(self.nu,self.temp[i+1])- \
+                        misc.B_nu(self.nu,self.temp[i]))/ \
+                        (self.temp[i+1]-self.temp[i])
+                self.ddBnudT[i,:] = (misc.dB_nu(self.nu,self.temp[i+1])- \
+                        misc.dB_nu(self.nu,self.temp[i]))/ \
+                        (self.temp[i+1]-self.temp[i])
+
+            for j in range(self.nu.size):
+                self.int_Bnu_knu_nu[i,j] = numpy.trapz(self.Bnu[i,0:j]* \
+                        self.kext[0:j],x=self.nu[0:j])
+                self.int_dBnu_knu_nu[i,j] = numpy.trapz(self.dBnu[i,0:j]* \
+                        self.kext[0:j],x=self.nu[0:j])
+
+        lib.set_lookup_tables(ctypes.c_void_p(self.obj), self.ntemp, \
+                self.temp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+                self.planck_opacity.ctypes.data_as(ctypes.POINTER( \
+                        ctypes.c_double)),\
+                self.int_dBnukext.ctypes.data_as(ctypes.POINTER( \
+                        ctypes.c_double)), \
+                self.dplanck_opacity_dT.ctypes.data_as( \
+                        ctypes.POINTER(ctypes.c_double)), \
+                self.dint_dBnukext_dT.ctypes.data_as( \
+                        ctypes.POINTER(ctypes.c_double)), \
+                self.dkextdnu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+                self.dalbedodnu.ctypes.data_as(ctypes.POINTER( \
+                        ctypes.c_double)), \
+                self.Bnu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+                self.dBnu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+                self.dBnudT.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+                self.ddBnudT.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
+                self.int_Bnu_knu_nu.ctypes.data_as(ctypes.POINTER( \
+                        ctypes.c_double)), \
+                self.int_dBnu_knu_nu.ctypes.data_as(ctypes.POINTER( \
+                        ctypes.c_double)))
 
     def write(self, filename=None, usefile=None):
         if (usefile == None):
@@ -192,16 +169,6 @@ class Dust:
         if hasattr(self, 'lam'):
             lam_dset = f.create_dataset("lam", (self.lam.size,), dtype='f')
             lam_dset[...] = self.lam
-        if hasattr(self, 'n'):
-            n_dset = f.create_dataset("n", (self.n.size,), dtype='f')
-            n_dset[...] = self.n
-        if hasattr(self, 'k'):
-            k_dset = f.create_dataset("k", (self.k.size,), dtype='f')
-            k_dset[...] = self.k
-        
-        if hasattr(self, 'rho'):
-            rho_dset = f.create_dataset("rho", (1,), dtype='f')
-            rho_dset[...] = [self.rho]
 
         if hasattr(self, 'kabs'):
             kabs_dset = f.create_dataset("kabs", (self.kabs.size,), dtype='f')
@@ -212,11 +179,6 @@ class Dust:
         if hasattr(self, 'g'):
             g_dset = f.create_dataset("g", (self.g.size,), dtype='f')
             g_dset[...] = self.g
-
-        if hasattr(self, 'coat'):
-            coat_group = f.create_group("coat")
-
-            self.coat.write(usefile=coat_group)
 
         if (usefile == None):
             f.close()

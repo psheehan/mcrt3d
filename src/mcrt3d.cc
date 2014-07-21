@@ -124,7 +124,7 @@ extern "C" {
     }
 
     void set_walls(Grid *G, int n1, int n2, int n3, int nw1, int nw2, int nw3, 
-            double *w1, double *w2, double *w3) {
+            double *w1, double *w2, double *w3, double *_volume) {
 
         G->n1 = n1;
         G->n2 = n2;
@@ -135,21 +135,30 @@ extern "C" {
         G->w1 = w1;
         G->w2 = w2;
         G->w3 = w3;
+
+        double ***volume = pymangle(G->n1, G->n2, G->n3, _volume);
+
+        G->volume = volume;
+    }
+
+    void create_physical_properties_arrays(Grid *G, int nspecies) {
+        G->dens = new double***[nspecies];
+        G->temp = new double***[nspecies];
+        G->mass = new double***[nspecies];
+        G->energy = new double***[nspecies];
     }
 
     void set_physical_properties(Grid *G, double *_dens, double *_temp,
-            double *_mass, double *_volume) {
+            double *_mass, int index) {
 
-        double ****dens = pymangle(1, G->n1, G->n2, G->n3, _dens);
-        double ****temp = pymangle(1, G->n1, G->n2, G->n3, _temp);
-        double ****mass = pymangle(1, G->n1, G->n2, G->n3, _mass);
-        double ***volume = pymangle(G->n1, G->n2, G->n3, _volume);
+        double ***dens = pymangle(G->n1, G->n2, G->n3, _dens);
+        double ***temp = pymangle(G->n1, G->n2, G->n3, _temp);
+        double ***mass = pymangle(G->n1, G->n2, G->n3, _mass);
 
-        G->dens = dens;
-        G->temp = temp;
-        G->mass = mass;
-        G->volume = volume;
-        G->energy = create4DArrValue(1, G->n1, G->n2, G->n3, 0);
+        G->dens[index] = dens;
+        G->temp[index] = temp;
+        G->mass[index] = mass;
+        G->energy[index] = create3DArrValue(G->n1, G->n2, G->n3, 0);
     }
 
     void create_dust_array(Grid *G, int nspecies) {
@@ -249,8 +258,8 @@ extern "C" {
 
     /* Function to test that everything is being set up correctly. */
 
-    void test(double *_test) {
-        printf("Hello!\n");
+    void test(Grid *G) {
+        printf("%e\n", G->dens[0][0][0][0]);
     }
 
     /* Function to run a thermal monte carlo simulation. */
