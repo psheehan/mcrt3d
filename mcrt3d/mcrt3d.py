@@ -1,7 +1,7 @@
+import os
 import ctypes
 import numpy
-from pdspy import misc
-from pdspy import modeling
+from . import misc
 
 au = 1.496e13
 c_l = 2.99792458e10
@@ -10,7 +10,7 @@ Msun = 1.9891e33
 Lsun = 3.839e33
 Rsun = 6.955e10
 
-lib = ctypes.cdll.LoadLibrary('./libmcrt3d.so')
+lib = ctypes.cdll.LoadLibrary(os.path.dirname(__file__)+'/../src/libmcrt3d.so')
 lib.new_CartesianGrid.restype = ctypes.c_void_p
 lib.new_CylindricalGrid.restype = ctypes.c_void_p
 lib.new_SphericalGrid.restype = ctypes.c_void_p
