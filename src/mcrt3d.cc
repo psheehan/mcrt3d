@@ -13,17 +13,17 @@ struct MCRT {
     Grid *G;
     Params *Q;
 
-    void thermal_mc(int nphot, bool bw);
-    void scattering_mc(int nphot);
-    void mc_iteration(int nphot, bool bw, bool scattering);
+    void thermal_mc();
+    void scattering_mc();
+    void mc_iteration();
 };
 
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
  * grid. */
 
-void MCRT::thermal_mc(int nphot, bool bw) {
-    if (bw)
-        mc_iteration(nphot, bw, false);
+void MCRT::thermal_mc() {
+    if (Q->bw)
+        mc_iteration();
     else {
         double ****told = create4DArr(G->nspecies, G->n1,G->n2,G->n3);
         double ****treallyold = create4DArr(G->nspecies, G->n1,G->n2,G->n3);
@@ -39,9 +39,9 @@ void MCRT::thermal_mc(int nphot, bool bw) {
             equate4DArrs(treallyold, told, G->nspecies, G->n1, G->n2, G->n3);
             equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
 
-            mc_iteration(nphot, bw, false);
+            mc_iteration();
 
-            G->update_grid(nphot);
+            G->update_grid();
             set4DArrValue(G->energy, 0.0, G->nspecies, G->n1, G->n2, G->n3);
 
             if (i > 2)
@@ -58,19 +58,19 @@ void MCRT::thermal_mc(int nphot, bool bw) {
     }
 }
 
-void MCRT::scattering_mc(int nphot) {
-    mc_iteration(nphot, false, true);
+void MCRT::scattering_mc() {
+    mc_iteration();
 }
 
-void MCRT::mc_iteration(int nphot, bool bw, bool scattering) {
+void MCRT::mc_iteration() {
     bool verbose = false;
 
-    for (int i=0; i<nphot; i++) {
-        if (fmod(i+1,nphot/10) == 0) printf("%i\n",i+1);
+    for (int i=0; i<Q->nphot; i++) {
+        if (fmod(i+1,Q->nphot/10) == 0) printf("%i\n",i+1);
 
-        Photon *P = G->emit(nphot, i);
+        Photon *P = G->emit(i, Q);
 
-        if (verbose) {
+        if (Q->verbose) {
             printf("Emitting photon # %i\n", i);
             printf("Emitted with direction: %f  %f  %f\n", P->n[0], P->n[1], 
                     P->n[2]);
@@ -79,7 +79,7 @@ void MCRT::mc_iteration(int nphot, bool bw, bool scattering) {
             printf("Emitted with frequency: %e\n", P->nu);
         }
 
-        G->propagate_photon_full(P, nphot, bw, scattering, verbose);
+        G->propagate_photon_full(P, Q);
 
         P->clean();
         delete P;
@@ -279,8 +279,8 @@ extern "C" {
 
     /* Function to run a thermal monte carlo simulation. */
 
-    void run_thermal_mc(MCRT *me, int nphot, bool bw) {
-        me->thermal_mc(nphot, bw);
+    void run_thermal_mc(MCRT *me) {
+        me->thermal_mc();
     }
 
     /* Function to create an image. */

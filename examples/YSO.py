@@ -8,7 +8,7 @@ from numpy import *
 def SetupParams():
     Q = Params()
 
-    Q.set_nphot(10000)
+    Q.set_nphot(100000)
     Q.set_bw(True)
     Q.set_scattering(False)
     Q.set_verbose(False)

@@ -33,8 +33,7 @@ class MCRT:
         lib.set_Params(ctypes.c_void_p(self.obj),ctypes.c_void_p(Q.obj))
 
     def thermal_mc(self, nphot, bw):
-        lib.run_thermal_mc(ctypes.c_void_p(self.obj), ctypes.c_int(nphot), \
-                ctypes.c_bool(bw))
+        lib.run_thermal_mc(ctypes.c_void_p(self.obj))
 
     def thermal_mc_omp(self, nphot, bw, nthreads):
         lib.run_thermal_mc_omp(ctypes.c_void_p(self.obj), ctypes.c_int(nphot), \

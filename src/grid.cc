@@ -30,55 +30,53 @@ struct Grid {
     Source *sources;
     double total_lum;
 
-    Photon *emit(int nphot, int iphot);
+    Photon *emit(int iphot, Params *Q);
     virtual double next_wall_distance(Photon *P, bool verbose);
     virtual double outer_wall_distance(Photon *P, bool verbose);
-    void propagate_photon_full(Photon *P, int nphot, 
-            bool bw, bool scattering, bool verbose);
-    void propagate_photon(Photon *P, double tau, bool absorb,
-            bool bw, bool verbose, int nphot);
+    void propagate_photon_full(Photon *P, Params *Q);
+    void propagate_photon(Photon *P, double tau, bool absorb, Params *Q);
     void propagate_ray(Ray *R, bool verbose);
-    void absorb(Photon *P, int idust, bool bw);
+    void absorb(Photon *P, int idust, Params *Q);
     void isoscatt(Photon *P, int idust);
     virtual Vector<int, 3> photon_loc(Photon *P, bool verbose);
     virtual bool in_grid(Photon *P);
-    void update_grid(int nphot, Vector<int, 3> l);
-    void update_grid(int nphot);
+    void update_grid(Vector<int, 3> l);
+    void update_grid();
     double cell_lum(Vector<int, 3> l);
 };
 
 /* Emit a photon from the grid. */
 
-Photon *Grid::emit(int nphot, int iphot) {
+Photon *Grid::emit(int iphot, Params *Q) {
     /* Cycle through the various stars, having them emit photons one after 
      * another. This way each source will get the same nuber of photons 
      * +/- 1. */
     int isource = 0;
-    int photons_per_source = nphot;
+    int photons_per_source = Q->nphot;
     if (nsources > 1) {
         int isource = fmod(iphot, nsources);
-        int photons_per_source = int(nphot/nsources);
+        int photons_per_source = int(Q->nphot/nsources);
     }
 
     Photon *P = sources[isource].emit(photons_per_source, nspecies, 
             dust);
 
     /* Check the photon's location in the grid. */
-    P->l = photon_loc(P, false);
+    P->l = photon_loc(P, Q->verbose);
 
     return P;
 }
 
 /* Linker function to the dust absorb function. */
 
-void Grid::absorb(Photon *P, int idust, bool bw) {
-    dust[idust].absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], bw, 
+void Grid::absorb(Photon *P, int idust, Params *Q) {
+    dust[idust].absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw, 
             dust, nspecies);
 
     // Check the photon's location again because there's a small chance that 
     // the photon was absorbed on a wall, and if it was we may need to update
     // which cell it is in if the direction has changed.
-    P->l = photon_loc(P, false);
+    P->l = photon_loc(P, Q->verbose);
 }
 
 /* Linker function to the dust isoscatt function. */
@@ -94,8 +92,7 @@ void Grid::isoscatt(Photon *P, int idust) {
 
 /* Propagate a photon through the grid until it escapes. */
 
-void Grid::propagate_photon_full(Photon *P, int nphot, 
-        bool bw, bool scattering, bool verbose) {
+void Grid::propagate_photon_full(Photon *P, Params *Q) {
     while (in_grid(P)) {
         // Determin the optical depth that the photon can travel until it's
         // next interaction.
@@ -136,20 +133,20 @@ void Grid::propagate_photon_full(Photon *P, int nphot,
         bool absorb_photon = random_number() > albedo;
 
         // Move the photon to the point of it's next interaction.
-        propagate_photon(P, tau, absorb_photon, bw, verbose, nphot);
+        propagate_photon(P, tau, absorb_photon, Q);
 
         // If the photon is still in the grid when it reaches it's 
         // destination...
         if (in_grid(P)) {
             // If the next interaction is absorption...
             if (absorb_photon) {
-                if (scattering) {
+                if (Q->scattering) {
                     break;
                 }
                 else {
-                    absorb(P, idust, bw);
+                    absorb(P, idust, Q);
                     // If we've asked for verbose output, print some info.
-                    if (verbose) {
+                    if (Q->verbose) {
                         printf("Absorbing photon at %i  %i  %i\n", P->l[0],
                                 P->l[1], P->l[2]);
                         printf("Absorbed in a cell with temperature: %f\n",
@@ -165,10 +162,10 @@ void Grid::propagate_photon_full(Photon *P, int nphot,
                 isoscatt(P, idust);
                 // If we're doing a scattering simulation, keep track of the
                 // scatter that is happening.
-                if (scattering) {
+                if (Q->scattering) {
                 }
                 // If we've asked for verbose output, print some info.
-                if (verbose) {
+                if (Q->verbose) {
                     printf("Scattering photon at cell  %i  %i  %i\n",
                             P->l[0], P->l[1], P->l[2]);
                     printf("Scattered with direction: %f  %f  %f\n",
@@ -181,14 +178,13 @@ void Grid::propagate_photon_full(Photon *P, int nphot,
 
 /* Propagate a photon through the grid a distance equivalent to tau. */
 
-void Grid::propagate_photon(Photon *P, double tau,
-        bool absorb, bool bw, bool verbose, int nphot) {
+void Grid::propagate_photon(Photon *P, double tau, bool absorb, Params *Q) {
 
     bool absorbed_by_source = false;
     int i = 0;
     while ((tau > 0) && (in_grid(P))) {
         // Calculate the distance to the next wall.
-        double s1 = next_wall_distance(P, verbose);
+        double s1 = next_wall_distance(P, Q->verbose);
 
         // Calculate how far the photon can go with the current tau.
         double alpha = 0;
@@ -222,8 +218,8 @@ void Grid::propagate_photon(Photon *P, double tau,
                     dens[idust][P->l[0]][P->l[1]][P->l[2]];
             // If we're doing a Bjorkman & Wood simulation, update the cell to
             // find its new temperature.
-            if (bw) {
-                update_grid(nphot,P->l);
+            if (Q->bw) {
+                update_grid(P->l);
             }
         }
 
@@ -234,11 +230,11 @@ void Grid::propagate_photon(Photon *P, double tau,
         P->move(s);
 
         // If the photon moved to the next cell, update it's location.
-        if (s1 < s2) P->l = photon_loc(P, verbose);
+        if (s1 < s2) P->l = photon_loc(P, Q->verbose);
         i++;
 
         // If we've asked for verbose, print some information out.
-        if (verbose) {
+        if (Q->verbose) {
             printf("%2i  %7.4f  %i  %7.4f  %7.4f  %7.4f\n", i, tau, P->l[0],
                     P->r[0]/au, s1*P->n[0]/au, s2*P->n[0]/au);
             printf("%14i  %7.4f  %7.4f  %7.4f\n", P->l[1], P->r[1]/au, 
@@ -335,7 +331,7 @@ bool Grid::in_grid(Photon *P) {
 /* Update the temperature in a cell given the number of photons that have 
  * been absorbed in the cell. */
 
-void Grid::update_grid(int nphot, Vector<int, 3> l) {
+void Grid::update_grid(Vector<int, 3> l) {
     bool not_converged = true;
 
     for (int idust=0; idust<nspecies; idust++) {
@@ -358,11 +354,11 @@ void Grid::update_grid(int nphot, Vector<int, 3> l) {
     }
 }
 
-void Grid::update_grid(int nphot) {
+void Grid::update_grid() {
     for (int i=0; i<nw1-1; i++)
         for (int j=0; j<nw2-1; j++)
             for (int k=0; k<nw3-1; k++)
-                update_grid(nphot, Vector<int, 3>(i,j,k));
+                update_grid(Vector<int, 3>(i,j,k));
 }
 
 /* Calculate the luminosity of the cell indicated by l. */
