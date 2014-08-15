@@ -68,7 +68,7 @@ void MCRT::mc_iteration() {
     for (int i=0; i<Q->nphot; i++) {
         if (fmod(i+1,Q->nphot/10) == 0) printf("%i\n",i+1);
 
-        Photon *P = G->emit(i, Q);
+        Photon *P = G->emit(i);
 
         if (Q->verbose) {
             printf("Emitting photon # %i\n", i);
@@ -79,7 +79,7 @@ void MCRT::mc_iteration() {
             printf("Emitted with frequency: %e\n", P->nu);
         }
 
-        G->propagate_photon_full(P, Q);
+        G->propagate_photon_full(P);
 
         P->clean();
         delete P;
@@ -100,6 +100,7 @@ extern "C" {
 
     void set_Params(MCRT *me, Params *Q) {
         me->Q = Q;
+        me->G->Q = Q;
     }
 
     /* Functions to set up the parameters. */
@@ -303,6 +304,10 @@ extern "C" {
 
     void set_camera_grid(Camera *C, Grid *G) {
         C->G = G;
+    }
+
+    void set_camera_params(Camera *C, Params *Q) {
+        C->Q = Q;
     }
 
     void make_image(Camera *C, Image *I) {

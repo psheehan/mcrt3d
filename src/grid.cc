@@ -29,16 +29,17 @@ struct Grid {
     int nsources;
     Source *sources;
     double total_lum;
+    Params *Q;
 
-    Photon *emit(int iphot, Params *Q);
-    virtual double next_wall_distance(Photon *P, bool verbose);
-    virtual double outer_wall_distance(Photon *P, bool verbose);
-    void propagate_photon_full(Photon *P, Params *Q);
-    void propagate_photon(Photon *P, double tau, bool absorb, Params *Q);
-    void propagate_ray(Ray *R, bool verbose);
-    void absorb(Photon *P, int idust, Params *Q);
+    Photon *emit(int iphot);
+    virtual double next_wall_distance(Photon *P);
+    virtual double outer_wall_distance(Photon *P);
+    void propagate_photon_full(Photon *P);
+    void propagate_photon(Photon *P, double tau, bool absorb);
+    void propagate_ray(Ray *R);
+    void absorb(Photon *P, int idust);
     void isoscatt(Photon *P, int idust);
-    virtual Vector<int, 3> photon_loc(Photon *P, bool verbose);
+    virtual Vector<int, 3> photon_loc(Photon *P);
     virtual bool in_grid(Photon *P);
     void update_grid(Vector<int, 3> l);
     void update_grid();
@@ -47,7 +48,7 @@ struct Grid {
 
 /* Emit a photon from the grid. */
 
-Photon *Grid::emit(int iphot, Params *Q) {
+Photon *Grid::emit(int iphot) {
     /* Cycle through the various stars, having them emit photons one after 
      * another. This way each source will get the same nuber of photons 
      * +/- 1. */
@@ -62,21 +63,21 @@ Photon *Grid::emit(int iphot, Params *Q) {
             dust);
 
     /* Check the photon's location in the grid. */
-    P->l = photon_loc(P, Q->verbose);
+    P->l = photon_loc(P);
 
     return P;
 }
 
 /* Linker function to the dust absorb function. */
 
-void Grid::absorb(Photon *P, int idust, Params *Q) {
+void Grid::absorb(Photon *P, int idust) {
     dust[idust].absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw, 
             dust, nspecies);
 
     // Check the photon's location again because there's a small chance that 
     // the photon was absorbed on a wall, and if it was we may need to update
     // which cell it is in if the direction has changed.
-    P->l = photon_loc(P, Q->verbose);
+    P->l = photon_loc(P);
 }
 
 /* Linker function to the dust isoscatt function. */
@@ -87,12 +88,12 @@ void Grid::isoscatt(Photon *P, int idust) {
     // Check the photon's location again because there's a small chance that 
     // the photon was absorbed on a wall, and if it was we may need to update
     // which cell it is in if the direction has changed.
-    P->l = photon_loc(P, false);
+    P->l = photon_loc(P);
 }
 
 /* Propagate a photon through the grid until it escapes. */
 
-void Grid::propagate_photon_full(Photon *P, Params *Q) {
+void Grid::propagate_photon_full(Photon *P) {
     while (in_grid(P)) {
         // Determin the optical depth that the photon can travel until it's
         // next interaction.
@@ -133,7 +134,7 @@ void Grid::propagate_photon_full(Photon *P, Params *Q) {
         bool absorb_photon = random_number() > albedo;
 
         // Move the photon to the point of it's next interaction.
-        propagate_photon(P, tau, absorb_photon, Q);
+        propagate_photon(P, tau, absorb_photon);
 
         // If the photon is still in the grid when it reaches it's 
         // destination...
@@ -144,7 +145,7 @@ void Grid::propagate_photon_full(Photon *P, Params *Q) {
                     break;
                 }
                 else {
-                    absorb(P, idust, Q);
+                    absorb(P, idust);
                     // If we've asked for verbose output, print some info.
                     if (Q->verbose) {
                         printf("Absorbing photon at %i  %i  %i\n", P->l[0],
@@ -178,13 +179,13 @@ void Grid::propagate_photon_full(Photon *P, Params *Q) {
 
 /* Propagate a photon through the grid a distance equivalent to tau. */
 
-void Grid::propagate_photon(Photon *P, double tau, bool absorb, Params *Q) {
+void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
 
     bool absorbed_by_source = false;
     int i = 0;
     while ((tau > 0) && (in_grid(P))) {
         // Calculate the distance to the next wall.
-        double s1 = next_wall_distance(P, Q->verbose);
+        double s1 = next_wall_distance(P);
 
         // Calculate how far the photon can go with the current tau.
         double alpha = 0;
@@ -230,7 +231,7 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb, Params *Q) {
         P->move(s);
 
         // If the photon moved to the next cell, update it's location.
-        if (s1 < s2) P->l = photon_loc(P, Q->verbose);
+        if (s1 < s2) P->l = photon_loc(P);
         i++;
 
         // If we've asked for verbose, print some information out.
@@ -261,7 +262,7 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb, Params *Q) {
 
 /* Propagate a ray through the grid for raytracing. */
 
-void Grid::propagate_ray(Ray *R, bool verbose) {
+void Grid::propagate_ray(Ray *R) {
 
     int i=0;
     do {
@@ -271,7 +272,7 @@ void Grid::propagate_ray(Ray *R, bool verbose) {
             break;
         }
 
-        double s = next_wall_distance(R, verbose);
+        double s = next_wall_distance(R);
 
         double tau_cell = 0;
         double intensity_cell = 0;
@@ -284,7 +285,7 @@ void Grid::propagate_ray(Ray *R, bool verbose) {
                     temp[idust][R->l[0]][R->l[1]][R->l[2]]);
         }
 
-        if (verbose) {
+        if (Q->verbose) {
             printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
                     R->l[0], R->r[0]/au, s*R->n[0]/au);
             printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity, R->l[1], 
@@ -298,7 +299,7 @@ void Grid::propagate_ray(Ray *R, bool verbose) {
 
         R->move(s);
 
-        R->l = photon_loc(R, verbose);
+        R->l = photon_loc(R);
 
         i++;
     } while (in_grid(R));
@@ -306,19 +307,19 @@ void Grid::propagate_ray(Ray *R, bool verbose) {
 
 /* Calculate the distance between the photon and the nearest wall. */
 
-double Grid::next_wall_distance(Photon *P, bool verbose) {
+double Grid::next_wall_distance(Photon *P) {
     return 0.0;
 }
 
 /* Calculate the distance between the photon and the outermost wall. */
 
-double Grid::outer_wall_distance(Photon *P, bool verbose) {
+double Grid::outer_wall_distance(Photon *P) {
     return 0.0;
 }
 
 /* Determine which cell the photon is in. */
 
-Vector<int, 3> Grid::photon_loc(Photon *P, bool verbose) {
+Vector<int, 3> Grid::photon_loc(Photon *P) {
     return Vector<int, 3>();
 }
 

@@ -6,15 +6,15 @@
 #include "photon.cc"
 
 struct CartesianGrid : public Grid {
-    double next_wall_distance(Photon *P, bool verbose);
-    double outer_wall_distance(Photon *P, bool verbose);
-    Vector<int, 3> photon_loc(Photon *P, bool verbose);
+    double next_wall_distance(Photon *P);
+    double outer_wall_distance(Photon *P);
+    Vector<int, 3> photon_loc(Photon *P);
     bool in_grid(Photon *P);
 };
 
 /* Calculate the distance between the photon and the nearest wall. */
 
-double CartesianGrid::next_wall_distance(Photon *P, bool verbose) {
+double CartesianGrid::next_wall_distance(Photon *P) {
     double s = HUGE_VAL;
 
     double sx1 = (w1[P->l[0]] - P->r[0])*P->invn[0];
@@ -37,7 +37,7 @@ double CartesianGrid::next_wall_distance(Photon *P, bool verbose) {
 
 /* Calculate the distance between the photon and the outermost wall. */
 
-double CartesianGrid::outer_wall_distance(Photon *P, bool verbose) {
+double CartesianGrid::outer_wall_distance(Photon *P) {
     double s = 0;
 
     if (P->r[0] <= w1[0]) {
@@ -48,7 +48,7 @@ double CartesianGrid::outer_wall_distance(Photon *P, bool verbose) {
         double sx = (w1[nw1-1] - P->r[0])*P->invn[0];
         if (sx > s) s = sx;
     }
-    if (verbose) printf("%7.4f\n", s/au);
+    if (Q->verbose) printf("%7.4f\n", s/au);
     
     if (P->r[1] <= w2[0]) {
         double sy = (w2[0] - P->r[1])*P->invn[1];
@@ -58,7 +58,7 @@ double CartesianGrid::outer_wall_distance(Photon *P, bool verbose) {
         double sy = (w2[nw2-1] - P->r[1])*P->invn[1];
         if (sy > s) s = sy;
     }
-    if (verbose) printf("%7.4f\n", s/au);
+    if (Q->verbose) printf("%7.4f\n", s/au);
     
     if (P->r[2] <= w3[0]) {
         double sz = (w3[0] - P->r[2])*P->invn[2];
@@ -68,11 +68,11 @@ double CartesianGrid::outer_wall_distance(Photon *P, bool verbose) {
         double sz = (w3[nw3-1] - P->r[2])*P->invn[2];
         if (sz > s) s = sz;
     }
-    if (verbose) printf("%7.4f\n", s/au);
+    if (Q->verbose) printf("%7.4f\n", s/au);
 
     Vector<double, 3> newr = P->r + s*P->n;
 
-    if (verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
+    if (Q->verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
             newr[2]/au);
 
     if (equal(newr[0],w1[0],1.0e-10)) newr[0] = w1[0];
@@ -82,19 +82,19 @@ double CartesianGrid::outer_wall_distance(Photon *P, bool verbose) {
     if (equal(newr[2],w3[0],1.0e-10)) newr[2] = w3[0];
     else if (equal(newr[2],w3[nw3-1],1.0e-10)) newr[2] = w3[nw3-1];
 
-    if (verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
+    if (Q->verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
             newr[2]/au);
     if ((newr[0] < w1[0]) || (newr[0] > w1[nw1-1]) || (newr[1] < w2[0]) ||
             (newr[1] > w2[nw2-1]) || (newr[2] < w3[0]) || (newr[2] > w3[nw3-1]))
         s = HUGE_VAL;
-    if (verbose) printf("%7.4f\n", s/au);
+    if (Q->verbose) printf("%7.4f\n", s/au);
     
     return s;
 }
 
 /* Determine which cell the photon is in. */
 
-Vector<int, 3> CartesianGrid::photon_loc(Photon *P, bool verbose) {
+Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
     Vector<int, 3> l;
     
     if (P->r[0] >= w1[nw1-1])

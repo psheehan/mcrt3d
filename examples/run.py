@@ -17,7 +17,7 @@ spectra = SetupSpectra()
 # Now give that all to C.
 
 M = MCRT(G, Q)
-C = Camera(G)
+C = Camera(G, Q)
 
 t1 = time()
 M.thermal_mc(100000,True)

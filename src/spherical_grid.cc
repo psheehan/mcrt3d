@@ -6,15 +6,15 @@
 #include "photon.cc"
 
 struct SphericalGrid : public Grid {
-    double next_wall_distance(Photon *P, bool verbose);
-    double outer_wall_distance(Photon *P, bool verbose);
-    Vector<int, 3> photon_loc(Photon *P, bool verbose);
+    double next_wall_distance(Photon *P);
+    double outer_wall_distance(Photon *P);
+    Vector<int, 3> photon_loc(Photon *P);
     bool in_grid(Photon *P);
 };
 
 /* Calculate the distance between the photon and the nearest wall. */
 
-double SphericalGrid::next_wall_distance(Photon *P, bool verbose) {
+double SphericalGrid::next_wall_distance(Photon *P) {
 
     //double r = P->r.norm();
     double r = P->rad;
@@ -99,7 +99,7 @@ double SphericalGrid::next_wall_distance(Photon *P, bool verbose) {
 
 /* Calculate the distance between the photon and the outermost wall. */
 
-double SphericalGrid::outer_wall_distance(Photon *P, bool verbose) {
+double SphericalGrid::outer_wall_distance(Photon *P) {
 
     double r = P->r.norm();
 
@@ -121,7 +121,7 @@ double SphericalGrid::outer_wall_distance(Photon *P, bool verbose) {
 
 /* Determine which cell the photon is in. */
 
-Vector<int, 3> SphericalGrid::photon_loc(Photon *P, bool verbose) {
+Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
     Vector<int, 3> l;
 
     double pi = 3.14159265;
