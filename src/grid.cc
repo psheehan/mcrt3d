@@ -33,7 +33,7 @@ struct Grid {
     virtual double next_wall_distance(Photon *P, bool verbose);
     virtual double outer_wall_distance(Photon *P, bool verbose);
     void propagate_photon_full(Photon *P, int nphot, 
-            bool bw, bool verbose);
+            bool bw, bool scattering, bool verbose);
     void propagate_photon(Photon *P, double tau, bool absorb,
             bool bw, bool verbose, int nphot);
     void propagate_ray(Ray *R, bool verbose);
@@ -94,7 +94,7 @@ void Grid::isoscatt(Photon *P, int idust) {
 /* Propagate a photon through the grid until it escapes. */
 
 void Grid::propagate_photon_full(Photon *P, int nphot, 
-        bool bw, bool verbose) {
+        bool bw, bool scattering, bool verbose) {
     while (in_grid(P)) {
         // Determin the optical depth that the photon can travel until it's
         // next interaction.
@@ -142,21 +142,30 @@ void Grid::propagate_photon_full(Photon *P, int nphot,
         if (in_grid(P)) {
             // If the next interaction is absorption...
             if (absorb_photon) {
-                absorb(P, idust, bw);
-                // If we've asked for verbose output, print some info.
-                if (verbose) {
-                    printf("Absorbing photon at %i  %i  %i\n", P->l[0],
-                            P->l[1], P->l[2]);
-                    printf("Absorbed in a cell with temperature: %f\n",
-                            temp[idust][P->l[0]][P->l[1]][P->l[2]]);
-                    printf("Re-emitted with direction: %f  %f  %f\n",
-                            P->n[0], P->n[1], P->n[2]);
-                    printf("Re-emitted with frequency: %e\n", P->nu);
+                if (scattering) {
+                    break;
+                }
+                else {
+                    absorb(P, idust, bw);
+                    // If we've asked for verbose output, print some info.
+                    if (verbose) {
+                        printf("Absorbing photon at %i  %i  %i\n", P->l[0],
+                                P->l[1], P->l[2]);
+                        printf("Absorbed in a cell with temperature: %f\n",
+                                temp[idust][P->l[0]][P->l[1]][P->l[2]]);
+                        printf("Re-emitted with direction: %f  %f  %f\n",
+                                P->n[0], P->n[1], P->n[2]);
+                        printf("Re-emitted with frequency: %e\n", P->nu);
+                    }
                 }
             }
             // Otherwise, scatter the photon.
             else {
                 isoscatt(P, idust);
+                // If we're doing a scattering simulation, keep track of the
+                // scatter that is happening.
+                if (scattering) {
+                }
                 // If we've asked for verbose output, print some info.
                 if (verbose) {
                     printf("Scattering photon at cell  %i  %i  %i\n",
