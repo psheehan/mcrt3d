@@ -7,9 +7,11 @@
 #include "pymangle.cc"
 #include "timer.c"
 #include "camera.cc"
+#include "params.cc"
 
 struct MCRT {
     Grid *G;
+    Params *Q;
 
     void thermal_mc(int nphot, bool bw);
     void scattering_mc(int nphot);
@@ -94,6 +96,32 @@ extern "C" {
 
     void set_Grid(MCRT *me, Grid *G) {
         me->G = G;
+    }
+
+    void set_Params(MCRT *me, Params *Q) {
+        me->Q = Q;
+    }
+
+    /* Functions to set up the parameters. */
+
+    Params* new_Params() {
+        return new Params();
+    }
+
+    void set_nphot(Params *Q, int nphot) {
+        Q->nphot = nphot;
+    }
+
+    void set_bw(Params *Q, bool bw) {
+        Q->bw = bw;
+    }
+
+    void set_scattering(Params *Q, bool scattering) {
+        Q->scattering = scattering;
+    }
+
+    void set_verbose(Params *Q, bool verbose) {
+        Q->verbose = verbose;
     }
 
     /* Functions to set up the grid. */

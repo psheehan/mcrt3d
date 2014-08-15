@@ -6,6 +6,7 @@
 #include "dust.cc"
 #include "photon.cc"
 #include "misc.cc"
+#include "params.cc"
 
 struct Source {
     double mass;
