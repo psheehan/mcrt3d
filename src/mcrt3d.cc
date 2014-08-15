@@ -12,9 +12,8 @@ struct MCRT {
     Grid *G;
 
     void thermal_mc(int nphot, bool bw);
-    void thermal_mc_bw(int nphot);
+    void mc_iteration(int nphot, bool bw);
     void thermal_mc_lucy(int nphot);
-    void lucy_iteration(int nphot);
 };
 
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
@@ -22,12 +21,42 @@ struct MCRT {
 
 void MCRT::thermal_mc(int nphot, bool bw) {
     if (bw)
-        thermal_mc_bw(nphot);
-    else
-        thermal_mc_lucy(nphot);
+        mc_iteration(nphot, bw);
+    else {
+        double ****told = create4DArr(G->nspecies, G->n1,G->n2,G->n3);
+        double ****treallyold = create4DArr(G->nspecies, G->n1,G->n2,G->n3);
+
+        int maxniter = 10;
+
+        equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
+
+        int i = 1;
+        while (i <= maxniter) {
+            printf("Starting iteration # %i \n\n", i);
+
+            equate4DArrs(treallyold, told, G->nspecies, G->n1, G->n2, G->n3);
+            equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
+
+            mc_iteration(nphot, bw);
+
+            G->update_grid(nphot);
+            set4DArrValue(G->energy, 0.0, G->nspecies, G->n1, G->n2, G->n3);
+
+            if (i > 2)
+                if (converged(G->temp, told, treallyold, G->nspecies, G->n1, 
+                            G->n2, G->n3))
+                    i = maxniter;
+
+            i++;
+            printf("\n");
+        }
+
+        delete told;
+        delete treallyold;
+    }
 }
 
-void MCRT::thermal_mc_bw(int nphot) {
+void MCRT::mc_iteration(int nphot, bool bw) {
     bool verbose = false;
 
     for (int i=0; i<nphot; i++) {
@@ -44,57 +73,11 @@ void MCRT::thermal_mc_bw(int nphot) {
             printf("Emitted with frequency: %e\n", P->nu);
         }
 
-        G->propagate_photon_full(P, nphot, true, verbose);
+        G->propagate_photon_full(P, nphot, bw, verbose);
 
         P->clean();
         delete P;
         if (verbose) printf("Photon has escaped the grid.\n\n");
-    }
-}
-
-void MCRT::thermal_mc_lucy(int nphot) {
-    double ****told = create4DArr(G->nspecies, G->n1,G->n2,G->n3);
-    double ****treallyold = create4DArr(G->nspecies, G->n1,G->n2,G->n3);
-
-    int maxniter = 10;
-
-    equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
-
-    int i = 1;
-    while (i <= maxniter) {
-        printf("Starting iteration # %i \n\n", i);
-
-        equate4DArrs(treallyold, told, G->nspecies, G->n1, G->n2, G->n3);
-        equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
-
-        lucy_iteration(nphot);
-
-        G->update_grid(nphot);
-        set4DArrValue(G->energy, 0.0, G->nspecies, G->n1, G->n2, G->n3);
-
-        if (i > 2)
-            if (converged(G->temp, told, treallyold, G->nspecies, G->n1, 
-                        G->n2, G->n3))
-                i = maxniter;
-
-        i++;
-        printf("\n");
-    }
-
-    delete told;
-    delete treallyold;
-}
-
-void MCRT::lucy_iteration(int nphot) {
-    for (int i=0; i<nphot; i++) {
-        if (fmod(i+1,nphot/10) == 0) printf("%i\n",i+1);
-
-        Photon *P = G->emit(nphot, i);
-
-        G->propagate_photon_full(P, nphot, false, false);
-
-        P->clean();
-        delete P;
     }
 }
 
