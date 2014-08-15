@@ -7,6 +7,16 @@ from numpy import array, arange, pi, zeros, logspace
 
 # Set up the grid.
 
+def SetupParams():
+    Q = Params()
+
+    Q.set_nphot(10000)
+    Q.set_bw(True)
+    Q.set_scattering(False)
+    Q.set_verbose(False)
+
+    return Q
+
 def SetupGrid():
     G = Grid()
 

@@ -26,7 +26,7 @@ class Params:
         lib.set_verbose(ctypes.c_void_p(self.obj), ctypes.c_bool(verbose))
 
 class MCRT:
-    def __init__(self, G, P, Q):
+    def __init__(self, G, Q):
         self.obj = lib.new_mcrt()
 
         lib.set_Grid(ctypes.c_void_p(self.obj),ctypes.c_void_p(G.obj))

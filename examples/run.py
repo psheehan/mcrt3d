@@ -9,13 +9,14 @@ from Cartesian import *
 #from Spherical import *
 #from YSO import *
 
+Q = SetupParams()
 G = SetupGrid()
 images = SetupImages()
 spectra = SetupSpectra()
 
 # Now give that all to C.
 
-M = MCRT(G)
+M = MCRT(G, Q)
 C = Camera(G)
 
 t1 = time()
