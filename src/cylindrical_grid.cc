@@ -8,6 +8,7 @@
 struct CylindricalGrid : public Grid {
     double next_wall_distance(Photon *P);
     double outer_wall_distance(Photon *P);
+    double minimum_wall_distance(Photon *P);
     Vector<int, 3> photon_loc(Photon *P);
     bool in_grid(Photon *P);
 };
@@ -130,6 +131,12 @@ double CylindricalGrid::outer_wall_distance(Photon *P) {
         s = HUGE_VAL;
 
     return s;
+}
+
+/* Calculate the smallest absolute distance to the nearest wall. */
+
+double CylindricalGrid::minimum_wall_distance(Photon *P) {
+    return 0.0;
 }
 
 /* Determine which cell the photon is in. */

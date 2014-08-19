@@ -34,8 +34,10 @@ struct Grid {
     Photon *emit(int iphot);
     virtual double next_wall_distance(Photon *P);
     virtual double outer_wall_distance(Photon *P);
+    virtual double minimum_wall_distance(Photon *P);
     void propagate_photon_full(Photon *P);
     void propagate_photon(Photon *P, double tau, bool absorb);
+    void propagate_photon_mrw(Photon *P);
     void propagate_ray(Ray *R);
     void absorb(Photon *P, int idust);
     void isoscatt(Photon *P, int idust);
@@ -260,6 +262,11 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
     }
 }
 
+/* Propagate a photon using the MRW method for high optical depths. */
+
+void Grid::propagate_photon_mrw(Photon *P) {
+}
+
 /* Propagate a ray through the grid for raytracing. */
 
 void Grid::propagate_ray(Ray *R) {
@@ -314,6 +321,12 @@ double Grid::next_wall_distance(Photon *P) {
 /* Calculate the distance between the photon and the outermost wall. */
 
 double Grid::outer_wall_distance(Photon *P) {
+    return 0.0;
+}
+
+/* Calculate the smallest absolute distance to the nearest wall. */
+
+double Grid::minimum_wall_distance(Photon *P) {
     return 0.0;
 }
 
