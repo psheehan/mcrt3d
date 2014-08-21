@@ -96,7 +96,24 @@ double CartesianGrid::outer_wall_distance(Photon *P) {
 /* Calculate the smallest absolute distance to the nearest wall. */
 
 double CartesianGrid::minimum_wall_distance(Photon *P) {
-    return 0.0;
+    double s = HUGE_VAL;
+
+    double sx1 = fabs(w1[P->l[0]] - P->r[0]);
+    if ((sx1 < s) && (sx1 > 0)) s = sx1;
+    double sx2 = fabs(w1[P->l[0]+1] - P->r[0]);
+    if ((sx2 < s) && (sx2 > 0)) s = sx2;
+    
+    double sy1 = fabs(w2[P->l[1]] - P->r[1]);
+    if ((sy1 < s) && (sy1 > 0)) s = sy1;
+    double sy2 = fabs(w2[P->l[1]+1] - P->r[1]);
+    if ((sy2 < s) && (sy2 > 0)) s = sy2;
+    
+    double sz1 = fabs(w3[P->l[2]] - P->r[2]);
+    if ((sz1 < s) && (sz1 > 0)) s = sz1;
+    double sz2 = fabs(w3[P->l[2]+1] - P->r[2]);
+    if ((sz2 < s) && (sz2 > 0)) s = sz2;
+    
+    return s;
 }
 
 /* Determine which cell the photon is in. */

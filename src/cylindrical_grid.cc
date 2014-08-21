@@ -136,7 +136,42 @@ double CylindricalGrid::outer_wall_distance(Photon *P) {
 /* Calculate the smallest absolute distance to the nearest wall. */
 
 double CylindricalGrid::minimum_wall_distance(Photon *P) {
-    return 0.0;
+    double r = P->rad;
+
+    // Calculate the distance to the nearest radial wall.
+    
+    double s = HUGE_VAL;
+    for (int i=P->l[0]; i <= P->l[0]+1; i++) {
+        if (r != w1[i]) {
+            double sr = fabs(r - w1[i]);
+            if (sr < s) s = sr;
+        }
+    }
+
+    // Calculate the distance to the nearest phi wall.
+    
+    if (nw2 != 2) {
+        double phi = P->phi;
+
+        for (int i=P->l[1]; i <= P->l[1]+1; i++) {
+            if (phi != w2[i]) {
+                Vector<double, 3> phi_hat = Vector<double, 3>(-sin(w2[i]), 
+                        cos(w2[i]), 0);
+
+                double sp = fabs(phi_hat * P->r);
+                if (sp < s) s = sp;
+            }
+        }
+    }
+
+    // Calculate the distance to the nearest z wall.
+    
+    double sz1 = fabs(w3[P->l[2]] - P->r[2]);
+    if ((sz1 < s) && (sz1 > 0)) s = sz1;
+    double sz2 = fabs(w3[P->l[2]+1] - P->r[2]);
+    if ((sz2 < s) && (sz2 > 0)) s = sz2;
+    
+    return s;
 }
 
 /* Determine which cell the photon is in. */
