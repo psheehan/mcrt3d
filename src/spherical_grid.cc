@@ -139,8 +139,11 @@ double SphericalGrid::minimum_wall_distance(Photon *P) {
     
     if (nw2 != 2) {
         double theta = P->theta;
+        double rho = sqrt(P->r[0]*P->r[0] + P->r[1]*P->r[1]);
         
         for (int i=P->l[1]; i <= P->l[1]+1; i++) {
+            double st = fabs(P->r[3]*sin(w2[i]) - rho*cos(w3[i]));
+            if (st < s) s = st;
         }
     }
 
