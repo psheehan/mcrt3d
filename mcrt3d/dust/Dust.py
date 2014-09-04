@@ -128,6 +128,7 @@ class Dust:
                         misc.dB_nu(self.nu,self.temp[i]))/ \
                         (self.temp[i+1]-self.temp[i])
 
+        """
         lib.set_lookup_tables(ctypes.c_void_p(self.obj), self.ntemp, \
                 self.temp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 self.planck_opacity.ctypes.data_as(ctypes.POINTER( \
@@ -145,6 +146,15 @@ class Dust:
                 self.dBnu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 self.dBnudT.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 self.ddBnudT.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+        """
+
+    def make_lookup_tables2(self):
+        self.temp = numpy.logspace(-1,5,100).astype(float)
+        self.ntemp = self.temp.size
+
+        temp, nu = numpy.meshgrid(self.temp, self.nu)
+
+        planck_opacity = numpy.trapz(misc.B_nu(nu, temp)
 
     def write(self, filename=None, usefile=None):
         if (usefile == None):
