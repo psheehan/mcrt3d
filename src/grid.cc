@@ -73,8 +73,13 @@ Photon *Grid::emit(int iphot) {
 /* Linker function to the dust absorb function. */
 
 void Grid::absorb(Photon *P, int idust) {
-    dust[idust].absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw, 
-            dust, nspecies);
+    dust[idust].absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw);
+
+    // Update the photon's arrays of kext and albedo.
+    for (int i=0; i<nspecies; i++) {
+        P->current_kext[i] = dust[i].opacity(P->nu);
+        P->current_albedo[i] = dust[i].albdo(P->nu);
+    }
 
     // Check the photon's location again because there's a small chance that 
     // the photon was absorbed on a wall, and if it was we may need to update

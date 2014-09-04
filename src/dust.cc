@@ -15,8 +15,8 @@ struct Dust {
     double *albedo;
     double *temp;
     double *planck_opacity;
-    double *int_dBnu_knu;
     double *dplanck_opacity_dT;
+    double *int_dBnu_knu;
     double *dint_dBnu_knu_dT;
     double **Bnu;
     double **dBnu;
@@ -30,7 +30,7 @@ struct Dust {
     int ntemp;
 
     void isoscatt(Photon *P);
-    void absorb(Photon *P, double T, bool bw, Dust* species, int nspecies);
+    void absorb(Photon *P, double T, bool bw);
 
     double random_nu(double T, bool bw);
     double opacity(double freq);
@@ -63,7 +63,7 @@ void Dust::isoscatt(Photon *P) {
 
 /* Absorb and then re-emit a photon from dust. */
 
-void Dust::absorb(Photon *P, double T, bool bw, Dust* species, int nspecies) {
+void Dust::absorb(Photon *P, double T, bool bw) {
     double cost = -1+2*random_number();
     double sint = sqrt(1-pow(cost,2));
     double phi = 2*pi*random_number();
@@ -76,11 +76,6 @@ void Dust::absorb(Photon *P, double T, bool bw, Dust* species, int nspecies) {
     P->invn[2] = 1.0/P->n[2];
 
     P->nu = random_nu(T,bw);
-
-    for (int i=0; i<nspecies; i++) {
-        P->current_kext[i] = species[i].opacity(P->nu);
-        P->current_albedo[i] = species[i].albdo(P->nu);
-    }
 }
 
 /* Calculate a random frequency for a photon. */
