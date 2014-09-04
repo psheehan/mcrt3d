@@ -86,14 +86,12 @@ class Dust:
         self.temp = numpy.logspace(-1,5,100).astype(float)
         self.ntemp = self.temp.size
 
-        self.int_Bnu = numpy.ones(self.temp.size)
         self.int_Bnukext = numpy.ones(self.temp.size)
         self.int_dBnukext = numpy.ones(self.temp.size)
         for i in range(self.temp.size-1):
             Bnu = misc.B_nu(self.nu,self.temp[i])
             dBnu = misc.dB_nu(self.nu,self.temp[i])
 
-            self.int_Bnu[i] = numpy.trapz(Bnu,x=self.nu)
             self.int_Bnukext[i] = numpy.trapz(Bnu*self.kext,x=self.nu)
             self.int_dBnukext[i] = numpy.trapz(dBnu*self.kext,x=self.nu)
         self.planck_opacity = -self.int_Bnukext/(sigma*self.temp**4/numpy.pi)
