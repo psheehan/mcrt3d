@@ -75,7 +75,8 @@ Photon *Grid::emit(int iphot) {
 void Grid::absorb(Photon *P, int idust) {
     dust[idust].absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw);
 
-    // Update the photon's arrays of kext and albedo.
+    // Update the photon's arrays of kext and albedo since P->nu has changed
+    // upon absorption.
     for (int i=0; i<nspecies; i++) {
         P->current_kext[i] = dust[i].opacity(P->nu);
         P->current_albedo[i] = dust[i].albdo(P->nu);
