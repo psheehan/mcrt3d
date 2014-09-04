@@ -30,7 +30,7 @@ struct Dust {
     double *dkextdnu;
     double *dalbedodnu;
 
-    void isoscatt(Photon *P);
+    void scatter(Photon *P);
     void absorb(Photon *P, double T, bool bw);
 
     double random_nu(double T, bool bw);
@@ -47,7 +47,7 @@ struct Dust {
 
 /* Scatter a photon isotropically off of dust. */
 
-void Dust::isoscatt(Photon *P) {
+void Dust::scatter(Photon *P) {
     double cost = -1+2*random_number();
     double sint = sqrt(1-pow(cost,2));
     double phi = 2*pi*random_number();

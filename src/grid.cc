@@ -40,7 +40,7 @@ struct Grid {
     void propagate_photon_mrw(Photon *P);
     void propagate_ray(Ray *R);
     void absorb(Photon *P, int idust);
-    void isoscatt(Photon *P, int idust);
+    void scatter(Photon *P, int idust);
     virtual Vector<int, 3> photon_loc(Photon *P);
     virtual bool in_grid(Photon *P);
     void update_grid(Vector<int, 3> l);
@@ -88,10 +88,10 @@ void Grid::absorb(Photon *P, int idust) {
     P->l = photon_loc(P);
 }
 
-/* Linker function to the dust isoscatt function. */
+/* Linker function to the dust scatter function. */
 
-void Grid::isoscatt(Photon *P, int idust) {
-    dust[idust].isoscatt(P);
+void Grid::scatter(Photon *P, int idust) {
+    dust[idust].scatter(P);
 
     // Check the photon's location again because there's a small chance that 
     // the photon was absorbed on a wall, and if it was we may need to update
@@ -168,7 +168,7 @@ void Grid::propagate_photon_full(Photon *P) {
             }
             // Otherwise, scatter the photon.
             else {
-                isoscatt(P, idust);
+                scatter(P, idust);
                 // If we're doing a scattering simulation, keep track of the
                 // scatter that is happening.
                 if (Q->scattering) {
