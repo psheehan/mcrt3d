@@ -118,8 +118,6 @@ class Dust:
         self.dBnu = numpy.zeros((self.temp.size,self.nu.size))
         self.dBnudT = numpy.zeros((self.temp.size,self.nu.size))
         self.ddBnudT = numpy.zeros((self.temp.size,self.nu.size))
-        self.int_Bnu_knu_nu = numpy.zeros((self.temp.size,self.nu.size))
-        self.int_dBnu_knu_nu = numpy.zeros((self.temp.size,self.nu.size))
         for i in range(self.temp.size):
             self.Bnu[i,:] = misc.B_nu(self.nu,self.temp[i])
             self.dBnu[i,:] = misc.dB_nu(self.nu,self.temp[i])
@@ -131,12 +129,6 @@ class Dust:
                 self.ddBnudT[i,:] = (misc.dB_nu(self.nu,self.temp[i+1])- \
                         misc.dB_nu(self.nu,self.temp[i]))/ \
                         (self.temp[i+1]-self.temp[i])
-
-            for j in range(self.nu.size):
-                self.int_Bnu_knu_nu[i,j] = numpy.trapz(self.Bnu[i,0:j]* \
-                        self.kext[0:j],x=self.nu[0:j])
-                self.int_dBnu_knu_nu[i,j] = numpy.trapz(self.dBnu[i,0:j]* \
-                        self.kext[0:j],x=self.nu[0:j])
 
         lib.set_lookup_tables(ctypes.c_void_p(self.obj), self.ntemp, \
                 self.temp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
