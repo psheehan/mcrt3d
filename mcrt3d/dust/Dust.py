@@ -86,49 +86,33 @@ class Dust:
         self.temp = numpy.logspace(-1,5,100).astype(float)
         self.ntemp = self.temp.size
 
-        self.int_Bnukext = numpy.ones(self.temp.size)
-        self.int_dBnukext = numpy.ones(self.temp.size)
-        for i in range(self.temp.size-1):
-            Bnu = misc.B_nu(self.nu,self.temp[i])
-            dBnu = misc.dB_nu(self.nu,self.temp[i])
+        nu, temp = numpy.meshgrid(self.nu, self.temp)
+        ksca = numpy.vstack([self.ksca for i in range(self.temp.size)])
+        kext = numpy.vstack([self.kext for i in range(self.temp.size)])
 
-            self.int_Bnukext[i] = numpy.trapz(Bnu*self.kext,x=self.nu)
-            self.int_dBnukext[i] = numpy.trapz(dBnu*self.kext,x=self.nu)
-        self.planck_opacity = -self.int_Bnukext/(sigma*self.temp**4/numpy.pi)
+        self.planck_opacity =  -numpy.pi / (sigma * self.temp**4) * \
+                numpy.trapz(misc.B_nu(nu, temp)*kext, x=nu, axis=1)
+        self.dplanck_opacity_dT = numpy.diff(self.planck_opacity) / \
+                numpy.diff(self.temp)
 
-        self.dplanck_opacity_dT = numpy.zeros(self.temp.size)
-        self.dint_dBnukext_dT = numpy.zeros(self.temp.size)
-        for i in range(self.temp.size-1):
-            self.dplanck_opacity_dT[i] = (self.planck_opacity[i+1]- \
-                    self.planck_opacity[i])/(self.temp[i+1]-self.temp[i])
-            self.dint_dBnukext_dT[i] = (self.int_dBnukext[i+1]- \
-                    self.int_dBnukext[i])/(self.temp[i+1]-self.temp[i])
+        rosseland_extinction = -(sigma * self.temp**4 / numpy.pi) / \
+                numpy.trapz(misc.B_nu(nu, temp)/kext, x=nu, axis=1)
+        drosseland_extinction_dT = numpy.diff(rosseland_extinction) / \
+                numpy.diff(self.temp)
 
-        self.dkextdnu = numpy.zeros(self.nu.size)
-        self.dalbedodnu = numpy.zeros(self.nu.size)
-        for i in range(self.nu.size-1):
-            self.dkextdnu[i] = (self.kext[i+1]-self.kext[i])/(self.nu[i+1]- \
-                    self.nu[i])
-            self.dalbedodnu[i] = (self.albedo[i+1]-self.albedo[i])/ \
-                    (self.nu[i+1]-self.nu[i])
+        self.int_dBnukext = numpy.trapz(misc.dB_nu(nu, temp) * kext, x=nu, \
+                axis=1)
+        self.dint_dBnukext_dT = numpy.diff(self.int_dBnukext) / \
+                numpy.diff(self.temp)
 
-        self.Bnu = numpy.zeros((self.temp.size,self.nu.size))
-        self.dBnu = numpy.zeros((self.temp.size,self.nu.size))
-        self.dBnudT = numpy.zeros((self.temp.size,self.nu.size))
-        self.ddBnudT = numpy.zeros((self.temp.size,self.nu.size))
-        for i in range(self.temp.size):
-            self.Bnu[i,:] = misc.B_nu(self.nu,self.temp[i])
-            self.dBnu[i,:] = misc.dB_nu(self.nu,self.temp[i])
+        self.dkextdnu = numpy.diff(self.kext) / numpy.diff(self.nu)
+        self.dalbedodnu = numpy.diff(self.albedo) / numpy.diff(self.nu)
 
-            if (i < self.temp.size-1):
-                self.dBnudT[i,:] = (misc.B_nu(self.nu,self.temp[i+1])- \
-                        misc.B_nu(self.nu,self.temp[i]))/ \
-                        (self.temp[i+1]-self.temp[i])
-                self.ddBnudT[i,:] = (misc.dB_nu(self.nu,self.temp[i+1])- \
-                        misc.dB_nu(self.nu,self.temp[i]))/ \
-                        (self.temp[i+1]-self.temp[i])
+        self.Bnu = misc.B_nu(nu, temp)
+        self.dBnu = misc.dB_nu(nu, temp)
+        self.dBnudT = numpy.diff(self.Bnu, axis=0) / numpy.diff(temp, axis=0)
+        self.ddBnudT = numpy.diff(self.dBnu, axis=0) / numpy.diff(temp, axis=0)
 
-        """
         lib.set_lookup_tables(ctypes.c_void_p(self.obj), self.ntemp, \
                 self.temp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 self.planck_opacity.ctypes.data_as(ctypes.POINTER( \
@@ -146,15 +130,6 @@ class Dust:
                 self.dBnu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 self.dBnudT.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 self.ddBnudT.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
-        """
-
-    def make_lookup_tables2(self):
-        self.temp = numpy.logspace(-1,5,100).astype(float)
-        self.ntemp = self.temp.size
-
-        temp, nu = numpy.meshgrid(self.temp, self.nu)
-
-        planck_opacity = numpy.trapz(misc.B_nu(nu, temp)
 
     def write(self, filename=None, usefile=None):
         if (usefile == None):
