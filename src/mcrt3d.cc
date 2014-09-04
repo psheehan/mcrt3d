@@ -218,8 +218,7 @@ extern "C" {
             double *planck_opacity, double *int_dBnu_knu, 
             double *dplanck_opacity_dT, double *dint_dBnu_knu_dT,
             double *dkextdnu, double *dalbedodnu, double *_Bnu, double *_dBnu,
-            double *_dBnudT, double *_ddBnudT, double *_int_Bnu_knu_nu,
-            double *_int_dBnu_knu_nu) {
+            double *_dBnudT, double *_ddBnudT) {
 
         D->ntemp = ntemp;
         D->temp = temp;
@@ -234,16 +233,11 @@ extern "C" {
         double **dBnu = pymangle(D->ntemp, D->nlam, _dBnu);
         double **dBnudT = pymangle(D->ntemp, D->nlam, _dBnudT);
         double **ddBnudT = pymangle(D->ntemp, D->nlam, _ddBnudT);
-        double **int_Bnu_knu_nu = pymangle(D->ntemp, D->nlam, _int_Bnu_knu_nu);
-        double **int_dBnu_knu_nu = pymangle(D->ntemp, D->nlam, 
-                _int_dBnu_knu_nu);
 
         D->Bnu = Bnu;
         D->dBnu = dBnu;
         D->dBnudT = dBnudT;
         D->ddBnudT = ddBnudT;
-        D->int_Bnu_knu_nu = int_Bnu_knu_nu;
-        D->int_dBnu_knu_nu = int_dBnu_knu_nu;
     }
 
     /* Functions to set up the sources. */

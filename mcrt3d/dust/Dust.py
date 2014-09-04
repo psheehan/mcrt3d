@@ -154,11 +154,7 @@ class Dust:
                 self.Bnu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 self.dBnu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
                 self.dBnudT.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.ddBnudT.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.int_Bnu_knu_nu.ctypes.data_as(ctypes.POINTER( \
-                        ctypes.c_double)), \
-                self.int_dBnu_knu_nu.ctypes.data_as(ctypes.POINTER( \
-                        ctypes.c_double)))
+                self.ddBnudT.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
 
     def write(self, filename=None, usefile=None):
         if (usefile == None):

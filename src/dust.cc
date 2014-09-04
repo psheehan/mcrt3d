@@ -7,27 +7,27 @@
 #include "photon.cc"
 
 struct Dust {
+    int nlam;
     double *nu;
     double *lam;
     double *kabs;
     double *ksca;
     double *kext;
     double *albedo;
+
+    int ntemp;
     double *temp;
     double *planck_opacity;
     double *dplanck_opacity_dT;
     double *int_dBnu_knu;
     double *dint_dBnu_knu_dT;
+
     double **Bnu;
     double **dBnu;
     double **dBnudT;
     double **ddBnudT;
-    double **int_Bnu_knu_nu;
-    double **int_dBnu_knu_nu;
     double *dkextdnu;
     double *dalbedodnu;
-    int nlam;
-    int ntemp;
 
     void isoscatt(Photon *P);
     void absorb(Photon *P, double T, bool bw);
@@ -40,8 +40,6 @@ struct Dust {
 
     double *Bnu_arr(double T);
     double *dBnu_arr(double T);
-    double *int_Bnu_knu_nu_arr(double T);
-    double *int_dBnu_knu_nu_arr(double T);
 
     int find_freq_bin(double freq);
 };
@@ -183,14 +181,6 @@ double *Dust::dBnu_arr(double T) {
         dB_nu[j] = ddBnudT[i][j]*(T-temp[i])+dBnu[i][j];
 
     return dB_nu;
-}
-
-double *Dust::int_Bnu_knu_nu_arr(double T) {
-    return new double(1);
-}
-
-double *Dust::int_dBnu_knu_nu_arr(double T) {
-    return new double(1);
 }
 
 /* Determine which frequency bin a given frequency is in. */
