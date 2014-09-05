@@ -6,35 +6,56 @@ from .grid import Grid
 from .camera import Camera, Image
 
 lib = ctypes.cdll.LoadLibrary(os.path.dirname(__file__)+'/../src/libmcrt3d.so')
+
 lib.new_mcrt.restype = ctypes.c_void_p
+lib.new_mcrt.argtypes = None
+
+lib.set_Grid.restype = None
+lib.set_Grid.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+
+lib.set_Params.restype = None
+lib.set_Params.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+
+lib.run_thermal_mc.restype = None
+lib.run_thermal_mc.argtypes = [ctypes.c_void_p]
+
 lib.new_Params.restype = ctypes.c_void_p
+lib.new_Params.argtypes = None
+
+lib.set_nphot.restype = None
+lib.set_nphot.argtypes = [ctypes.c_void_p, ctypes.c_int]
+
+lib.set_bw.restype = None
+lib.set_bw.argtypes = [ctypes.c_void_p, ctypes.c_bool]
+
+lib.set_scattering.restype = None
+lib.set_scattering.argtypes = [ctypes.c_void_p, ctypes.c_bool]
+
+lib.set_verbose.restype = None
+lib.set_verbose.argtypes = [ctypes.c_void_p, ctypes.c_bool]
 
 class Params:
     def __init__(self):
         self.obj = lib.new_Params()
 
     def set_nphot(self, nphot):
-        lib.set_nphot(ctypes.c_void_p(self.obj), ctypes.c_int(nphot))
+        lib.set_nphot(self.obj, nphot)
 
     def set_bw(self, bw):
-        lib.set_bw(ctypes.c_void_p(self.obj), ctypes.c_bool(bw))
+        lib.set_bw(self.obj, bw)
 
     def set_scattering(self, scattering):
-        lib.set_scattering(ctypes.c_void_p(self.obj), ctypes.c_bool(scattering))
+        lib.set_scattering(self.obj, scattering)
 
     def set_verbose(self, verbose):
-        lib.set_verbose(ctypes.c_void_p(self.obj), ctypes.c_bool(verbose))
+        lib.set_verbose(self.obj, verbose)
 
 class MCRT:
     def __init__(self, G, Q):
         self.obj = lib.new_mcrt()
 
-        lib.set_Grid(ctypes.c_void_p(self.obj),ctypes.c_void_p(G.obj))
-        lib.set_Params(ctypes.c_void_p(self.obj),ctypes.c_void_p(Q.obj))
+        lib.set_Grid(self.obj, G.obj)
+        lib.set_Params(self.obj, Q.obj)
 
     def thermal_mc(self, nphot, bw):
-        lib.run_thermal_mc(ctypes.c_void_p(self.obj))
-
-    def thermal_mc_omp(self, nphot, bw, nthreads):
-        lib.run_thermal_mc_omp(ctypes.c_void_p(self.obj), ctypes.c_int(nphot), \
-                ctypes.c_bool(bw), ctypes.c_int(nthreads))
+        lib.run_thermal_mc(self.obj)

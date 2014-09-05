@@ -1,13 +1,31 @@
 import ctypes
 import numpy
+import numpy.ctypeslib as npctypes
 import h5py
 import os
 from ..constants.physics import c, sigma, k
 from .. import misc
 
-lib = ctypes.cdll.LoadLibrary(os.path.dirname(__file__)+ \
-        '/../../src/libmcrt3d.so')
+array_1d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=1, \
+        flags='CONTIGUOUS')
+array_2d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=2, \
+        flags='CONTIGUOUS')
+
+lib = ctypes.cdll.LoadLibrary(os.path.dirname(__file__)+'/../../src/libmcrt3d.so')
+
 lib.new_Dust.restype = ctypes.c_void_p
+lib.new_Dust.argtypes = None
+
+lib.set_optical_properties.restype = None
+lib.set_optical_properties.argtypes = [ctypes.c_void_p, ctypes.c_int, \
+        array_1d_double, array_1d_double, array_1d_double, array_1d_double, \
+        array_1d_double, array_1d_double]
+
+lib.set_lookup_tables.restype = None
+lib.set_lookup_tables.argtypes = [ctypes.c_void_p, ctypes.c_int, \
+        array_1d_double, array_1d_double, array_1d_double, array_1d_double, \
+        array_1d_double, array_1d_double, array_1d_double, array_2d_double, \
+        array_2d_double, array_2d_double, array_2d_double]
 
 class Dust:
     def __init__(self):
@@ -22,13 +40,8 @@ class Dust:
         self.kext = self.kabs + self.ksca
         self.albedo = self.ksca / self.kext
 
-        lib.set_optical_properties(ctypes.c_void_p(self.obj), self.lam.size, \
-            self.nu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.lam.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.kabs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.ksca.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.kext.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.albedo.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+        lib.set_optical_properties(self.obj, self.lam.size, self.nu, self.lam, \
+                self.kabs, self.ksca, self.kext, self.albedo)
 
         self.make_lookup_tables()
 
@@ -52,13 +65,8 @@ class Dust:
         if (usefile == None):
             f.close()
 
-        lib.set_optical_properties(ctypes.c_void_p(self.obj), self.lam.size, \
-            self.nu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.lam.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.kabs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.ksca.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.kext.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.albedo.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+        lib.set_optical_properties(self.obj, self.lam.size, self.nu, self.lam, \
+                self.kabs, self.ksca, self.kext, self.albedo)
 
         self.make_lookup_tables()
 
@@ -72,13 +80,8 @@ class Dust:
         self.kext = self.kabs + self.ksca
         self.albedo = self.ksca / self.kext
 
-        lib.set_optical_properties(ctypes.c_void_p(self.obj), self.lam.size, \
-            self.nu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.lam.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.kabs.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.ksca.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.kext.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-            self.albedo.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+        lib.set_optical_properties(self.obj, self.lam.size, self.nu, self.lam, \
+                self.kabs, self.ksca, self.kext, self.albedo)
 
         self.make_lookup_tables()
 
@@ -113,23 +116,11 @@ class Dust:
         self.dBnudT = numpy.diff(self.Bnu, axis=0) / numpy.diff(temp, axis=0)
         self.ddBnudT = numpy.diff(self.dBnu, axis=0) / numpy.diff(temp, axis=0)
 
-        lib.set_lookup_tables(ctypes.c_void_p(self.obj), self.ntemp, \
-                self.temp.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.planck_opacity.ctypes.data_as(ctypes.POINTER( \
-                        ctypes.c_double)),\
-                self.int_dBnukext.ctypes.data_as(ctypes.POINTER( \
-                        ctypes.c_double)), \
-                self.dplanck_opacity_dT.ctypes.data_as( \
-                        ctypes.POINTER(ctypes.c_double)), \
-                self.dint_dBnukext_dT.ctypes.data_as( \
-                        ctypes.POINTER(ctypes.c_double)), \
-                self.dkextdnu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.dalbedodnu.ctypes.data_as(ctypes.POINTER( \
-                        ctypes.c_double)), \
-                self.Bnu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.dBnu.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.dBnudT.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.ddBnudT.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+        lib.set_lookup_tables(self.obj, self.ntemp, self.temp, \
+                self.planck_opacity, self.int_dBnukext, \
+                self.dplanck_opacity_dT, self.dint_dBnukext_dT, \
+                self.dkextdnu, self.dalbedodnu, self.Bnu, self.dBnu, \
+                self.dBnudT, self.ddBnudT)
 
     def write(self, filename=None, usefile=None):
         if (usefile == None):

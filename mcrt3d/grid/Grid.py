@@ -1,15 +1,54 @@
 import ctypes
 import numpy
+import numpy.ctypeslib as npctypes
 import h5py
 import os
 from ..dust import Dust
 from ..sources import Star
 
+array_1d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=1,
+                flags='CONTIGUOUS')
+array_2d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=2,
+                flags='CONTIGUOUS')
+array_3d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=3,
+                flags='CONTIGUOUS')
+array_4d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=4,
+                flags='CONTIGUOUS')
+
 lib = ctypes.cdll.LoadLibrary(os.path.dirname(__file__)+ \
         '/../../src/libmcrt3d.so')
 lib.new_CartesianGrid.restype = ctypes.c_void_p
+lib.new_CartesianGrid.argtypes = None
+
 lib.new_CylindricalGrid.restype = ctypes.c_void_p
+lib.new_CylindricalGrid.argtypes = None
+
 lib.new_SphericalGrid.restype = ctypes.c_void_p
+lib.new_SphericalGrid.argtypes = None
+
+lib.set_walls.restype = None
+lib.set_walls.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, \
+        ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, \
+        array_1d_double, array_1d_double, array_1d_double, array_3d_double]
+
+lib.create_dust_array.restype = None
+lib.create_dust_array.argtypes = [ctypes.c_void_p, ctypes.c_int]
+
+lib.create_physical_properties_arrays.restype = None
+lib.create_physical_properties_arrays.argtypes = [ctypes.c_void_p, ctypes.c_int]
+
+lib.set_dust.restype = None
+lib.set_dust.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
+
+lib.set_physical_properties.restype = None
+lib.set_physical_properties.argtypes = [ctypes.c_void_p, array_3d_double, \
+        array_3d_double, array_3d_double, ctypes.c_int]
+
+lib.create_sources_array.restype = None
+lib.create_sources_array.argtypes = [ctypes.c_void_p, ctypes.c_int]
+
+lib.set_sources.restype = None
+lib.set_sources.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
 
 class Grid:
     def __init__(self):
@@ -47,12 +86,8 @@ class Grid:
                     self.volume[i,j,k] = (self.w1[i+1] - self.w1[i])* \
                         (self.w2[j+1] - self.w2[j])*(self.w3[k+1] - self.w3[k])
 
-        lib.set_walls(ctypes.c_void_p(self.obj), w1.size-1, w2.size-1, \
-                w3.size-1, w1.size, w2.size, w3.size, \
-                w1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                w2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                w3.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.volume.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+        lib.set_walls(self.obj, w1.size-1, w2.size-1, w3.size-1, \
+                w1.size, w2.size, w3.size, w1, w2, w3, self.volume)
 
     def set_cylindrical_grid(self, w1, w2, w3):
         self.obj = lib.new_CylindricalGrid()
@@ -73,12 +108,8 @@ class Grid:
                     self.volume[i,j,k] = (self.w1[i+1]**2 - self.w1[i]**2)* \
                         (self.w2[j+1]-self.w2[j]) * (self.w3[k+1]-self.w3[k])/2
 
-        lib.set_walls(ctypes.c_void_p(self.obj), w1.size-1, w2.size-1, \
-                w3.size-1, w1.size, w2.size, w3.size, \
-                w1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                w2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                w3.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.volume.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+        lib.set_walls(self.obj, w1.size-1, w2.size-1, w3.size-1, \
+                w1.size, w2.size, w3.size, w1, w2, w3, self.volume)
 
     def set_spherical_grid(self, w1, w2, w3):
         self.obj = lib.new_SphericalGrid()
@@ -100,30 +131,21 @@ class Grid:
                         (self.w3[k+1] - self.w3[k])* \
                         (numpy.cos(self.w2[j]) - numpy.cos(self.w2[j+1]))/3
 
-        lib.set_walls(ctypes.c_void_p(self.obj), w1.size-1, w2.size-1, \
-                w3.size-1, w1.size, w2.size, w3.size, \
-                w1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                w2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                w3.ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                self.volume.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+        lib.set_walls(self.obj, w1.size-1, w2.size-1, w3.size-1, \
+                w1.size, w2.size, w3.size, w1, w2, w3, self.volume)
 
     def set_physical_properties(self):
-        lib.create_dust_array(ctypes.c_void_p(self.obj), len(self.dust))
-        lib.create_physical_properties_arrays(ctypes.c_void_p(self.obj), \
-                len(self.dust))
+        lib.create_dust_array(self.obj, len(self.dust))
+        lib.create_physical_properties_arrays(self.obj, len(self.dust))
         for i in range(len(self.dust)):
-            lib.set_dust(ctypes.c_void_p(self.obj), \
-                    ctypes.c_void_p(self.dust[i].obj),i)
+            lib.set_dust(self.obj, self.dust[i].obj, i)
 
-            lib.set_physical_properties(ctypes.c_void_p(self.obj), \
-                    self.density[i].ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                    self.temperature[i].ctypes.data_as(ctypes.POINTER(ctypes.c_double)), \
-                    self.mass[i].ctypes.data_as(ctypes.POINTER(ctypes.c_double)), i)
+            lib.set_physical_properties(self.obj, self.density[i], \
+                    self.temperature[i], self.mass[i], i)
 
         lib.create_sources_array(ctypes.c_void_p(self.obj), len(self.sources))
         for i in range(len(self.sources)):
-            lib.set_sources(ctypes.c_void_p(self.obj), \
-                    ctypes.c_void_p(self.sources[i].obj),i)
+            lib.set_sources(self.obj, self.sources[i].obj, i)
 
     def read(self, filename=None, usefile=None):
         if (usefile == None):
