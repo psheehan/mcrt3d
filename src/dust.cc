@@ -29,6 +29,11 @@ struct Dust {
     double **dBnudT;
     double **ddBnudT;
 
+    double **random_nu_CPD;
+    double **random_nu_CPD_bw;
+    double **drandom_nu_CPD_dT;
+    double **drandom_nu_CPD_bw_dT;
+
     double *dkextdnu;
     double *dalbedodnu;
 

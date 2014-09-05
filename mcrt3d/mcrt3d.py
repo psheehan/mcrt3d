@@ -98,6 +98,7 @@ lib.set_lookup_tables.argtypes = [ctypes.c_void_p, ctypes.c_int, \
         array_1d_double, array_1d_double, array_1d_double, array_1d_double, \
         array_1d_double, array_1d_double, array_1d_double, array_1d_double, \
         array_1d_double, array_2d_double, array_2d_double, array_2d_double, \
+        array_2d_double, array_2d_double, array_2d_double, array_2d_double, \
         array_2d_double]
 
 # Linker functions for the Source class.

@@ -1,6 +1,7 @@
 from ..constants.physics import c, sigma, k
 from ..mcrt3d import lib
 from .. import misc
+import scipy.integrate
 import numpy
 import h5py
 
@@ -93,12 +94,32 @@ class Dust:
         self.dBnudT = numpy.diff(self.Bnu, axis=0) / numpy.diff(temp, axis=0)
         self.ddBnudT = numpy.diff(self.dBnu, axis=0) / numpy.diff(temp, axis=0)
 
+        # An experimental calculation of the CPD for photon frequency.
+
+        self.random_nu_CPD = scipy.integrate.cumtrapz(kext * \
+                misc.B_nu(nu, temp), x=nu, axis=1, initial=0) / numpy.dstack( \
+                [numpy.trapz(kext * misc.B_nu(nu, temp), x=nu, axis=1) for i \
+                in range(self.nu.size)])[0]
+        self.drandom_nu_CPD_dT = numpy.diff(self.random_nu_CPD, axis=0) / \
+                numpy.diff(temp, axis=0)
+
+        self.random_nu_CPD_bw = scipy.integrate.cumtrapz(kext * \
+                misc.dB_nu(nu, temp), x=nu, axis=1, initial=0) / numpy.dstack( \
+                [numpy.trapz(kext * misc.dB_nu(nu, temp), x=nu, axis=1) for i \
+                in range(self.nu.size)])[0]
+        self.drandom_nu_CPD_bw_dT = numpy.diff(self.random_nu_CPD_bw, axis=0) /\
+                numpy.diff(temp, axis=0)
+
+        # Pass these arrays to the C++ code.
+
         lib.set_lookup_tables(self.obj, self.ntemp, self.temp, \
                 self.planck_opacity, self.rosseland_extinction, \
                 self.int_dBnukext, self.dplanck_opacity_dT, \
                 self.drosseland_extinction_dT, self.dint_dBnukext_dT, \
                 self.dkextdnu, self.dalbedodnu, self.Bnu, self.dBnu, \
-                self.dBnudT, self.ddBnudT)
+                self.dBnudT, self.ddBnudT, self.random_nu_CPD, \
+                self.random_nu_CPD_bw, self.drandom_nu_CPD_dT, \
+                self.drandom_nu_CPD_bw_dT)
 
     def write(self, filename=None, usefile=None):
         if (usefile == None):

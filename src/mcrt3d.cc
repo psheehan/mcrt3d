@@ -219,7 +219,9 @@ extern "C" {
             double *int_dBnu_knu, double *dplanck_opacity_dT, 
             double *drosseland_extinction_dT, double *dint_dBnu_knu_dT,
             double *dkextdnu, double *dalbedodnu, double *_Bnu, double *_dBnu,
-            double *_dBnudT, double *_ddBnudT) {
+            double *_dBnudT, double *_ddBnudT, double *_random_nu_CPD, 
+            double *_random_nu_CPD_bw, double *_drandom_nu_CPD_dT, 
+            double *_drandom_nu_CPD_bw_dT) {
 
         D->ntemp = ntemp;
         D->temp = temp;
@@ -234,13 +236,26 @@ extern "C" {
 
         double **Bnu = pymangle(D->ntemp, D->nlam, _Bnu);
         double **dBnu = pymangle(D->ntemp, D->nlam, _dBnu);
-        double **dBnudT = pymangle(D->ntemp, D->nlam, _dBnudT);
-        double **ddBnudT = pymangle(D->ntemp, D->nlam, _ddBnudT);
+        double **dBnudT = pymangle(D->ntemp-1, D->nlam, _dBnudT);
+        double **ddBnudT = pymangle(D->ntemp-1, D->nlam, _ddBnudT);
+
+        double **random_nu_CPD = pymangle(D->ntemp, D->nlam, _random_nu_CPD);
+        double **random_nu_CPD_bw = pymangle(D->ntemp, D->nlam, 
+                _random_nu_CPD_bw);
+        double **drandom_nu_CPD_dT = pymangle(D->ntemp-1, D->nlam, 
+                _drandom_nu_CPD_dT);
+        double **drandom_nu_CPD_bw_dT = pymangle(D->ntemp-1, D->nlam, 
+                _drandom_nu_CPD_bw_dT);
 
         D->Bnu = Bnu;
         D->dBnu = dBnu;
         D->dBnudT = dBnudT;
         D->ddBnudT = ddBnudT;
+
+        D->random_nu_CPD = random_nu_CPD;
+        D->random_nu_CPD_bw = random_nu_CPD_bw;
+        D->drandom_nu_CPD_dT = drandom_nu_CPD_dT;
+        D->drandom_nu_CPD_bw_dT = drandom_nu_CPD_bw_dT;
     }
 
     /* Functions to set up the sources. */
