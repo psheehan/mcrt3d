@@ -1,19 +1,5 @@
-import os
-import ctypes
+from ..mcrt3d import lib
 import numpy
-import numpy.ctypeslib as npctypes
-
-array_1d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=1,
-                flags='CONTIGUOUS')
-array_3d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=3,
-                flags='CONTIGUOUS')
-
-lib = ctypes.cdll.LoadLibrary(os.path.dirname(__file__)+'/../../src/libmcrt3d.so')
-
-lib.new_Image.restype = ctypes.c_void_p
-lib.new_Image.argtypes = [ctypes.c_double, ctypes.c_double, ctypes.c_double, \
-        array_1d_double, array_1d_double, array_3d_double, ctypes.c_int, \
-        ctypes.c_int, array_1d_double, ctypes.c_double, ctypes.c_int]
 
 class Image:
     def __init__(self, r, incl, pa, x, y, nx, ny, nu, pixel_size, nnu):

@@ -1,31 +1,8 @@
-import ctypes
-import numpy
-import numpy.ctypeslib as npctypes
-import h5py
-import os
 from ..constants.physics import c, sigma, k
+from ..mcrt3d import lib
 from .. import misc
-
-array_1d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=1, \
-        flags='CONTIGUOUS')
-array_2d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=2, \
-        flags='CONTIGUOUS')
-
-lib = ctypes.cdll.LoadLibrary(os.path.dirname(__file__)+'/../../src/libmcrt3d.so')
-
-lib.new_Dust.restype = ctypes.c_void_p
-lib.new_Dust.argtypes = None
-
-lib.set_optical_properties.restype = None
-lib.set_optical_properties.argtypes = [ctypes.c_void_p, ctypes.c_int, \
-        array_1d_double, array_1d_double, array_1d_double, array_1d_double, \
-        array_1d_double, array_1d_double]
-
-lib.set_lookup_tables.restype = None
-lib.set_lookup_tables.argtypes = [ctypes.c_void_p, ctypes.c_int, \
-        array_1d_double, array_1d_double, array_1d_double, array_1d_double, \
-        array_1d_double, array_1d_double, array_1d_double, array_2d_double, \
-        array_2d_double, array_2d_double, array_2d_double]
+import numpy
+import h5py
 
 class Dust:
     def __init__(self):

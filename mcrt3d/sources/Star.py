@@ -1,27 +1,8 @@
-import ctypes
-import numpy
-import numpy.ctypeslib as npctypes
-import h5py
-import os
-from .. import misc
 from ..constants.physics import sigma
-
-array_1d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=1,
-                flags='CONTIGUOUS')
-
-lib = ctypes.cdll.LoadLibrary(os.path.dirname(__file__)+ \
-        '/../../src/libmcrt3d.so')
-
-lib.new_Source.restype = ctypes.c_void_p
-lib.new_Source.argtypes = None
-
-lib.set_parameters.argtypes = [ctypes.c_void_p, ctypes.c_double, \
-        ctypes.c_double, ctypes.c_double, ctypes.c_double, ctypes.c_double, \
-        ctypes.c_double]
-
-lib.set_blackbody_spectrum.restype = None
-lib.set_blackbody_spectrum.argtypes = [ctypes.c_void_p, ctypes.c_int, \
-        array_1d_double, array_1d_double, ctypes.c_double]
+from ..mcrt3d import lib
+from .. import misc
+import numpy
+import h5py
 
 class Star:
     def __init__(self):

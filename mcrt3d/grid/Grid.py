@@ -1,54 +1,8 @@
-import ctypes
-import numpy
-import numpy.ctypeslib as npctypes
-import h5py
-import os
-from ..dust import Dust
 from ..sources import Star
-
-array_1d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=1,
-                flags='CONTIGUOUS')
-array_2d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=2,
-                flags='CONTIGUOUS')
-array_3d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=3,
-                flags='CONTIGUOUS')
-array_4d_double = npctypes.ndpointer(dtype=ctypes.c_double, ndim=4,
-                flags='CONTIGUOUS')
-
-lib = ctypes.cdll.LoadLibrary(os.path.dirname(__file__)+ \
-        '/../../src/libmcrt3d.so')
-lib.new_CartesianGrid.restype = ctypes.c_void_p
-lib.new_CartesianGrid.argtypes = None
-
-lib.new_CylindricalGrid.restype = ctypes.c_void_p
-lib.new_CylindricalGrid.argtypes = None
-
-lib.new_SphericalGrid.restype = ctypes.c_void_p
-lib.new_SphericalGrid.argtypes = None
-
-lib.set_walls.restype = None
-lib.set_walls.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, \
-        ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, \
-        array_1d_double, array_1d_double, array_1d_double, array_3d_double]
-
-lib.create_dust_array.restype = None
-lib.create_dust_array.argtypes = [ctypes.c_void_p, ctypes.c_int]
-
-lib.create_physical_properties_arrays.restype = None
-lib.create_physical_properties_arrays.argtypes = [ctypes.c_void_p, ctypes.c_int]
-
-lib.set_dust.restype = None
-lib.set_dust.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
-
-lib.set_physical_properties.restype = None
-lib.set_physical_properties.argtypes = [ctypes.c_void_p, array_3d_double, \
-        array_3d_double, array_3d_double, ctypes.c_int]
-
-lib.create_sources_array.restype = None
-lib.create_sources_array.argtypes = [ctypes.c_void_p, ctypes.c_int]
-
-lib.set_sources.restype = None
-lib.set_sources.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
+from ..mcrt3d import lib
+from ..dust import Dust
+import numpy
+import h5py
 
 class Grid:
     def __init__(self):
@@ -143,7 +97,7 @@ class Grid:
             lib.set_physical_properties(self.obj, self.density[i], \
                     self.temperature[i], self.mass[i], i)
 
-        lib.create_sources_array(ctypes.c_void_p(self.obj), len(self.sources))
+        lib.create_sources_array(self.obj, len(self.sources))
         for i in range(len(self.sources)):
             lib.set_sources(self.obj, self.sources[i].obj, i)
 
