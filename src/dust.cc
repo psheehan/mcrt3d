@@ -19,9 +19,11 @@ struct Dust {
     double *temp;
     double *planck_opacity;
     double *dplanck_opacity_dT;
+    double *rosseland_extinction;
+    double *drosseland_extinction_dT;
+
     double *int_dBnu_knu;
     double *dint_dBnu_knu_dT;
-
     double **Bnu;
     double **dBnu;
     double **dBnudT;
@@ -37,6 +39,7 @@ struct Dust {
     double opacity(double freq);
     double albdo(double freq);
     double planck_mean_opacity(double T);
+    double rosseland_mean_extinction(double T);
     double intdBnuknu(double T);
 
     double *Bnu_arr(double T);
@@ -143,6 +146,18 @@ double Dust::planck_mean_opacity(double T) {
         planck_opacity[n];
 
     return planck_mean_opacity;
+}
+
+/* Calculate the Rosseland Mean Extinction for a dust grain at a given 
+ * temperature. */
+
+double Dust::rosseland_mean_extinction(double T) {
+    int n = find_in_arr(T,temp,ntemp);
+
+    double rosseland_mean_extinction = drosseland_extinction_dT[n]*(T-temp[n])+
+        rosseland_extinction[n];
+
+    return rosseland_mean_extinction;
 }
 
 /* Calculate the integral of d(B_nu)/dT * k_nu over all frequencies for a given

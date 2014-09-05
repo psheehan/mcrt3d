@@ -75,9 +75,9 @@ class Dust:
         self.dplanck_opacity_dT = numpy.diff(self.planck_opacity) / \
                 numpy.diff(self.temp)
 
-        rosseland_extinction = -(sigma * self.temp**4 / numpy.pi) / \
+        self.rosseland_extinction = -(sigma * self.temp**4 / numpy.pi) / \
                 numpy.trapz(misc.B_nu(nu, temp)/kext, x=nu, axis=1)
-        drosseland_extinction_dT = numpy.diff(rosseland_extinction) / \
+        self.drosseland_extinction_dT = numpy.diff(self.rosseland_extinction) /\
                 numpy.diff(self.temp)
 
         self.int_dBnukext = numpy.trapz(misc.dB_nu(nu, temp) * kext, x=nu, \
@@ -94,8 +94,9 @@ class Dust:
         self.ddBnudT = numpy.diff(self.dBnu, axis=0) / numpy.diff(temp, axis=0)
 
         lib.set_lookup_tables(self.obj, self.ntemp, self.temp, \
-                self.planck_opacity, self.int_dBnukext, \
-                self.dplanck_opacity_dT, self.dint_dBnukext_dT, \
+                self.planck_opacity, self.rosseland_extinction, \
+                self.int_dBnukext, self.dplanck_opacity_dT, \
+                self.drosseland_extinction_dT, self.dint_dBnukext_dT, \
                 self.dkextdnu, self.dalbedodnu, self.Bnu, self.dBnu, \
                 self.dBnudT, self.ddBnudT)
 
