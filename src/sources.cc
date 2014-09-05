@@ -86,9 +86,9 @@ double Source::random_nu() {
     double freq;
     double ksi = random_number();
 
-    for (int i=0; i<nnu; i++) {
+    for (int i=1; i<nnu; i++) {
         if (random_nu_CPD[i] > ksi) {
-            freq = random_number() * (nu[i+1] - nu[i]) + nu[i];
+            freq = random_number() * (nu[i] - nu[i-1]) + nu[i-1];
             break;
         }
     }

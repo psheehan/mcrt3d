@@ -51,10 +51,10 @@ class Dust:
     def set_properties_from_radmc3d(self, filename):
         data = numpy.loadtxt(filename, skiprows=2)
 
-        self.lam = data[:,0].copy() * 1.0e-4
+        self.lam = data[:,0][::-1].copy() * 1.0e-4
         self.nu = c / self.lam
-        self.kabs = data[:,1].copy()
-        self.ksca = data[:,2].copy()
+        self.kabs = data[:,1][::-1].copy()
+        self.ksca = data[:,2][::-1].copy()
         self.kext = self.kabs + self.ksca
         self.albedo = self.ksca / self.kext
 
@@ -73,14 +73,14 @@ class Dust:
 
         # Calculate the Planck Mean Opacity and it's derivative.
 
-        self.planck_opacity =  -numpy.pi / (sigma * self.temp**4) * \
+        self.planck_opacity =  numpy.pi / (sigma * self.temp**4) * \
                 numpy.trapz(misc.B_nu(nu, temp)*kext, x=nu, axis=1)
         self.dplanck_opacity_dT = numpy.diff(self.planck_opacity) / \
                 numpy.diff(self.temp)
 
         # Calculate the Rosseland Mean Extinction and it's derivative.
 
-        self.rosseland_extinction = -(sigma * self.temp**4 / numpy.pi) / \
+        self.rosseland_extinction = (sigma * self.temp**4 / numpy.pi) / \
                 numpy.trapz(misc.B_nu(nu, temp)/kext, x=nu, axis=1)
         self.drosseland_extinction_dT = numpy.diff(self.rosseland_extinction) /\
                 numpy.diff(self.temp)

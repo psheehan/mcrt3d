@@ -36,8 +36,6 @@ struct Dust {
     double albdo(double freq);
     double planck_mean_opacity(double T);
     double rosseland_mean_extinction(double T);
-
-    int find_freq_bin(double freq);
 };
 
 /* Scatter a photon isotropically off of dust. */
@@ -81,7 +79,7 @@ double Dust::random_nu(double T, bool bw) {
 
     double ksi = random_number();
 
-    for (int j=0; j < nlam; j++) {
+    for (int j=1; j < nlam; j++) {
         if (bw)
             CPD = drandom_nu_CPD_bw_dT[i][j] * (T - temp[i]) + 
                 random_nu_CPD_bw[i][j];
@@ -90,7 +88,7 @@ double Dust::random_nu(double T, bool bw) {
                 random_nu_CPD[i][j];
 
         if (CPD > ksi) {
-            freq = random_number() * (nu[j+1] - nu[j]) + nu[j];
+            freq = random_number() * (nu[j] - nu[j-1]) + nu[j-1];
             break;
         }
     }
@@ -101,7 +99,7 @@ double Dust::random_nu(double T, bool bw) {
 /* Calculate the opacity of a dust grain at a specific frequency. */
 
 double Dust::opacity(double freq) {
-    int l = find_freq_bin(freq);
+    int l = find_in_arr(freq, nu, nlam);
 
     double opacity = dkextdnu[l]*(freq-nu[l])+kext[l];
 
@@ -111,7 +109,7 @@ double Dust::opacity(double freq) {
 /* Calculate the albedo of a dust grain at a specific frequency. */
 
 double Dust::albdo(double freq) {
-    int l = find_freq_bin(freq);
+    int l = find_in_arr(freq, nu, nlam);
 
     double albdo = dalbedodnu[l]*(freq-nu[l])+albedo[l];
 
@@ -140,31 +138,5 @@ double Dust::rosseland_mean_extinction(double T) {
 
     return rosseland_mean_extinction;
 }
-
-/* Determine which frequency bin a given frequency is in. */
-
-int Dust::find_freq_bin(double freq) {
-    int lmin = 0;
-    int lmax = nlam-1;
-    int l = 0;
-    bool not_found = true;
-
-    while (not_found) {
-        int ltest = (lmax - lmin)/2 + lmin;
-
-        if ((freq > nu[ltest+1]) && (freq <= nu[ltest])) {
-            l = ltest;
-            not_found = false;
-        }
-        else {
-            if (freq < nu[ltest])
-                lmin = ltest;
-            else
-                lmax = ltest;
-        }
-    }
-
-    return l;
-};
 
 #endif
