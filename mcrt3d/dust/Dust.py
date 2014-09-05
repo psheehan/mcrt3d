@@ -71,18 +71,27 @@ class Dust:
         ksca = numpy.vstack([self.ksca for i in range(self.temp.size)])
         kext = numpy.vstack([self.kext for i in range(self.temp.size)])
 
+        # Calculate the Planck Mean Opacity and it's derivative.
+
         self.planck_opacity =  -numpy.pi / (sigma * self.temp**4) * \
                 numpy.trapz(misc.B_nu(nu, temp)*kext, x=nu, axis=1)
         self.dplanck_opacity_dT = numpy.diff(self.planck_opacity) / \
                 numpy.diff(self.temp)
+
+        # Calculate the Rosseland Mean Extinction and it's derivative.
 
         self.rosseland_extinction = -(sigma * self.temp**4 / numpy.pi) / \
                 numpy.trapz(misc.B_nu(nu, temp)/kext, x=nu, axis=1)
         self.drosseland_extinction_dT = numpy.diff(self.rosseland_extinction) /\
                 numpy.diff(self.temp)
 
+        # Calculate the derivatives of kext and albedo.
+
         self.dkextdnu = numpy.diff(self.kext) / numpy.diff(self.nu)
         self.dalbedodnu = numpy.diff(self.albedo) / numpy.diff(self.nu)
+
+        # Calculate the cumulative probability distribution that will be used
+        # to generate a random nu value, both for bw and regular.
 
         self.random_nu_CPD = scipy.integrate.cumtrapz(kext * \
                 misc.B_nu(nu, temp), x=nu, axis=1, initial=0) / numpy.dstack( \
