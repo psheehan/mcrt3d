@@ -88,7 +88,7 @@ void Dust::absorb(Photon *P, double T, bool bw) {
 /* Calculate a random frequency for a photon. */
 
 double Dust::random_nu(double T, bool bw) {
-    double freq;
+    /*double freq;
 
     double *F;
     double norm;
@@ -118,6 +118,28 @@ double Dust::random_nu(double T, bool bw) {
     }
 
     delete F;
+
+    return freq; */
+
+    double freq, CPD;
+
+    int i = find_in_arr(T,temp,ntemp);
+
+    double ksi = random_number();
+
+    for (int j=0; j < nlam; j++) {
+        if (bw)
+            CPD = drandom_nu_CPD_bw_dT[i][j] * (T - temp[i]) + 
+                random_nu_CPD_bw[i][j];
+        else
+            CPD = drandom_nu_CPD_dT[i][j] * (T - temp[i]) + 
+                random_nu_CPD[i][j];
+
+        if (CPD > ksi) {
+            freq = random_number() * (nu[j+1] - nu[j]) + nu[j];
+            break;
+        }
+    }
 
     return freq;
 }
