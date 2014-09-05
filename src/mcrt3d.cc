@@ -216,28 +216,19 @@ extern "C" {
 
     void set_lookup_tables(Dust *D, int ntemp, double *temp, 
             double *planck_opacity, double *rosseland_extinction, 
-            double *int_dBnu_knu, double *dplanck_opacity_dT, 
-            double *drosseland_extinction_dT, double *dint_dBnu_knu_dT,
-            double *dkextdnu, double *dalbedodnu, double *_Bnu, double *_dBnu,
-            double *_dBnudT, double *_ddBnudT, double *_random_nu_CPD, 
+            double *dplanck_opacity_dT, double *drosseland_extinction_dT,
+            double *dkextdnu, double *dalbedodnu, double *_random_nu_CPD, 
             double *_random_nu_CPD_bw, double *_drandom_nu_CPD_dT, 
             double *_drandom_nu_CPD_bw_dT) {
 
         D->ntemp = ntemp;
         D->temp = temp;
         D->planck_opacity = planck_opacity;
-        D->rosseland_extinction = rosseland_extinction;
-        D->int_dBnu_knu = int_dBnu_knu;
         D->dplanck_opacity_dT = dplanck_opacity_dT;
+        D->rosseland_extinction = rosseland_extinction;
         D->drosseland_extinction_dT = drosseland_extinction_dT;
-        D->dint_dBnu_knu_dT = dint_dBnu_knu_dT;
         D->dkextdnu = dkextdnu;
         D->dalbedodnu = dalbedodnu;
-
-        double **Bnu = pymangle(D->ntemp, D->nlam, _Bnu);
-        double **dBnu = pymangle(D->ntemp, D->nlam, _dBnu);
-        double **dBnudT = pymangle(D->ntemp-1, D->nlam, _dBnudT);
-        double **ddBnudT = pymangle(D->ntemp-1, D->nlam, _ddBnudT);
 
         double **random_nu_CPD = pymangle(D->ntemp, D->nlam, _random_nu_CPD);
         double **random_nu_CPD_bw = pymangle(D->ntemp, D->nlam, 
@@ -246,11 +237,6 @@ extern "C" {
                 _drandom_nu_CPD_dT);
         double **drandom_nu_CPD_bw_dT = pymangle(D->ntemp-1, D->nlam, 
                 _drandom_nu_CPD_bw_dT);
-
-        D->Bnu = Bnu;
-        D->dBnu = dBnu;
-        D->dBnudT = dBnudT;
-        D->ddBnudT = ddBnudT;
 
         D->random_nu_CPD = random_nu_CPD;
         D->random_nu_CPD_bw = random_nu_CPD_bw;

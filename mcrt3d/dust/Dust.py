@@ -81,20 +81,8 @@ class Dust:
         self.drosseland_extinction_dT = numpy.diff(self.rosseland_extinction) /\
                 numpy.diff(self.temp)
 
-        self.int_dBnukext = numpy.trapz(misc.dB_nu(nu, temp) * kext, x=nu, \
-                axis=1)
-        self.dint_dBnukext_dT = numpy.diff(self.int_dBnukext) / \
-                numpy.diff(self.temp)
-
         self.dkextdnu = numpy.diff(self.kext) / numpy.diff(self.nu)
         self.dalbedodnu = numpy.diff(self.albedo) / numpy.diff(self.nu)
-
-        self.Bnu = misc.B_nu(nu, temp)
-        self.dBnu = misc.dB_nu(nu, temp)
-        self.dBnudT = numpy.diff(self.Bnu, axis=0) / numpy.diff(temp, axis=0)
-        self.ddBnudT = numpy.diff(self.dBnu, axis=0) / numpy.diff(temp, axis=0)
-
-        # An experimental calculation of the CPD for photon frequency.
 
         self.random_nu_CPD = scipy.integrate.cumtrapz(kext * \
                 misc.B_nu(nu, temp), x=nu, axis=1, initial=0) / numpy.dstack( \
@@ -114,10 +102,8 @@ class Dust:
 
         lib.set_lookup_tables(self.obj, self.ntemp, self.temp, \
                 self.planck_opacity, self.rosseland_extinction, \
-                self.int_dBnukext, self.dplanck_opacity_dT, \
-                self.drosseland_extinction_dT, self.dint_dBnukext_dT, \
-                self.dkextdnu, self.dalbedodnu, self.Bnu, self.dBnu, \
-                self.dBnudT, self.ddBnudT, self.random_nu_CPD, \
+                self.dplanck_opacity_dT, self.drosseland_extinction_dT, \
+                self.dkextdnu, self.dalbedodnu, self.random_nu_CPD, \
                 self.random_nu_CPD_bw, self.drandom_nu_CPD_dT, \
                 self.drandom_nu_CPD_bw_dT)
 
