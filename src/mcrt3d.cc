@@ -262,12 +262,13 @@ extern "C" {
     }
 
     void set_blackbody_spectrum(Source *S, int nnu, double *nu, double *Bnu, 
-            double luminosity) {
+            double luminosity, double *random_nu_CPD) {
 
         S->nnu = nnu;
         S->nu = nu;
         S->Bnu = Bnu;
         S->luminosity = luminosity;
+        S->random_nu_CPD = random_nu_CPD;
     }
 
     /* Function to test that everything is being set up correctly. */

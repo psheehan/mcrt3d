@@ -1,6 +1,7 @@
 from ..constants.physics import sigma
 from ..mcrt3d import lib
 from .. import misc
+import scipy.integrate
 import numpy
 import h5py
 
@@ -24,8 +25,11 @@ class Star:
         self.Bnu = misc.B_nu(nu, self.temperature)
         self.luminosity = 4*numpy.pi*self.radius**2*sigma*self.temperature**4
 
+        self.random_nu_CPD = scipy.integrate.cumtrapz(self.Bnu, x=nu, \
+                initial=0) / numpy.trapz(self.Bnu, x=nu)
+
         lib.set_blackbody_spectrum(self.obj, self.nu.size, self.nu, \
-                self.Bnu, self.luminosity)
+                self.Bnu, self.luminosity, self.random_nu_CPD)
 
     def read(self, filename=None, usefile=None):
         if (usefile == None):

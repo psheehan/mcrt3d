@@ -18,6 +18,8 @@ struct Source {
     double *Bnu;
     int nnu;
 
+    double *random_nu_CPD;
+
     Photon *emit(int nphot, int nspecies, Dust *species);
     double intercept_distance(Photon *P);
     double random_nu();
@@ -82,17 +84,11 @@ Photon *Source::emit(int nphot, int nspecies, Dust *species) {
 
 double Source::random_nu() {
     double freq;
-    double norm = -pi/(sigma*pow(temperature,4));
     double ksi = random_number();
 
-    double tot = 0.0;
-    for (int i=0; i<nnu-2; i++) {
-        tot += 0.5*(nu[nnu-i-1]-nu[nnu-i-2])*(Bnu[nnu-i-1]+Bnu[nnu-i-2]);
-
-        double Prob = tot*norm;
-
-        if (Prob > ksi) {
-            freq = random_number()*(nu[nnu-i-1]-nu[nnu-i-2])+nu[nnu-i-2];
+    for (int i=0; i<nnu; i++) {
+        if (random_nu_CPD[i] > ksi) {
+            freq = random_number() * (nu[i+1] - nu[i]) + nu[i];
             break;
         }
     }

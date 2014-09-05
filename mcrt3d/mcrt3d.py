@@ -111,7 +111,7 @@ lib.set_parameters.argtypes = [ctypes.c_void_p, ctypes.c_double, \
 
 lib.set_blackbody_spectrum.restype = None
 lib.set_blackbody_spectrum.argtypes = [ctypes.c_void_p, ctypes.c_int, \
-        array_1d_double, array_1d_double, ctypes.c_double]
+        array_1d_double, array_1d_double, ctypes.c_double, array_1d_double]
 
 # Linker functions for the Camera class.
 
