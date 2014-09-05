@@ -68,13 +68,13 @@ class Dust:
         self.ntemp = self.temp.size
 
         nu, temp = numpy.meshgrid(self.nu, self.temp)
-        ksca = numpy.vstack([self.ksca for i in range(self.temp.size)])
+        kabs = numpy.vstack([self.kabs for i in range(self.temp.size)])
         kext = numpy.vstack([self.kext for i in range(self.temp.size)])
 
         # Calculate the Planck Mean Opacity and it's derivative.
 
         self.planck_opacity =  numpy.pi / (sigma * self.temp**4) * \
-                numpy.trapz(misc.B_nu(nu, temp)*kext, x=nu, axis=1)
+                numpy.trapz(misc.B_nu(nu, temp)*kabs, x=nu, axis=1)
         self.dplanck_opacity_dT = numpy.diff(self.planck_opacity) / \
                 numpy.diff(self.temp)
 
@@ -93,16 +93,16 @@ class Dust:
         # Calculate the cumulative probability distribution that will be used
         # to generate a random nu value, both for bw and regular.
 
-        self.random_nu_CPD = scipy.integrate.cumtrapz(kext * \
+        self.random_nu_CPD = scipy.integrate.cumtrapz(kabs * \
                 misc.B_nu(nu, temp), x=nu, axis=1, initial=0) / numpy.dstack( \
-                [numpy.trapz(kext * misc.B_nu(nu, temp), x=nu, axis=1) for i \
+                [numpy.trapz(kabs * misc.B_nu(nu, temp), x=nu, axis=1) for i \
                 in range(self.nu.size)])[0]
         self.drandom_nu_CPD_dT = numpy.diff(self.random_nu_CPD, axis=0) / \
                 numpy.diff(temp, axis=0)
 
-        self.random_nu_CPD_bw = scipy.integrate.cumtrapz(kext * \
+        self.random_nu_CPD_bw = scipy.integrate.cumtrapz(kabs * \
                 misc.dB_nu(nu, temp), x=nu, axis=1, initial=0) / numpy.dstack( \
-                [numpy.trapz(kext * misc.dB_nu(nu, temp), x=nu, axis=1) for i \
+                [numpy.trapz(kabs * misc.dB_nu(nu, temp), x=nu, axis=1) for i \
                 in range(self.nu.size)])[0]
         self.drandom_nu_CPD_bw_dT = numpy.diff(self.random_nu_CPD_bw, axis=0) /\
                 numpy.diff(temp, axis=0)
