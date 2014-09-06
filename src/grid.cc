@@ -19,17 +19,26 @@ struct Grid {
     double *w1;
     double *w2;
     double *w3;
+
     double ****dens;
     double ****energy;
     double ****temp;
     double ****mass;
     double ***volume;
+
     int nspecies;
     Dust *dust;
+
     int nsources;
     Source *sources;
     double total_lum;
+
     Params *Q;
+
+    int ny;
+    double *y;
+    double *f;
+    double *dydf;
 
     Photon *emit(int iphot);
     virtual double next_wall_distance(Photon *P);
@@ -190,6 +199,10 @@ void Grid::propagate_photon_full(Photon *P) {
                             P->n[0], P->n[1], P->n[2]);
                 }
             }
+
+            // If we've enabled MRW, try running an MRW step.
+            if (Q->use_mrw)
+                propagate_photon_mrw(P);
         }
     }
 }
@@ -280,6 +293,73 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
 /* Propagate a photon using the MRW method for high optical depths. */
 
 void Grid::propagate_photon_mrw(Photon *P) {
+    double dmin = minimum_wall_distance(P);
+
+    double alpha = 0;
+    for (int idust = 0; idust<nspecies; idust++)
+        alpha += dust[idust].rosseland_mean_extinction(
+                temp[idust][P->l[0]][P->l[1]][P->l[2]]) * 
+            dens[idust][P->l[0]][P->l[1]][P->l[2]];
+
+    if (alpha * dmin > Q->mrw_gamma) {
+        // Calculate the radius of the sphere that we will move the photon to
+        // somewhere on.
+        double R_0 = 0.75 * dmin;
+
+        // Calculate the value of y
+        double ksi = random_number();
+
+        int i = find_in_arr(ksi, f, ny);
+
+        double y0 = dydf[i] * (ksi - f[i]) + y[i];
+
+        // Calculate the actual distance that the photon traveled through 
+        // diffusion.
+        double s = -log(y0) * (R_0/pi)*(R_0/pi) * 3 * alpha;
+
+        // Add the energy absorbed into the grid.
+        for (int idust=0; idust<nspecies; idust++)
+            energy[idust][P->l[0]][P->l[1]][P->l[2]] += P->energy*
+                s*dust[idust].planck_mean_opacity(
+                        temp[idust][P->l[0]][P->l[1]][P->l[2]]) *
+                dens[idust][P->l[0]][P->l[1]][P->l[2]];
+
+        // Move the photon to the edge of the sphere.
+        P->move(R_0);
+
+        // Absorb the photon
+        int idust;
+        if (nspecies == 1) {
+            idust = 0;
+        }
+        else {
+            double ksca_tot = 0;
+            double *ksca_cum = new double[nspecies];
+            double kext_tot = 0;
+            for (int i=0; i<nspecies; i++) {
+                ksca_tot += P->current_albedo[i]*P->current_kext[i]*
+                    dens[i][P->l[0]][P->l[1]][P->l[2]];
+                ksca_cum[i] = ksca_tot;
+                kext_tot += P->current_kext[i]*
+                    dens[i][P->l[0]][P->l[1]][P->l[2]];
+            }
+
+            double rand = random_number();
+            for (int i=0; i<nspecies; i++) {
+                if (rand < ksca_cum[i] / kext_tot) {
+                    idust = i;
+                    break;
+                }
+            }
+            delete ksca_cum;
+        }
+
+        absorb(P, idust);
+
+        // Try running another MRW step until the condition for MRW is no 
+        // longer satisfied.
+        propagate_photon_mrw(P);
+    }
 }
 
 /* Propagate a ray through the grid for raytracing. */

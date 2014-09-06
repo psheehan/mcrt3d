@@ -129,10 +129,8 @@ double SphericalGrid::minimum_wall_distance(Photon *P) {
     
     double s = HUGE_VAL;
     for (int i=P->l[0]; i <= P->l[0]+1; i++) {
-        if (r == w1[i]) {
-            double sr = fabs(r - w1[i]);
-            if (sr < s) s = sr;
-        }
+        double sr = fabs(r - w1[i]);
+        if (sr < s) s = sr;
     }
 
     // Calculate the distance to the nearest theta wall.
@@ -153,13 +151,11 @@ double SphericalGrid::minimum_wall_distance(Photon *P) {
         double phi = P->phi;
         
         for (int i=P->l[2]; i <= P->l[2]+1; i++) {
-            if (phi != w3[i]) {
-                Vector<double, 3> phi_hat = Vector<double, 3>(-sin(w3[i]), 
-                        cos(w3[i]), 0);
+            Vector<double, 3> phi_hat = Vector<double, 3>(-sin(w3[i]), 
+                    cos(w3[i]), 0);
 
-                double sp = fabs(phi_hat * P->r);
-                if (sp < s) s = sp;
-            }
+            double sp = fabs(phi_hat * P->r);
+            if (sp < s) s = sp;
         }
     }
     
