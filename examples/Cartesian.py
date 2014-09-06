@@ -14,6 +14,8 @@ def SetupParams():
     Q.set_bw(True)
     Q.set_scattering(False)
     Q.set_verbose(False)
+    Q.set_mrw(False)
+    Q.set_mrw_gamma(4)
 
     return Q
 

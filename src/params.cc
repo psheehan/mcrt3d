@@ -7,6 +7,8 @@ struct Params {
     bool scattering;
     double scattering_nu;
     bool verbose;
+    bool use_mrw;
+    double mrw_gamma;
 };
 
 #endif

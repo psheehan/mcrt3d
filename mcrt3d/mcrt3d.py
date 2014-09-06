@@ -48,6 +48,12 @@ lib.set_scattering.argtypes = [ctypes.c_void_p, ctypes.c_bool]
 lib.set_verbose.restype = None
 lib.set_verbose.argtypes = [ctypes.c_void_p, ctypes.c_bool]
 
+lib.set_mrw.restype = None
+lib.set_mrw.argtypes = [ctypes.c_void_p, ctypes.c_bool]
+
+lib.set_mrw_gamma.restype = None
+lib.set_mrw_gamma.argtypes = [ctypes.c_void_p, ctypes.c_double]
+
 # Linker functions for the Grid classes.
 
 lib.new_CartesianGrid.restype = ctypes.c_void_p
@@ -152,6 +158,12 @@ class Params:
 
     def set_verbose(self, verbose):
         lib.set_verbose(self.obj, verbose)
+
+    def set_mrw(self, use_mrw):
+        lib.set_mrw(self.obj, use_mrw)
+
+    def set_mrw_gamma(self, mrw_gamma):
+        lib.set_mrw_gamma(self.obj, mrw_gamma)
 
 class MCRT:
     def __init__(self, G, Q):

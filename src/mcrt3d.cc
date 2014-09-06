@@ -125,6 +125,14 @@ extern "C" {
         Q->verbose = verbose;
     }
 
+    void set_mrw(Params *Q, bool use_mrw) {
+        Q->use_mrw = use_mrw;
+    }
+
+    void set_mrw_gamma(Params *Q, double mrw_gamma) {
+        Q->mrw_gamma = mrw_gamma;
+    }
+
     /* Functions to set up the grid. */
 
     CartesianGrid* new_CartesianGrid() {
