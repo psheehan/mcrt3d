@@ -204,6 +204,13 @@ extern "C" {
         G->sources[index] = *S;
     }
 
+    void set_mrw_tables(Grid *G, double *y, double *f, double *dydf, int ny) {
+        G->y = y;
+        G->f = f;
+        G->dydf = dydf;
+        G->ny = ny;
+    }
+
     /* Functions to set up the dust. */
 
     Dust* new_Dust() {

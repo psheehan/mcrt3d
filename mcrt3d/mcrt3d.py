@@ -89,6 +89,10 @@ lib.create_sources_array.argtypes = [ctypes.c_void_p, ctypes.c_int]
 lib.set_sources.restype = None
 lib.set_sources.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
 
+lib.set_mrw_tables.restype = None
+lib.set_mrw_tables.argtypes = [ctypes.c_void_p, array_1d_double, \
+        array_1d_double, array_1d_double, ctypes.c_int]
+
 # Linker functions for the Dust class.
 
 lib.new_Dust.restype = ctypes.c_void_p
