@@ -20,14 +20,14 @@ struct Source {
 
     double *random_nu_CPD;
 
-    Photon *emit(int nphot, int nspecies, Dust *species);
+    Photon *emit(int nphot);
     double intercept_distance(Photon *P);
     double random_nu();
 };
 
 /* Emit a photon from the source. */
 
-Photon *Source::emit(int nphot, int nspecies, Dust *species) {
+Photon *Source::emit(int nphot) {
     Photon *P = new Photon();
 
     double theta = pi*random_number();
@@ -65,17 +65,6 @@ Photon *Source::emit(int nphot, int nspecies, Dust *species) {
     P->energy = luminosity / nphot;
 
     P->nu = random_nu();
-
-    double *current_kext = new double[nspecies];
-    double *current_albedo = new double[nspecies];
-
-    for (int i=0; i<nspecies; i++) {
-        current_kext[i] = species[i].opacity(P->nu);
-        current_albedo[i] = species[i].albdo(P->nu);
-    }
-
-    P->current_kext = current_kext;
-    P->current_albedo = current_albedo;
 
     return P;
 };

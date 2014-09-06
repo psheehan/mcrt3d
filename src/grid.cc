@@ -61,8 +61,17 @@ Photon *Grid::emit(int iphot) {
         int photons_per_source = int(Q->nphot/nsources);
     }
 
-    Photon *P = sources[isource].emit(photons_per_source, nspecies, 
-            dust);
+    Photon *P = sources[isource].emit(photons_per_source);
+
+    /* Calculate kext and albedo at the photon's current frequency for all
+     * dust species. */
+
+    P->current_kext = new double[nspecies];
+    P->current_albedo = new double[nspecies];
+    for (int i=0; i<nspecies; i++) {
+        P->current_kext[i] = dust[i].opacity(P->nu);
+        P->current_albedo[i] = dust[i].albdo(P->nu);
+    }
 
     /* Check the photon's location in the grid. */
     P->l = photon_loc(P);
