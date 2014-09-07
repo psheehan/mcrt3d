@@ -1,6 +1,7 @@
 from ..sources import Star
 from ..mcrt3d import lib
 from ..dust import Dust
+import decimal
 import numpy
 import h5py
 
@@ -100,6 +101,34 @@ class Grid:
         lib.create_sources_array(self.obj, len(self.sources))
         for i in range(len(self.sources)):
             lib.set_sources(self.obj, self.sources[i].obj, i)
+
+        decimal.getcontext().prec = 80
+        y = [i * decimal.Decimal(1) / decimal.Decimal(100) for i in range(101)]
+        f = []
+        for i in range(len(y)-1):
+            n = 1
+            while True:
+                if n == 1:
+                    f.append((-1)**(n+1) * y[i]**(n**2))
+                else:
+                    f[-1] += (-1)**(n+1) * y[i]**(n**2)
+                    if (abs((f[-1] - old_f)) <= decimal.Decimal(1.0e-80) * \
+                            abs(f[-1])):
+                        break
+
+                n = n+1
+                old_f = f[-1]
+
+        f.append(decimal.Decimal(1) / decimal.Decimal(2))
+        f = decimal.Decimal(2) * numpy.array(f)
+
+        dydf = numpy.diff(y) / numpy.diff(f)
+
+        self.y = numpy.array(y, dtype=float)
+        self.f = numpy.array(f, dtype=float)
+        self.dydf = numpy.array(dydf, dtype=float)
+
+        lib.set_mrw_tables(self.obj, self.y, self.f, self.dydf, self.y.size)
 
     def read(self, filename=None, usefile=None):
         if (usefile == None):
