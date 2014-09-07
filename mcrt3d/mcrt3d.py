@@ -176,5 +176,5 @@ class MCRT:
         lib.set_Grid(self.obj, G.obj)
         lib.set_Params(self.obj, Q.obj)
 
-    def thermal_mc(self, nphot, bw):
+    def thermal_mc(self):
         lib.run_thermal_mc(self.obj)
