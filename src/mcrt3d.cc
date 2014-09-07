@@ -63,8 +63,6 @@ void MCRT::scattering_mc() {
 }
 
 void MCRT::mc_iteration() {
-    bool verbose = false;
-
     for (int i=0; i<Q->nphot; i++) {
         if (fmod(i+1,Q->nphot/10) == 0) printf("%i\n",i+1);
 
@@ -83,7 +81,7 @@ void MCRT::mc_iteration() {
 
         P->clean();
         delete P;
-        if (verbose) printf("Photon has escaped the grid.\n\n");
+        if (Q->verbose) printf("Photon has escaped the grid.\n\n");
     }
 }
 
