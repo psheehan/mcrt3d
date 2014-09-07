@@ -121,6 +121,8 @@ double CartesianGrid::minimum_wall_distance(Photon *P) {
 Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
     Vector<int, 3> l;
     
+    // Determine which cell the photon is currently in.
+
     if (P->r[0] >= w1[nw1-1])
         l[0] = n1-1;
     else if (P->r[0] <= w1[0])
@@ -137,12 +139,26 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
             l[0] = find_in_arr(P->r[0],w1,lower,upper);
         }
     }
+
+    /* Because of floating point errors it may be the case that the photon 
+     * should be on the wall exactly, but is not exactly on the wall. We
+     * need to put the photon exactly on the wall. */
+
+    if (equal(P->r[0], w1[l[0]], 1.0e-6))
+        P->r[0] = w1[l[0]];
+    else if (equal(P->r[0], w1[l[0]+1], 1.0e-6))
+        P->r[0] = w1[l[0]+1];
+
+    /* Finally, update which cell the photon is in based on the direction it
+     * is going. */
     
     if ((P->r[0] == w1[l[0]]) && (P->n[0] <= 0))
         l[0] -= 1;
     else if ((P->r[0] == w1[l[0]+1]) && (P->n[0] >= 0))
         l[0] += 1;
     
+    // Determine which cell the photon is currently in.
+
     if (P->r[1] >= w2[nw2-1])
         l[1] = n2-1;
     else if (P->r[1] <= w2[0])
@@ -160,11 +176,25 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
         }
     }
     
+    /* Because of floating point errors it may be the case that the photon 
+     * should be on the wall exactly, but is not exactly on the wall. We
+     * need to put the photon exactly on the wall. */
+
+    if (equal(P->r[1], w2[l[1]], 1.0e-6))
+        P->r[1] = w2[l[1]];
+    else if (equal(P->r[1], w2[l[1]+1], 1.0e-6))
+        P->r[1] = w2[l[1]+1];
+
+    /* Finally, update which cell the photon is in based on the direction it
+     * is going. */
+    
     if ((P->r[1] == w2[l[1]]) && (P->n[1] <= 0))
         l[1] -= 1;
     else if ((P->r[1] == w2[l[1]+1]) && (P->n[1] >= 0))
         l[1] += 1;
     
+    // Determine which cell the photon is currently in.
+
     if (P->r[2] >= w3[nw3-1])
         l[2] = n3-1;
     else if (P->r[2] <= w3[0])
@@ -181,6 +211,18 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
             l[2] = find_in_arr(P->r[2],w3,lower,upper);
         }
     }
+    
+    /* Because of floating point errors it may be the case that the photon 
+     * should be on the wall exactly, but is not exactly on the wall. We
+     * need to put the photon exactly on the wall. */
+
+    if (equal(P->r[2], w3[l[2]], 1.0e-6))
+        P->r[2] = w3[l[2]];
+    else if (equal(P->r[2], w3[l[2]+1], 1.0e-6))
+        P->r[2] = w3[l[2]+1];
+
+    /* Finally, update which cell the photon is in based on the direction it
+     * is going. */
     
     if ((P->r[2] == w3[l[2]]) && (P->n[2] <= 0))
         l[2] -= 1;
