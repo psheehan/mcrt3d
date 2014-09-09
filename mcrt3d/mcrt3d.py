@@ -70,24 +70,12 @@ lib.set_walls.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, \
         ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, \
         array_1d_double, array_1d_double, array_1d_double, array_3d_double]
 
-lib.create_dust_array.restype = None
-lib.create_dust_array.argtypes = [ctypes.c_void_p, ctypes.c_int]
+lib.add_density.restype = None
+lib.add_density.argtypes = [ctypes.c_void_p, array_3d_double, array_3d_double, \
+        array_3d_double, ctypes.c_void_p]
 
-lib.create_physical_properties_arrays.restype = None
-lib.create_physical_properties_arrays.argtypes = [ctypes.c_void_p, ctypes.c_int]
-
-lib.set_dust.restype = None
-lib.set_dust.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
-
-lib.set_physical_properties.restype = None
-lib.set_physical_properties.argtypes = [ctypes.c_void_p, array_3d_double, \
-        array_3d_double, array_3d_double, ctypes.c_int]
-
-lib.create_sources_array.restype = None
-lib.create_sources_array.argtypes = [ctypes.c_void_p, ctypes.c_int]
-
-lib.set_sources.restype = None
-lib.set_sources.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int]
+lib.add_source.restype = None
+lib.add_source.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
 
 lib.set_mrw_tables.restype = None
 lib.set_mrw_tables.argtypes = [ctypes.c_void_p, array_1d_double, \

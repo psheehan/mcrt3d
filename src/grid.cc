@@ -2,6 +2,7 @@
 #define GRID_CC
 
 #include <cmath>
+#include <vector>
 #include "vector.cc"
 #include "dust.cc"
 #include "isotropic_dust.cc"
@@ -21,17 +22,17 @@ struct Grid {
     double *w2;
     double *w3;
 
-    double ****dens;
-    double ****energy;
-    double ****temp;
-    double ****mass;
+    std::vector<double***> dens;
+    std::vector<double***> energy;
+    std::vector<double***> temp;
+    std::vector<double***> mass;
     double ***volume;
 
     int nspecies;
-    Dust **dust;
+    std::vector<Dust*> dust;
 
     int nsources;
-    Source **sources;
+    std::vector<Source*> sources;
     double total_lum;
 
     Params *Q;
@@ -42,19 +43,25 @@ struct Grid {
     double *dydf;
 
     Photon *emit(int iphot);
+
     virtual double next_wall_distance(Photon *P);
     virtual double outer_wall_distance(Photon *P);
     virtual double minimum_wall_distance(Photon *P);
+
     void propagate_photon_full(Photon *P);
     void propagate_photon(Photon *P, double tau, bool absorb);
     void propagate_photon_mrw(Photon *P);
     void propagate_ray(Ray *R);
+
     void absorb(Photon *P, int idust);
     void scatter(Photon *P, int idust);
+
     virtual Vector<int, 3> photon_loc(Photon *P);
     virtual bool in_grid(Photon *P);
+
     void update_grid(Vector<int, 3> l);
     void update_grid();
+
     double cell_lum(Vector<int, 3> l);
 };
 

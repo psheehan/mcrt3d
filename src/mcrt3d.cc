@@ -27,8 +27,10 @@ void MCRT::thermal_mc() {
     if (Q->bw)
         mc_iteration();
     else {
-        double ****told = create4DArr(G->nspecies, G->n1,G->n2,G->n3);
-        double ****treallyold = create4DArr(G->nspecies, G->n1,G->n2,G->n3);
+        std::vector<double***> told = create4DArr(G->nspecies, G->n1,
+                G->n2, G->n3);
+        std::vector<double***> treallyold = create4DArr(G->nspecies, G->n1,
+                G->n2, G->n3);
 
         int maxniter = 10;
 
@@ -55,8 +57,10 @@ void MCRT::thermal_mc() {
             printf("\n");
         }
 
-        delete told;
-        delete treallyold;
+        for (int i=0; i<G->nspecies; i++) {
+            delete told[i];
+            delete treallyold[i];
+        }
     }
 }
 
@@ -165,43 +169,25 @@ extern "C" {
         G->volume = volume;
     }
 
-    void create_physical_properties_arrays(Grid *G, int nspecies) {
-        G->dens = new double***[nspecies];
-        G->temp = new double***[nspecies];
-        G->mass = new double***[nspecies];
-        G->energy = new double***[nspecies];
-    }
-
-    void set_physical_properties(Grid *G, double *_dens, double *_temp,
-            double *_mass, int index) {
-
+    void add_density(Grid *G, double *_dens, double *_temp, double *_mass, 
+            Dust *D) {
         double ***dens = pymangle(G->n1, G->n2, G->n3, _dens);
         double ***temp = pymangle(G->n1, G->n2, G->n3, _temp);
         double ***mass = pymangle(G->n1, G->n2, G->n3, _mass);
+        double ***energy = create3DArrValue(G->n1, G->n2, G->n3, 0);
 
-        G->dens[index] = dens;
-        G->temp[index] = temp;
-        G->mass[index] = mass;
-        G->energy[index] = create3DArrValue(G->n1, G->n2, G->n3, 0);
+        G->dens.push_back(dens);
+        G->temp.push_back(temp);
+        G->mass.push_back(mass);
+        G->energy.push_back(energy);
+
+        G->dust.push_back(D);
+        G->nspecies++;
     }
 
-    void create_dust_array(Grid *G, int nspecies) {
-        G->nspecies = nspecies;
-
-        G->dust = new Dust*[nspecies];
-    }
-
-    void set_dust(Grid *G, Dust *D, int index) {
-        G->dust[index] = D;
-    }
-
-    void create_sources_array(Grid *G, int nsources) {
-        G->sources = new Source*[nsources];
-        G->nsources = nsources;
-    }
-
-    void set_sources(Grid *G, Source *S, int index) {
-        G->sources[index] = S;
+    void add_source(Grid *G, Source *S) {
+        G->sources.push_back(S);
+        G->nsources++;
     }
 
     void set_mrw_tables(Grid *G, double *y, double *f, double *dydf, int ny) {

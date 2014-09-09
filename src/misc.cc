@@ -16,6 +16,7 @@
 #include <cmath>
 #include <stdlib.h>
 #include <stdio.h>
+#include <vector>
 
 const double pi = 3.14159265;
 const double au = 1.496e13;
@@ -223,8 +224,8 @@ void equate3DArrs(double ***arr1, double ***arr2, int nx, int ny, int nz) {
 
 /* Create an empty 4-dimensional array. */
 
-double ****create4DArr(int nx, int ny, int nz, int nq) {
-    double ****arr = new double***[nx];
+std::vector<double***> create4DArr(int nx, int ny, int nz, int nq) {
+    /*double ****arr = new double***[nx];
     for (int i=0; i<nx; i++) {
         arr[i] = new double**[ny];
         for (int j=0; j<ny; j++) {
@@ -232,7 +233,11 @@ double ****create4DArr(int nx, int ny, int nz, int nq) {
             for (int k=0; k<nz; k++)
                 arr[i][j][k] = new double[nq];
         }
-    }
+    }*/
+
+    std::vector<double***> arr;
+    for (int i=0; i<nx; i++)
+        arr.push_back(create3DArr(ny, nz, nq));
 
     return arr;
 };
@@ -258,8 +263,8 @@ double ****create4DArrValue(int nx, int ny, int nz, int nq, int value) {
 
 /* Set the value of a 4-dimensional array to a constant value. */
 
-void set4DArrValue(double ****arr, double value, int nx, int ny, int nz, 
-        int nq) {
+void set4DArrValue(std::vector<double***> arr, double value, int nx, int ny, 
+        int nz, int nq) {
     for (int i=0; i<nx; i++)
         for (int j=0; j<ny; j++)
             for (int k=0; k<nz; k++)
@@ -270,8 +275,8 @@ void set4DArrValue(double ****arr, double value, int nx, int ny, int nz,
 /* Set one 4-dimensional array equal to another 4-dimensional array, element
  * by element. */
 
-void equate4DArrs(double ****arr1, double ****arr2, int nx, int ny, int nz, 
-        int nq) {
+void equate4DArrs(std::vector<double***> arr1, std::vector<double***> arr2, 
+        int nx, int ny, int nz, int nq) {
     for (int i=0; i<nx; i++)
         for (int j=0; j<ny; j++)
             for (int k=0; k<nz; k++)
@@ -289,7 +294,8 @@ double delta(double x1, double x2) {
     return delt;
 }
 
-double quantile(double ****R, double p, int nx, int ny, int nz, int nq) {
+double quantile(std::vector<double***> R, double p, int nx, int ny, int nz, 
+        int nq) {
     double *Rline = new double[nx*ny*nz*nq];
 
     for (int i=0; i<nx; i++)
@@ -307,14 +313,14 @@ double quantile(double ****R, double p, int nx, int ny, int nz, int nq) {
     return quant;
 }
 
-bool converged(double ****newArr, double ****oldArr, double ****reallyoldArr,
-        int n1, int n2, int n3, int n4) {
+bool converged(std::vector<double***> newArr, std::vector<double***> oldArr, 
+        std::vector<double***> reallyoldArr, int n1, int n2, int n3, int n4) {
     double Qthresh = 2.0;
     double Delthresh = 1.1;
     double p = 0.99;
 
-    double ****R = create4DArr(n1, n2, n3, n4);
-    double ****Rold = create4DArr(n1, n2, n3, n4);
+    std::vector<double***> R = create4DArr(n1, n2, n3, n4);
+    std::vector<double***> Rold = create4DArr(n1, n2, n3, n4);
 
     for (int i=0; i<n1; i++) {
         for (int j=0; j<n2; j++) {
@@ -338,8 +344,10 @@ bool converged(double ****newArr, double ****oldArr, double ****reallyoldArr,
 
     bool conv = ((Q < Qthresh) && (Del < Delthresh));
 
-    delete R;
-    delete Rold;
+    for (int i=0; i<n1; i++) {
+        delete R[i];
+        delete Rold[i];
+    }
 
     return conv;
 }
