@@ -7,7 +7,7 @@
 #include "photon.cc"
 #include "misc.cc"
 #include "params.cc"
-#include "star.cc"
+#include "source.cc"
 
 struct Star : public Source {
     double mass;

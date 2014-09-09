@@ -6,7 +6,7 @@
 #include "vector.cc"
 #include "dust.cc"
 #include "isotropic_dust.cc"
-#include "sources.cc"
+#include "source.cc"
 #include "photon.cc"
 #include "misc.cc"
 #include "params.cc"
