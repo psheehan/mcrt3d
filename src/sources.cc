@@ -9,27 +9,29 @@
 #include "params.cc"
 
 struct Source {
-    double mass;
+    /*double mass;
     double radius;
     double temperature;
-    double luminosity;
+    double luminosity;*/
     Vector<double, 3> r;
     double *nu;
     double *Bnu;
     int nnu;
 
-    double *random_nu_CPD;
+    //double *random_nu_CPD;
 
-    Photon *emit(int nphot);
-    double intercept_distance(Photon *P);
-    double random_nu();
+    virtual Photon *emit(int nphot);
+    virtual double intercept_distance(Photon *P);
+    //double random_nu();
 };
 
 /* Emit a photon from the source. */
 
 Photon *Source::emit(int nphot) {
+    return new Photon();
+}
+/*Photon *Source::emit(int nphot) {
     Photon *P = new Photon();
-
     double theta = pi*random_number();
     double phi = 2*pi*random_number();
 
@@ -67,11 +69,11 @@ Photon *Source::emit(int nphot) {
     P->nu = random_nu();
 
     return P;
-};
+};*/
 
 /* Get a random frequency drawn from the spectrum of the source. */
 
-double Source::random_nu() {
+/*double Source::random_nu() {
     double freq;
     double ksi = random_number();
 
@@ -83,9 +85,12 @@ double Source::random_nu() {
     }
 
     return freq;
-};
+};*/
 
 double Source::intercept_distance(Photon *P) {
+    return 0;
+}
+/*double Source::intercept_distance(Photon *P) {
     double s = HUGE_VAL;
 
     double r = P->r.norm();
@@ -104,6 +109,6 @@ double Source::intercept_distance(Photon *P) {
     }
 
     return s;
-}
+}*/
 
 #endif

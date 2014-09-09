@@ -7,7 +7,7 @@ import h5py
 
 class Star:
     def __init__(self):
-        self.obj = lib.new_Source()
+        self.obj = lib.new_Star()
 
     def set_parameters(self, x, y, z, mass, radius, temperature):
         self.x = x

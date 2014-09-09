@@ -1,5 +1,5 @@
-#ifndef SOURCES_CC
-#define SOURCES_CC
+#ifndef STAR_CC
+#define STAR_CC
 
 #include <stdlib.h>
 #include "vector.cc"
@@ -14,10 +14,10 @@ struct Star : public Source {
     double radius;
     double temperature;
     double luminosity;
-    Vector<double, 3> r;
+    /*Vector<double, 3> r;
     double *nu;
     double *Bnu;
-    int nnu;
+    int nnu;*/
 
     double *random_nu_CPD;
 

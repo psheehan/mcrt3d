@@ -109,10 +109,10 @@ lib.set_lookup_tables.argtypes = [ctypes.c_void_p, ctypes.c_int, \
         array_1d_double, array_1d_double, array_1d_double, array_2d_double, \
         array_2d_double, array_2d_double, array_2d_double]
 
-# Linker functions for the Source class.
+# Linker functions for the Star class.
 
-lib.new_Source.restype = ctypes.c_void_p
-lib.new_Source.argtypes = None
+lib.new_Star.restype = ctypes.c_void_p
+lib.new_Star.argtypes = None
 
 lib.set_parameters.restype = None
 lib.set_parameters.argtypes = [ctypes.c_void_p, ctypes.c_double, \

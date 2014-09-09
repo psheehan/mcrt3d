@@ -31,7 +31,7 @@ struct Grid {
     Dust **dust;
 
     int nsources;
-    Source *sources;
+    Source **sources;
     double total_lum;
 
     Params *Q;
@@ -71,7 +71,7 @@ Photon *Grid::emit(int iphot) {
         int photons_per_source = int(Q->nphot/nsources);
     }
 
-    Photon *P = sources[isource].emit(photons_per_source);
+    Photon *P = sources[isource]->emit(photons_per_source);
 
     /* Calculate kext and albedo at the photon's current frequency for all
      * dust species. */
@@ -232,7 +232,7 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
 
         // Calculate how far the photon can go before running into a source.
         for (int isource=0; isource<nsources; isource++) {
-            double s3 = sources[isource].intercept_distance(P);
+            double s3 = sources[isource]->intercept_distance(P);
 
             if (s3 < s) {
                 s = s3;

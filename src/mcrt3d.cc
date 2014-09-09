@@ -5,6 +5,7 @@
 #include "cartesian_grid.cc"
 #include "cylindrical_grid.cc"
 #include "spherical_grid.cc"
+#include "star.cc"
 #include "pymangle.cc"
 #include "timer.c"
 #include "camera.cc"
@@ -195,12 +196,12 @@ extern "C" {
     }
 
     void create_sources_array(Grid *G, int nsources) {
-        G->sources = new Source[nsources];
+        G->sources = new Source*[nsources];
         G->nsources = nsources;
     }
 
     void set_sources(Grid *G, Source *S, int index) {
-        G->sources[index] = *S;
+        G->sources[index] = S;
     }
 
     void set_mrw_tables(Grid *G, double *y, double *f, double *dydf, int ny) {
@@ -260,11 +261,11 @@ extern "C" {
 
     /* Functions to set up the sources. */
 
-    Source* new_Source() {
-        return new Source();
+    Star* new_Star() {
+        return new Star();
     }
 
-    void set_parameters(Source *S, double x, double y, double z, double mass, 
+    void set_parameters(Star *S, double x, double y, double z, double mass, 
             double radius, double temperature) {
 
         S->r[0] = x;
@@ -275,7 +276,7 @@ extern "C" {
         S->temperature = temperature;
     }
 
-    void set_blackbody_spectrum(Source *S, int nnu, double *nu, double *Bnu, 
+    void set_blackbody_spectrum(Star *S, int nnu, double *nu, double *Bnu, 
             double luminosity, double *random_nu_CPD) {
 
         S->nnu = nnu;
