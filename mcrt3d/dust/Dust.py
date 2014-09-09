@@ -7,7 +7,7 @@ import h5py
 
 class Dust:
     def __init__(self):
-        self.obj = lib.new_Dust()
+        self.obj = lib.new_IsotropicDust()
 
     def set_properties(self, lam, kabs, ksca):
         self.lam = lam

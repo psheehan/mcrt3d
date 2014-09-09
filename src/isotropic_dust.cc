@@ -25,3 +25,5 @@ void IsotropicDust::scatter(Photon *P) {
     P->invn[1] = 1.0/P->n[1];
     P->invn[2] = 1.0/P->n[2];
 }
+
+#endif

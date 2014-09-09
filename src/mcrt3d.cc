@@ -4,6 +4,7 @@
 #include "cartesian_grid.cc"
 #include "cylindrical_grid.cc"
 #include "spherical_grid.cc"
+#include "isotropic_dust.cc"
 #include "pymangle.cc"
 #include "timer.c"
 #include "camera.cc"
@@ -211,8 +212,8 @@ extern "C" {
 
     /* Functions to set up the dust. */
 
-    Dust* new_Dust() {
-        return new Dust();
+    IsotropicDust* new_IsotropicDust() {
+        return new IsotropicDust();
     }
 
     void set_optical_properties(Dust *D, int nlam, double *nu, double *lam, 

@@ -95,8 +95,8 @@ lib.set_mrw_tables.argtypes = [ctypes.c_void_p, array_1d_double, \
 
 # Linker functions for the Dust class.
 
-lib.new_Dust.restype = ctypes.c_void_p
-lib.new_Dust.argtypes = None
+lib.new_IsotropicDust.restype = ctypes.c_void_p
+lib.new_IsotropicDust.argtypes = None
 
 lib.set_optical_properties.restype = None
 lib.set_optical_properties.argtypes = [ctypes.c_void_p, ctypes.c_int, \
