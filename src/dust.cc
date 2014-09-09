@@ -41,7 +41,6 @@ struct Dust {
 /* Scatter a photon isotropically off of dust. */
 
 void Dust::scatter(Photon *P) {
-    return;
 }
 /*void Dust::scatter(Photon *P) {
     double cost = -1+2*random_number();

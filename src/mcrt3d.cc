@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <cmath>
+#include "isotropic_dust.cc"
 #include "grid.cc"
 #include "cartesian_grid.cc"
 #include "cylindrical_grid.cc"
 #include "spherical_grid.cc"
-#include "isotropic_dust.cc"
 #include "pymangle.cc"
 #include "timer.c"
 #include "camera.cc"
@@ -187,11 +187,11 @@ extern "C" {
     void create_dust_array(Grid *G, int nspecies) {
         G->nspecies = nspecies;
 
-        G->dust = new Dust[nspecies];
+        G->dust = new Dust*[nspecies];
     }
 
     void set_dust(Grid *G, Dust *D, int index) {
-        G->dust[index] = *D;
+        G->dust[index] = D;
     }
 
     void create_sources_array(Grid *G, int nsources) {

@@ -88,8 +88,8 @@ Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
     double *current_albedo = new double[G->nspecies];
 
     for (int j=0; j<G->nspecies; j++) {
-        current_kext[j] = G->dust[j].opacity(R->nu);
-        current_albedo[j] = G->dust[j].albdo(R->nu);
+        current_kext[j] = G->dust[j]->opacity(R->nu);
+        current_albedo[j] = G->dust[j]->albdo(R->nu);
     }
 
     R->current_kext = current_kext;

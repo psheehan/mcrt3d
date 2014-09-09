@@ -4,6 +4,7 @@
 #include <cmath>
 #include "vector.cc"
 #include "dust.cc"
+#include "isotropic_dust.cc"
 #include "sources.cc"
 #include "photon.cc"
 #include "misc.cc"
@@ -27,7 +28,7 @@ struct Grid {
     double ***volume;
 
     int nspecies;
-    Dust *dust;
+    Dust **dust;
 
     int nsources;
     Source *sources;
@@ -78,8 +79,8 @@ Photon *Grid::emit(int iphot) {
     P->current_kext = new double[nspecies];
     P->current_albedo = new double[nspecies];
     for (int i=0; i<nspecies; i++) {
-        P->current_kext[i] = dust[i].opacity(P->nu);
-        P->current_albedo[i] = dust[i].albdo(P->nu);
+        P->current_kext[i] = dust[i]->opacity(P->nu);
+        P->current_albedo[i] = dust[i]->albdo(P->nu);
     }
 
     /* Check the photon's location in the grid. */
@@ -91,13 +92,13 @@ Photon *Grid::emit(int iphot) {
 /* Linker function to the dust absorb function. */
 
 void Grid::absorb(Photon *P, int idust) {
-    dust[idust].absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw);
+    dust[idust]->absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw);
 
     // Update the photon's arrays of kext and albedo since P->nu has changed
     // upon absorption.
     for (int i=0; i<nspecies; i++) {
-        P->current_kext[i] = dust[i].opacity(P->nu);
-        P->current_albedo[i] = dust[i].albdo(P->nu);
+        P->current_kext[i] = dust[i]->opacity(P->nu);
+        P->current_albedo[i] = dust[i]->albdo(P->nu);
     }
 
     // Check the photon's location again because there's a small chance that 
@@ -109,7 +110,7 @@ void Grid::absorb(Photon *P, int idust) {
 /* Linker function to the dust scatter function. */
 
 void Grid::scatter(Photon *P, int idust) {
-    dust[idust].scatter(P);
+    dust[idust]->scatter(P);
 
     // Check the photon's location again because there's a small chance that 
     // the photon was absorbed on a wall, and if it was we may need to update
@@ -297,7 +298,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
 
     double alpha = 0;
     for (int idust = 0; idust<nspecies; idust++)
-        alpha += dust[idust].rosseland_mean_extinction(
+        alpha += dust[idust]->rosseland_mean_extinction(
                 temp[idust][P->l[0]][P->l[1]][P->l[2]]) * 
             dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
@@ -320,7 +321,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
         // Add the energy absorbed into the grid.
         for (int idust=0; idust<nspecies; idust++)
             energy[idust][P->l[0]][P->l[1]][P->l[2]] += P->energy*
-                s*dust[idust].planck_mean_opacity(
+                s*dust[idust]->planck_mean_opacity(
                         temp[idust][P->l[0]][P->l[1]][P->l[2]]) *
                 dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
@@ -448,7 +449,7 @@ void Grid::update_grid(Vector<int, 3> l) {
             double T_old = temp[idust][l[0]][l[1]][l[2]];
 
             temp[idust][l[0]][l[1]][l[2]]=pow(energy[idust][l[0]][l[1]][l[2]]/
-                (4*sigma*dust[idust].\
+                (4*sigma*dust[idust]->\
                 planck_mean_opacity(temp[idust][l[0]][l[1]][l[2]])*
                 mass[idust][l[0]][l[1]][l[2]]),0.25);
 
@@ -473,7 +474,7 @@ void Grid::update_grid() {
 /* Calculate the luminosity of the cell indicated by l. */
 
 double Grid::cell_lum(Vector<int, 3> l) {
-    return 4*mass[0][l[0]][l[1]][l[2]]*dust[0].
+    return 4*mass[0][l[0]][l[1]][l[2]]*dust[0]->
         planck_mean_opacity(temp[0][l[0]][l[1]][l[2]])*sigma*
         pow(temp[0][l[0]][l[1]][l[2]],4);
 }
