@@ -13,95 +13,6 @@ class Grid:
         self.dust = []
         self.sources = []
 
-    def add_density(self, density, dust):
-        self.density.append(density)
-        self.mass.append(density * self.volume)
-        self.temperature.append(numpy.ones(density.shape, dtype=float))
-        self.dust.append(dust)
-
-    def add_source(self, source):
-        self.sources.append(source)
-
-    def set_cartesian_grid(self, w1, w2, w3):
-        self.obj = lib.new_CartesianGrid()
-        self.coordsystem = "cartesian"
-
-        self.x = 0.5*(w1[0:w1.size-1] + w1[1:w1.size])
-        self.y = 0.5*(w2[0:w2.size-1] + w2[1:w2.size])
-        self.z = 0.5*(w3[0:w3.size-1] + w3[1:w3.size])
-
-        self.w1 = w1
-        self.w2 = w2
-        self.w3 = w3
-
-        self.volume = numpy.zeros((w1.size-1, w2.size-1, w3.size-1), dtype=float)
-        for i in range(self.volume.shape[0]):
-            for j in range(self.volume.shape[1]):
-                for k in range(self.volume.shape[2]):
-                    self.volume[i,j,k] = (self.w1[i+1] - self.w1[i])* \
-                        (self.w2[j+1] - self.w2[j])*(self.w3[k+1] - self.w3[k])
-
-        lib.set_walls(self.obj, w1.size-1, w2.size-1, w3.size-1, \
-                w1.size, w2.size, w3.size, w1, w2, w3, self.volume)
-
-    def set_cylindrical_grid(self, w1, w2, w3):
-        self.obj = lib.new_CylindricalGrid()
-        self.coordsystem = "cylindrical"
-
-        self.rho = 0.5*(w1[0:w1.size-1] + w1[1:w1.size])
-        self.phi = 0.5*(w2[0:w2.size-1] + w2[1:w2.size])
-        self.z = 0.5*(w3[0:w3.size-1] + w3[1:w3.size])
-
-        self.w1 = w1
-        self.w2 = w2
-        self.w3 = w3
-
-        self.volume = numpy.zeros((w1.size-1, w2.size-1, w3.size-1), dtype=float)
-        for i in range(self.volume.shape[0]):
-            for j in range(self.volume.shape[1]):
-                for k in range(self.volume.shape[2]):
-                    self.volume[i,j,k] = (self.w1[i+1]**2 - self.w1[i]**2)* \
-                        (self.w2[j+1]-self.w2[j]) * (self.w3[k+1]-self.w3[k])/2
-
-        lib.set_walls(self.obj, w1.size-1, w2.size-1, w3.size-1, \
-                w1.size, w2.size, w3.size, w1, w2, w3, self.volume)
-
-    def set_spherical_grid(self, w1, w2, w3):
-        self.obj = lib.new_SphericalGrid()
-        self.coordsystem = "spherical"
-
-        self.r = 0.5*(w1[0:w1.size-1] + w1[1:w1.size])
-        self.theta = 0.5*(w2[0:w2.size-1] + w2[1:w2.size])
-        self.phi = 0.5*(w3[0:w3.size-1] + w3[1:w3.size])
-
-        self.w1 = w1
-        self.w2 = w2
-        self.w3 = w3
-
-        self.volume = numpy.zeros((w1.size-1, w2.size-1, w3.size-1), dtype=float)
-        for i in range(self.volume.shape[0]):
-            for j in range(self.volume.shape[1]):
-                for k in range(self.volume.shape[2]):
-                    self.volume[i,j,k] = (self.w1[i+1]**3 - self.w1[i]**3)* \
-                        (self.w3[k+1] - self.w3[k])* \
-                        (numpy.cos(self.w2[j]) - numpy.cos(self.w2[j+1]))/3
-
-        lib.set_walls(self.obj, w1.size-1, w2.size-1, w3.size-1, \
-                w1.size, w2.size, w3.size, w1, w2, w3, self.volume)
-
-    def set_physical_properties(self):
-        lib.create_dust_array(self.obj, len(self.dust))
-        lib.create_physical_properties_arrays(self.obj, len(self.dust))
-        for i in range(len(self.dust)):
-            lib.set_dust(self.obj, self.dust[i].obj, i)
-
-            lib.set_physical_properties(self.obj, self.density[i], \
-                    self.temperature[i], self.mass[i], i)
-
-        lib.create_sources_array(self.obj, len(self.sources))
-        for i in range(len(self.sources)):
-            lib.set_sources(self.obj, self.sources[i].obj, i)
-
         decimal.getcontext().prec = 80
         y = [i * decimal.Decimal(1) / decimal.Decimal(100) for i in range(101)]
         f = []
@@ -129,6 +40,20 @@ class Grid:
         self.dydf = numpy.array(dydf, dtype=float)
 
         lib.set_mrw_tables(self.obj, self.y, self.f, self.dydf, self.y.size)
+
+    def add_density(self, density, dust):
+        self.density.append(density)
+        self.mass.append(density * self.volume)
+        self.temperature.append(numpy.ones(density.shape, dtype=float))
+        self.dust.append(dust)
+
+        lib.add_density(self.obj, self.density[-1], self.temperature[-1], \
+                self.mass[-1], dust.obj)
+
+    def add_source(self, source):
+        self.sources.append(source)
+
+        lib.add_source(self.obj, source.obj)
 
     def read(self, filename=None, usefile=None):
         if (usefile == None):

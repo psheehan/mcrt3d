@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-from mcrt3d import *
+from mcrt3d import Params
+from mcrt3d.grid import CartesianGrid
+from mcrt3d.dust import Dust
+from mcrt3d.sources import Star
+from mcrt3d.camera import Image
 from mcrt3d.constants.astronomy import M_sun, R_sun, AU
 from mcrt3d.constants.physics import c
 from numpy import array, arange, pi, zeros, logspace
@@ -20,20 +24,20 @@ def SetupParams():
     return Q
 
 def SetupGrid():
-    G = Grid()
+    G = CartesianGrid()
 
     # Set up the dust.
 
     dust = Dust()
     dust.set_properties_from_radmc3d("dustkappa_yso.inp")
 
-    # Set up the source.
+    # Set up the star.
 
-    source = Source()
-    source.set_parameters(0.0,0.0,0.0,M_sun,R_sun,4000.0)
-    source.set_blackbody_spectrum(dust.nu)
+    star = Star()
+    star.set_parameters(0.0,0.0,0.0,M_sun,R_sun,4000.0)
+    star.set_blackbody_spectrum(dust.nu)
 
-    G.add_source(source)
+    G.add_source(star)
 
     # Set up the grid.
 
@@ -45,13 +49,11 @@ def SetupGrid():
     y = (arange(ny)-(float(ny)-1)/2)*AU/1
     z = (arange(nz)-(float(nz)-1)/2)*AU/1
 
-    G.set_cartesian_grid(x,y,z)
+    G.set_walls(x,y,z)
 
     density = zeros((nx-1,ny-1,nz-1)) + 1.0e-17
 
     G.add_density(density, dust)
-
-    G.set_physical_properties()
 
     return G
 

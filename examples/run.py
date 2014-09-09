@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-from mcrt3d import *
+from mcrt3d import MCRT
+from mcrt3d.camera import Camera
 from time import time
 import matplotlib.pyplot as plt
 
