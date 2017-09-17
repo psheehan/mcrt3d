@@ -26,6 +26,7 @@ struct Grid {
     std::vector<double***> energy;
     std::vector<double***> temp;
     std::vector<double***> mass;
+    std::vector<double****> scatt;
     double ***volume;
 
     int nspecies;
@@ -310,9 +311,16 @@ void Grid::propagate_photon_mrw(Photon *P) {
             dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
     if (alpha * dmin > Q->mrw_gamma) {
+        if (Q->verbose) {
+            printf("Doing MRW step...\n");
+        }
+
         // Calculate the radius of the sphere that we will move the photon to
         // somewhere on.
         double R_0 = 0.75 * dmin;
+        if (Q->verbose) {
+            printf("%f %f\n", dmin/au, R_0/au);
+        }
 
         // Calculate the value of y
         double ksi = random_number();
@@ -323,8 +331,14 @@ void Grid::propagate_photon_mrw(Photon *P) {
 
         // Calculate the actual distance that the photon traveled through 
         // diffusion.
+        if (Q->verbose) {
+            printf("%i, %f\n", i, y0);
+        }
         double s = -log(y0) * (R_0/pi)*(R_0/pi) * 3 * alpha;
 
+        if (Q->verbose) {
+            printf("%f\n", s/au);
+        }
         // Add the energy absorbed into the grid.
         for (int idust=0; idust<nspecies; idust++)
             energy[idust][P->l[0]][P->l[1]][P->l[2]] += P->energy*
