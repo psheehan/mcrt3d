@@ -1,1 +1,1 @@
-from .mcrt3d import MCRT, Params
+from .mcrt3d import ParamsObj as Params

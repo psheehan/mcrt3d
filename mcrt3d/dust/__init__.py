@@ -1,1 +1,1 @@
-from .Dust import Dust
+from .Dust import DustObj as Dust
