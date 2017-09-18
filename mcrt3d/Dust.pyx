@@ -1,15 +1,66 @@
+import cython
+
+import numpy
+cimport numpy
+
 from ..constants.physics import c, sigma, k
-from ..mcrt3d import lib
 from .. import misc
 import scipy.integrate
-import numpy
 import h5py
 
-class Dust:
-    def __init__(self):
-        self.obj = lib.new_IsotropicDust()
+from ..mcrt3d cimport Dust, IsotropicDust
 
-    def set_properties(self, lam, kabs, ksca):
+cdef class DustObj:
+    cdef Dust *obj
+
+    cdef numpy.ndarray lam, nu, kabs, ksca, kext, albedo
+    cdef numpy.ndarray temp, planck_opacity, dplanck_opacity_dT, \
+            rosseland_extinction, drosseland_extinction_dT, random_nu_CPD, \
+            random_nu_CPD_bw, drandom_nu_CPD_dT, drandom_nu_CPD_bw_dT
+
+    def __init__(self, numpy.ndarray[double, ndim=1, mode="c"] lam=None, \
+            numpy.ndarray[double, ndim=1, mode="c"] kabs=None, \
+            numpy.ndarray[double, ndim=1, mode="c"] ksca=None, \
+            filename=None, radmc3d=False):
+
+        if filename != None:
+            if radmc3d:
+                self.set_properties_from_radmc3d(filename)
+            else:
+                self.set_properties_from_file(filename)
+        else:
+            self.set_properties(lam, kabs, ksca)
+
+        lam = self.lam
+        cdef numpy.ndarray[double, ndim=1, mode="c"] nu = self.nu
+        kabs = self.kabs
+        ksca = self.ksca
+        cdef numpy.ndarray[double, ndim=1, mode="c"] kext = self.kext
+        cdef numpy.ndarray[double, ndim=1, mode="c"] albedo = self.albedo
+
+        self.obj = new Dust(self.obj.nlam, &nu[0], &lam[0], \
+                &kabs[0], &ksca[0], &kext[0], &albedo[0])
+
+        self.make_lookup_tables()
+
+    property nlam:
+        def __get__(self):
+            return self.obj.nlam
+        def __set__(self, int var):
+            self.obj.nlam = var
+
+    property ntemp:
+        def __get__(self):
+            return self.obj.ntemp
+        def __set__(self, int var):
+            self.obj.ntemp = var
+
+    def set_properties(self, numpy.ndarray[double, ndim=1, mode="c"] lam, \
+            numpy.ndarray[double, ndim=1, mode="c"] kabs, \
+            numpy.ndarray[double, ndim=1, mode="c"] ksca):
+
+        self.nlam = lam.size
+
         self.lam = lam
         self.nu = c / self.lam
 
@@ -17,11 +68,6 @@ class Dust:
         self.ksca = ksca
         self.kext = self.kabs + self.ksca
         self.albedo = self.ksca / self.kext
-
-        lib.set_optical_properties(self.obj, self.lam.size, self.nu, self.lam, \
-                self.kabs, self.ksca, self.kext, self.albedo)
-
-        self.make_lookup_tables()
 
     def set_properties_from_file(self, filename=None, usefile=None):
         if (usefile == None):
@@ -31,6 +77,8 @@ class Dust:
 
         self.lam = f['lam'].value
         self.nu = c / self.lam
+
+        self.nlam = self.lam.size
 
         if ('kabs' in f):
             self.kabs = f['kabs'].value
@@ -43,11 +91,6 @@ class Dust:
         if (usefile == None):
             f.close()
 
-        lib.set_optical_properties(self.obj, self.lam.size, self.nu, self.lam, \
-                self.kabs, self.ksca, self.kext, self.albedo)
-
-        self.make_lookup_tables()
-
     def set_properties_from_radmc3d(self, filename):
         data = numpy.loadtxt(filename, skiprows=2)
 
@@ -58,10 +101,7 @@ class Dust:
         self.kext = self.kabs + self.ksca
         self.albedo = self.ksca / self.kext
 
-        lib.set_optical_properties(self.obj, self.lam.size, self.nu, self.lam, \
-                self.kabs, self.ksca, self.kext, self.albedo)
-
-        self.make_lookup_tables()
+        self.nlam = self.lam.size
 
     def make_lookup_tables(self):
         self.temp = numpy.logspace(-1,5,100).astype(float)
@@ -107,14 +147,28 @@ class Dust:
         self.drandom_nu_CPD_bw_dT = numpy.diff(self.random_nu_CPD_bw, axis=0) /\
                 numpy.diff(temp, axis=0)
 
+        # Make sure that Cython knows they are arrays...
+
+        cdef numpy.ndarray[double, ndim=1, mode="c"] temp_1d = self.temp, \
+                rosseland_extinction = self.rosseland_extinction, \
+                planck_opacity = self.plank_opacity, \
+                dplanck_opacity_dT = self.dplank_opacity_dT, \
+                drosseland_extinction_dT = self.drosseland_extinction_dT, \
+                dkextdnu = self.dkextdnu, dalbedodnu = self.dalbedodnu
+        cdef numpy.ndarray[double, ndim=2, mode="c"] \
+                random_nu_CPD = self.random_nu_CPD, \
+                random_nu_CPD_bw = self.random_nu_CPD_bw, \
+                drandom_nu_CPD_dT = self.self.drandom_nu_CPD_dT, \
+                drandom_nu_CPD_bw_dT = self.drandom_nu_CPD_bw_dT
+
         # Pass these arrays to the C++ code.
 
-        lib.set_lookup_tables(self.obj, self.ntemp, self.temp, \
-                self.planck_opacity, self.rosseland_extinction, \
-                self.dplanck_opacity_dT, self.drosseland_extinction_dT, \
-                self.dkextdnu, self.dalbedodnu, self.random_nu_CPD, \
-                self.random_nu_CPD_bw, self.drandom_nu_CPD_dT, \
-                self.drandom_nu_CPD_bw_dT)
+        self.obj.set_lookup_tables(self.obj.ntemp, &temp_1d[0], \
+                &planck_opacity[0], &rosseland_extinction[0], \
+                &dplanck_opacity_dT[0], &drosseland_extinction_dT[0],\
+                &dkextdnu[0], &dalbedodnu[0], &random_nu_CPD[0,0], \
+                &random_nu_CPD_bw[0,0], &drandom_nu_CPD_dT[0,0], \
+                &drandom_nu_CPD_bw_dT[0,0])
 
     def write(self, filename=None, usefile=None):
         if (usefile == None):
