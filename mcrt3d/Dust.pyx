@@ -11,7 +11,7 @@ import h5py
 from ..mcrt3d cimport Dust, IsotropicDust
 
 cdef class DustObj:
-    cdef Dust *obj
+    cdef IsotropicDust *obj
 
     cdef numpy.ndarray lam, nu, kabs, ksca, kext, albedo
     cdef numpy.ndarray temp, planck_opacity, dplanck_opacity_dT, \
@@ -38,7 +38,7 @@ cdef class DustObj:
         cdef numpy.ndarray[double, ndim=1, mode="c"] kext = self.kext
         cdef numpy.ndarray[double, ndim=1, mode="c"] albedo = self.albedo
 
-        self.obj = new Dust(self.obj.nlam, &nu[0], &lam[0], \
+        self.obj = new IsotropicDust(self.obj.nlam, &nu[0], &lam[0], \
                 &kabs[0], &ksca[0], &kext[0], &albedo[0])
 
         self.make_lookup_tables()

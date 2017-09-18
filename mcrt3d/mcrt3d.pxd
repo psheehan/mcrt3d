@@ -6,7 +6,7 @@ from libcpp.vector cimport vector
 import numpy as np
 cimport numpy as np
 
-cdef extern from "../src/params.h":
+cdef extern from "../include/params.h":
     cppclass Params:
         int nphot
         bool bw
@@ -23,7 +23,7 @@ cdef extern from "../src/params.h":
         void set_mrw(bool _use_mrw)
         void set_mrw_gamma(double _mrw_gamma)
 
-cdef extern from "../src/dust.h":
+cdef extern from "../include/dust.h":
     cppclass Dust:
         int nlam
         double *nu
@@ -56,16 +56,19 @@ cdef extern from "../src/dust.h":
                 double *_random_nu_CPD_bw, double *_drandom_nu_CPD_dT, 
                 double *_drandom_nu_CPD_bw_dT)
 
-cdef extern from "../src/isotropic_dust.h":
-    cppclass IsotropicDust(Dust)
+cdef extern from "../include/isotropic_dust.h":
+    cppclass IsotropicDust(Dust):
+        IsotropicDust(int _nlam, double *_nu, double *_lam, double *_kabs, 
+                double *_ksca, double *_kext, double *_albedo)
+            
 
-cdef extern from "../src/source.h":
+cdef extern from "../include/source.h":
     cppclass Source:
         double *nu
         double *Bnu
         int nnu
 
-cdef extern from "../src/grid.h":
+cdef extern from "../include/grid.h":
     cppclass Grid:
         int n1
         int n2
@@ -113,16 +116,16 @@ cdef extern from "../src/grid.h":
         void add_source(Source *S)
         void set_mrw_tables(double *y, double *f, double *dydf, int ny)
 
-cdef extern from "../src/cartesian_grid.h":
+cdef extern from "../include/cartesian_grid.h":
     cppclass CartesianGrid(Grid)
 
-cdef extern from "../src/cylindrical_grid.h":
+cdef extern from "../include/cylindrical_grid.h":
     cppclass CylindricalGrid(Grid)
 
-cdef extern from "../src/spherical_grid.h":
+cdef extern from "../include/spherical_grid.h":
     cppclass SphericalGrid(Grid)
 
-cdef extern from "../src/mcrt3d.h":
+cdef extern from "../include/mcrt3d.h":
     cppclass MCRT:
         Grid *G
         Params *Q
