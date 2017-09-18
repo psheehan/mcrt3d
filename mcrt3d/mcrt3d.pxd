@@ -117,13 +117,20 @@ cdef extern from "../include/grid.h":
         void set_mrw_tables(double *y, double *f, double *dydf, int ny)
 
 cdef extern from "../include/cartesian_grid.h":
-    cppclass CartesianGrid(Grid)
+    cppclass CartesianGrid(Grid):
+        CartesianGrid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
+                double *_w1, double *_w2, double *_w3, double *_volume)
 
 cdef extern from "../include/cylindrical_grid.h":
-    cppclass CylindricalGrid(Grid)
+    cppclass CylindricalGrid(Grid):
+        CylindricalGrid(int _n1, int _n2, int _n3, int _nw1, int _nw2, 
+                int _nw3, double *_w1, double *_w2, double *_w3, 
+                double *_volume)
 
 cdef extern from "../include/spherical_grid.h":
-    cppclass SphericalGrid(Grid)
+    cppclass SphericalGrid(Grid):
+        SphericalGrid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
+                double *_w1, double *_w2, double *_w3, double *_volume)
 
 cdef extern from "../include/mcrt3d.h":
     cppclass MCRT:
