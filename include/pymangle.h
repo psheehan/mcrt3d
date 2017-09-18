@@ -1,3 +1,6 @@
+#ifndef PYMANGLE_H
+#define PYMANGLE_H
+
 /*
 Time-stamp: <pymangle.cc on Tuesday, 29 January, 2013 at 17:58:05 MST (philip)>
 */
@@ -95,3 +98,4 @@ void freepymangle(T**** m) {
     free(m);
 }
 
+#endif

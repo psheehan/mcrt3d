@@ -1,7 +1,7 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "vector.cc"
+#include "vector.h"
 #include "photon.h"
 #include "grid.h"
 #include "misc.h"

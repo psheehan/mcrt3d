@@ -2,7 +2,7 @@
 #define SPHERICAL_GRID_H
 
 #include "grid.h"
-#include "vector.cc"
+#include "vector.h"
 #include "photon.h"
 
 struct SphericalGrid : public Grid {

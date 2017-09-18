@@ -1,7 +1,7 @@
 #ifndef PHOTON_H
 #define PHOTON_H
 
-#include "vector.cc"
+#include "vector.h"
 
 struct Photon {
     double energy;

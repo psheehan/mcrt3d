@@ -2,7 +2,7 @@
 #define STAR_H
 
 #include <stdlib.h>
-#include "vector.cc"
+#include "vector.h"
 #include "dust.h"
 #include "photon.h"
 #include "misc.h"
