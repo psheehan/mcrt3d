@@ -1,3 +1,6 @@
+#ifndef TIMER_H
+#define TIMER_H
+
 #include <sys/time.h>
 #include <sys/resource.h>
 
@@ -23,3 +26,5 @@ struct timeval tuse;
  printf("%s    %6.6f seconds \n", str, __timerseconds##x+__timerusec##x*1.0e-6);
 
 #define TGIVE(x) (__timerseconds##x+__timerusec##x*1.0e-6)
+
+#endif

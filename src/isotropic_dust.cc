@@ -1,15 +1,4 @@
-#ifndef ISOTROPIC_DUST_CC
-#define ISOTROPIC_DUST_CC
-
-#include <stdlib.h>
-#include <cmath>
-#include "misc.cc"
-#include "photon.cc"
-#include "dust.cc"
-
-struct IsotropicDust : public Dust {
-    void scatter(Photon *P);
-};
+#include "isotropic_dust.h"
 
 /* Scatter a photon isotropically off of dust. */
 
@@ -25,5 +14,3 @@ void IsotropicDust::scatter(Photon *P) {
     P->invn[1] = 1.0/P->n[1];
     P->invn[2] = 1.0/P->n[2];
 }
-
-#endif

@@ -1,37 +1,6 @@
-#ifndef MISC_CC
-#define MISC_CC
-
-#define RAND_A1 40014
-#define RAND_M1 2147483563
-#define RAND_Q1 53668
-#define RAND_R1 12211
-
-#define RAND_A2 40692
-#define RAND_M2 2147483399
-#define RAND_Q2 52744
-#define RAND_R2 3791
-
-#define RAND_SCALE1 (1.0 / RAND_M1)
-
-#include <cmath>
-#include <stdlib.h>
-#include <stdio.h>
-#include <vector>
-
-const double pi = 3.14159265;
-const double au = 1.496e13;
-const double pc = 3.086e18;
-const double R_sun = 6.955e10;
-const double M_sun = 1.98892e33;
-const double L_sun = 3.84e33;
-const double c_l = 2.99792458e10;
-const double h = 6.6260755e-27;
-const double k = 1.380658e-16;
-const double sigma = 5.67051e-5;
+#include "misc.h"
 
 /* Get a random number between 0 and 1. */
-
-static int seed1 = 1, seed2 = 1;
 
 double random_number() {
     //return ((double) rand() / (RAND_MAX));
@@ -351,5 +320,3 @@ bool converged(std::vector<double***> newArr, std::vector<double***> oldArr,
 
     return conv;
 }
-
-#endif

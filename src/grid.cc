@@ -1,70 +1,50 @@
-#ifndef GRID_CC
-#define GRID_CC
+#include "grid.h"
 
-#include <cmath>
-#include <vector>
-#include "vector.cc"
-#include "dust.cc"
-#include "isotropic_dust.cc"
-#include "source.cc"
-#include "photon.cc"
-#include "misc.cc"
-#include "params.cc"
+/* Functions to set up the grid. */
 
-struct Grid {
-    int n1;
-    int n2;
-    int n3;
-    int nw1;
-    int nw2;
-    int nw3;
-    double *w1;
-    double *w2;
-    double *w3;
+Grid::Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
+        double *_w1, double *_w2, double *_w3, double *_volume) {
 
-    std::vector<double***> dens;
-    std::vector<double***> energy;
-    std::vector<double***> temp;
-    std::vector<double***> mass;
-    std::vector<double****> scatt;
-    double ***volume;
+    n1 = _n1;
+    n2 = _n2;
+    n3 = _n3;
+    nw1 = _nw1;
+    nw2 = _nw2;
+    nw3 = _nw3;
+    w1 = _w1;
+    w2 = _w2;
+    w3 = _w3;
 
-    int nspecies;
-    std::vector<Dust*> dust;
+    volume = pymangle(n1, n2, n3, _volume);
+}
 
-    int nsources;
-    std::vector<Source*> sources;
-    double total_lum;
+void Grid::add_density(double *_dens, double *_temp, double *_mass, 
+        Dust *D) {
+    double ***__dens = pymangle(n1, n2, n3, _dens);
+    double ***__temp = pymangle(n1, n2, n3, _temp);
+    double ***__mass = pymangle(n1, n2, n3, _mass);
+    double ***__energy = create3DArrValue(n1, n2, n3, 0);
 
-    Params *Q;
+    dens.push_back(__dens);
+    temp.push_back(__temp);
+    mass.push_back(__mass);
+    energy.push_back(__energy);
 
-    int ny;
-    double *y;
-    double *f;
-    double *dydf;
+    dust.push_back(D);
+    nspecies++;
+}
 
-    Photon *emit(int iphot);
+void Grid::add_source(Source *S) {
+    sources.push_back(S);
+    nsources++;
+}
 
-    virtual double next_wall_distance(Photon *P);
-    virtual double outer_wall_distance(Photon *P);
-    virtual double minimum_wall_distance(Photon *P);
-
-    void propagate_photon_full(Photon *P);
-    void propagate_photon(Photon *P, double tau, bool absorb);
-    void propagate_photon_mrw(Photon *P);
-    void propagate_ray(Ray *R);
-
-    void absorb(Photon *P, int idust);
-    void scatter(Photon *P, int idust);
-
-    virtual Vector<int, 3> photon_loc(Photon *P);
-    virtual bool in_grid(Photon *P);
-
-    void update_grid(Vector<int, 3> l);
-    void update_grid();
-
-    double cell_lum(Vector<int, 3> l);
-};
+void Grid::set_mrw_tables(double *_y, double *_f, double *_dydf, int _ny) {
+    y = _y;
+    f = _f;
+    dydf = _dydf;
+    ny = _ny;
+}
 
 /* Emit a photon from the grid. */
 
@@ -499,5 +479,3 @@ double Grid::cell_lum(Vector<int, 3> l) {
         planck_mean_opacity(temp[0][l[0]][l[1]][l[2]])*sigma*
         pow(temp[0][l[0]][l[1]][l[2]],4);
 }
-
-#endif

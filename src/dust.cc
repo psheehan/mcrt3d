@@ -1,42 +1,40 @@
-#ifndef DUST_CC
-#define DUST_CC
+#include "dust.h"
 
-#include <stdlib.h>
-#include <cmath>
-#include "misc.cc"
-#include "photon.cc"
+/* Functions to set up the dust. */
 
-struct Dust {
-    int nlam;
-    double *nu;
-    double *lam;
-    double *kabs;
-    double *ksca;
-    double *kext;
-    double *albedo;
-    double *dkextdnu;
-    double *dalbedodnu;
+Dust::Dust(int _nlam, double *_nu, double *_lam, double *_kabs, 
+        double *_ksca, double *_kext, double *_albedo) {
+    
+    nlam = _nlam;
+    nu = _nu;
+    lam = _lam;
+    kabs = _kabs;
+    ksca = _ksca;
+    kext = _kext;
+    albedo = _albedo;
+}
 
-    int ntemp;
-    double *temp;
-    double *planck_opacity;
-    double *dplanck_opacity_dT;
-    double *rosseland_extinction;
-    double *drosseland_extinction_dT;
-    double **random_nu_CPD;
-    double **random_nu_CPD_bw;
-    double **drandom_nu_CPD_dT;
-    double **drandom_nu_CPD_bw_dT;
+void Dust::set_lookup_tables(int _ntemp, double *_temp, 
+        double *_planck_opacity, double *_rosseland_extinction, 
+        double *_dplanck_opacity_dT, double *_drosseland_extinction_dT,
+        double *_dkextdnu, double *_dalbedodnu, double *_random_nu_CPD, 
+        double *_random_nu_CPD_bw, double *_drandom_nu_CPD_dT, 
+        double *_drandom_nu_CPD_bw_dT) {
 
-    virtual void scatter(Photon *P);
-    void absorb(Photon *P, double T, bool bw);
+    ntemp = _ntemp;
+    temp = _temp;
+    planck_opacity = _planck_opacity;
+    dplanck_opacity_dT = _dplanck_opacity_dT;
+    rosseland_extinction = _rosseland_extinction;
+    drosseland_extinction_dT = _drosseland_extinction_dT;
+    dkextdnu = _dkextdnu;
+    dalbedodnu = _dalbedodnu;
 
-    double random_nu(double T, bool bw);
-    double opacity(double freq);
-    double albdo(double freq);
-    double planck_mean_opacity(double T);
-    double rosseland_mean_extinction(double T);
-};
+    random_nu_CPD = pymangle(ntemp, nlam, _random_nu_CPD);
+    random_nu_CPD_bw = pymangle(ntemp, nlam, _random_nu_CPD_bw);
+    drandom_nu_CPD_dT = pymangle(ntemp-1, nlam, _drandom_nu_CPD_dT);
+    drandom_nu_CPD_bw_dT = pymangle(ntemp-1, nlam, _drandom_nu_CPD_bw_dT);
+}
 
 /* Scatter a photon isotropically off of dust. */
 
@@ -128,5 +126,3 @@ double Dust::rosseland_mean_extinction(double T) {
 
     return rosseland_mean_extinction;
 }
-
-#endif

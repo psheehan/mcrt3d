@@ -1,30 +1,27 @@
-#ifndef STAR_CC
-#define STAR_CC
+#include "star.h"
 
-#include <stdlib.h>
-#include "vector.cc"
-#include "dust.cc"
-#include "photon.cc"
-#include "misc.cc"
-#include "params.cc"
-#include "source.cc"
+/* Functions to set up the sources. */
 
-struct Star : public Source {
-    double mass;
-    double radius;
-    double temperature;
-    double luminosity;
-    /*Vector<double, 3> r;
-    double *nu;
-    double *Bnu;
-    int nnu;*/
+Star::Star(double x, double y, double z, double _mass, double _radius, \
+        double _temperature) {
 
-    double *random_nu_CPD;
+    r[0] = x;
+    r[1] = y;
+    r[2] = z;
+    mass = _mass;
+    radius = _radius;
+    temperature = _temperature;
+}
 
-    Photon *emit(int nphot);
-    double intercept_distance(Photon *P);
-    double random_nu();
-};
+void Star::set_blackbody_spectrum(int _nnu, double *_nu, double *_Bnu, 
+        double _luminosity, double *_random_nu_CPD) {
+
+    nnu = _nnu;
+    nu = _nu;
+    Bnu = _Bnu;
+    luminosity = _luminosity;
+    random_nu_CPD = _random_nu_CPD;
+}
 
 /* Emit a photon from the source. */
 
@@ -106,5 +103,3 @@ double Star::intercept_distance(Photon *P) {
 
     return s;
 }
-
-#endif

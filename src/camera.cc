@@ -1,25 +1,7 @@
-#include "vector.cc"
-#include "photon.cc"
-#include "grid.cc"
-#include "misc.cc"
-#include "params.cc"
+#include "camera.h"
 
-struct Image {
-    double *x;
-    double *y;
-    Vector<double, 3> i;
-    Vector<double, 3> ex;
-    Vector<double, 3> ey;
-    Vector<double, 3> ez;
-    double *nu;
-    double ***intensity;
-    double pixel_size;
-    int nx;
-    int ny;
-    int nnu;
-
-    Image(double r, double incl, double pa, double *_x, double *_y, 
-            double ***_intensity, int _nx, int _ny, double *_nu, 
+Image::Image(double r, double incl, double pa, double *_x, double *_y, 
+            double *_intensity, int _nx, int _ny, double *_nu, 
             double _pixel_size, int _nnu) {
 
         double phi = -pi/2 - pa;
@@ -42,29 +24,23 @@ struct Image {
 
         x = _x;
         y = _y;
-        intensity = _intensity;
+        intensity = pymangle(nx, ny, nnu, _intensity);
         nx = _nx;
         ny = _ny;
         nu = _nu;
         nnu = _nnu;
 
         pixel_size = _pixel_size;
-    }
-};
+}
 
-struct Camera {
-    Image* image;
-    Grid* G;
-    Params *Q;
+Camera::Camera(Grid *_G, Params *_Q) {
+    G = _G;
+    Q = _Q;
+}
 
-    void make_image();
-    Ray* emit_ray(double x, double y, double pixel_size, double nu);
-    double raytrace_pixel(double x, double y, double pixel_size, double nu, 
-            int count);
-    double raytrace(double x, double y, double pixel_size, double nu);
-};
+void Camera::make_image(Image *I) {
+    image = I;
 
-void Camera::make_image() {
     for (int i=0; i<image->nnu; i++)
         for (int j=0; j<image->nx; j++)
             for (int k=0; k<image->ny; k++) {

@@ -1,17 +1,4 @@
-#ifndef CARTESIAN_GRID_CC
-#define CARTESIAN_GRID_CC
-
-#include "grid.cc"
-#include "vector.cc"
-#include "photon.cc"
-
-struct CartesianGrid : public Grid {
-    double next_wall_distance(Photon *P);
-    double outer_wall_distance(Photon *P);
-    double minimum_wall_distance(Photon *P);
-    Vector<int, 3> photon_loc(Photon *P);
-    bool in_grid(Photon *P);
-};
+#include "cartesian_grid.h"
 
 /* Calculate the distance between the photon and the nearest wall. */
 
@@ -245,5 +232,3 @@ bool CartesianGrid::in_grid(Photon *P) {
     else
         return true;
 }
-
-#endif
