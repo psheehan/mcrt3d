@@ -1,1 +1,1 @@
-from .Star import Star
+from .Star import StarObj as Star
