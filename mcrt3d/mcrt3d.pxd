@@ -95,11 +95,6 @@ cdef extern from "grid.h":
         double *w2
         double *w3
 
-        #std::vector<double***> dens
-        #std::vector<double***> energy
-        #std::vector<double***> temp
-        #std::vector<double***> mass
-        #std::vector<double****> scatt
         vector[double***] dens
         vector[double***] energy
         vector[double***] temp
@@ -108,11 +103,9 @@ cdef extern from "grid.h":
         double ***volume
 
         int nspecies
-        #std::vector<Dust*> dust
         vector[Dust*] dust
 
         int nsources
-        #std::vector<Source*> sources
         vector[Source*] sources
         double total_lum
 

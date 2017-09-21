@@ -14,14 +14,6 @@ from ..sources.Star cimport StarObj
 from ..dust.Dust cimport DustObj
 
 cdef class GridObj:
-    """
-    cdef Grid *obj
-
-    cdef int n1, n2, n3, nw1, nw2, nw3
-    cdef int ny
-    cdef numpy.ndarray y, f, dydf
-    """
-
     def __init__(self):
         self.density = []
         self.mass = []

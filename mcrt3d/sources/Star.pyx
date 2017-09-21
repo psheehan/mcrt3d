@@ -6,17 +6,11 @@ cimport numpy
 from ..constants.physics import sigma
 from .. import misc
 import scipy.integrate
-import numpy
 import h5py
 
 from ..mcrt3d cimport Source, Star
 
 cdef class StarObj:
-    #cdef Star *obj
-
-    #cdef double x, y, z
-    #cdef numpy.ndarray nu, Bnu, random_nu_CPD
-
     property nnu:
         def __get__(self):
             return self.obj.nnu
