@@ -8,8 +8,6 @@ from .grid.Grid cimport GridObj
 # place.
 
 cdef class ParamsObj:
-    cdef Params *obj
-
     def __init__(self):
         self.obj = new Params()
         if self.obj == NULL:

@@ -52,6 +52,9 @@ cdef class StarObj:
 
         self.obj = new Star(x, y, z, mass, radius, temperature)
 
+    def __del__(self):
+        del self.obj
+
     def set_parameters(self, double x, double y, double z, double mass, \
             double radius, double temperature):
         self.x = x

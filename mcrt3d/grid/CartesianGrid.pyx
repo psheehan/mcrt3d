@@ -43,3 +43,7 @@ cdef class CartesianGridObj(GridObj):
                 self.nw2, self.nw3, &w1[0], &w2[0], &w3[0], &volume[0,0,0])
 
         super(CartesianGridObj, self).__init__()
+
+    def __del__(self):
+        del self.obj
+

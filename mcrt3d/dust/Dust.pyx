@@ -43,6 +43,9 @@ cdef class DustObj:
 
         self.make_lookup_tables()
 
+    def __del__(self):
+        del self.obj
+
     property nlam:
         def __get__(self):
             return self.obj.nlam

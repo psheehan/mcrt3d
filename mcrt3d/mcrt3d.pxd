@@ -150,3 +150,30 @@ cdef extern from "mcrt3d.h":
         void thermal_mc()
         void scattering_mc()
         void mc_iteration()
+
+cdef extern from "camera.h":
+    cppclass Image:
+        double *x
+        double *y
+        double *nu
+        double ***intensity
+        double pixel_size
+        int nx
+        int ny
+        int nnu
+
+        Image(double r, double incl, double pa, double *_x, double *_y, 
+                double *_intensity, int _nx, int _ny, double *_nu, 
+                double _pixel_size, int _nnu)
+
+    cppclass Camera:
+        Image* image
+        Grid* G
+        Params *Q
+
+        Camera(Grid *_G, Params *_Q)
+
+        void make_image(Image *I)
+
+cdef class ParamsObj:
+    cdef Params *obj

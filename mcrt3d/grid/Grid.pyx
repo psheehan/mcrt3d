@@ -53,6 +53,9 @@ cdef class GridObj:
 
         self.obj.set_mrw_tables(&yy[0], &ff[0], &dydf[0], self.ny)
 
+    def __del__(self):
+        del self.obj
+
     def add_density(self, numpy.ndarray[double, ndim=3, mode="c"] density, \
             DustObj dust):
 
