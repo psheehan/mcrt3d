@@ -68,6 +68,21 @@ cdef extern from "../include/source.h":
         double *Bnu
         int nnu
 
+cdef extern from "../include/star.h":
+    cppclass Star(Source):
+        double mass
+        double radius
+        double temperature
+        double luminosity
+
+        double *random_nu_CPD
+
+        Star(double x, double y, double z, double _mass, double _radius,
+                double _temperature)
+
+        void set_blackbody_spectrum(int _nnu, double *_nu, double *_Bnu,
+                double _luminosity, double *_random_nu_CPD)
+
 cdef extern from "../include/grid.h":
     cppclass Grid:
         int n1

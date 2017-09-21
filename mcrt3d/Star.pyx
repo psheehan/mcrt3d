@@ -12,10 +12,10 @@ import h5py
 from ..mcrt3d cimport Source, Star
 
 cdef class StarObj:
-    cdef Star *obj
+    #cdef Star *obj
 
-    cdef double x, y, z
-    cdef numpy.ndarray nu, Bnu, random_nu_CPD
+    #cdef double x, y, z
+    #cdef numpy.ndarray nu, Bnu, random_nu_CPD
 
     property nnu:
         def __get__(self):

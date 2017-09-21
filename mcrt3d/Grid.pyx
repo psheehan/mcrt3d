@@ -1,11 +1,27 @@
-from ..sources import Star
-from ..mcrt3d import lib
-from ..dust import Dust
-import decimal
+import cython
+
+from libcpp cimport bool
+from libcpp.vector cimport vector
+
 import numpy
+cimport numpy
+
+import decimal
 import h5py
 
-class Grid:
+from ..mcrt3d cimport Grid
+from ..sources.Star cimport StarObj
+from ..dust.Dust cimport DustObj
+
+cdef class GridObj:
+    """
+    cdef Grid *obj
+
+    cdef int n1, n2, n3, nw1, nw2, nw3
+    cdef int ny
+    cdef numpy.ndarray y, f, dydf
+    """
+
     def __init__(self):
         self.density = []
         self.mass = []
@@ -33,27 +49,37 @@ class Grid:
         f.append(decimal.Decimal(1) / decimal.Decimal(2))
         f = decimal.Decimal(2) * numpy.array(f)
 
-        dydf = numpy.diff(y) / numpy.diff(f)
+        cdef numpy.ndarray[double, ndim=1, mode="c"] \
+                dydf = numpy.diff(y) / numpy.diff(f)
 
         self.y = numpy.array(y, dtype=float)
         self.f = numpy.array(f, dtype=float)
-        self.dydf = numpy.array(dydf, dtype=float)
+        self.dydf = dydf
+        self.ny = self.y.size
 
-        lib.set_mrw_tables(self.obj, self.y, self.f, self.dydf, self.y.size)
+        cdef numpy.ndarray[double, ndim=1, mode="c"] yy = self.y, ff = self.f
 
-    def add_density(self, density, dust):
+        self.obj.set_mrw_tables(&yy[0], &ff[0], &dydf[0], self.ny)
+
+    def add_density(self, numpy.ndarray[double, ndim=3, mode="c"] density, \
+            DustObj dust):
+
+        cdef numpy.ndarray[double, ndim=3, mode="c"] \
+                mass = density * self.volume, \
+                temperature = numpy.ones((self.n1,self.n2,self.n3), dtype=float)
+
         self.density.append(density)
-        self.mass.append(density * self.volume)
-        self.temperature.append(numpy.ones(density.shape, dtype=float))
+        self.mass.append(mass)
+        self.temperature.append(temperature)
         self.dust.append(dust)
 
-        lib.add_density(self.obj, self.density[-1], self.temperature[-1], \
-                self.mass[-1], dust.obj)
+        self.obj.add_density(&density[0,0,0], &temperature[0,0,0], \
+                &mass[0,0,0], dust.obj)
 
-    def add_source(self, source):
+    def add_source(self, StarObj source):
         self.sources.append(source)
 
-        lib.add_source(self.obj, source.obj)
+        self.obj.add_source(source.obj)
 
     def read(self, filename=None, usefile=None):
         if (usefile == None):
@@ -79,7 +105,7 @@ class Grid:
 
         dust = f['Dust']
         for name in dust:
-            d = Dust()
+            d = DustObj()
             d.set_properties_from_file(usefile=dust[name])
             self.dust.append(d)
 
@@ -89,7 +115,7 @@ class Grid:
 
         sources = f['Sources']
         for name in sources:
-            source = Source()
+            source = StarObj()
             source.read(usefile=sources[name])
             self.sources.append(source)
 

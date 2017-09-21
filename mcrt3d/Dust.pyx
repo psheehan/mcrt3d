@@ -11,12 +11,12 @@ import h5py
 from ..mcrt3d cimport Dust, IsotropicDust
 
 cdef class DustObj:
-    cdef IsotropicDust *obj
+    #cdef IsotropicDust *obj
 
-    cdef numpy.ndarray lam, nu, kabs, ksca, kext, albedo
-    cdef numpy.ndarray temp, planck_opacity, dplanck_opacity_dT, \
-            rosseland_extinction, drosseland_extinction_dT, random_nu_CPD, \
-            random_nu_CPD_bw, drandom_nu_CPD_dT, drandom_nu_CPD_bw_dT
+    #cdef numpy.ndarray lam, nu, kabs, ksca, kext, albedo
+    #cdef numpy.ndarray temp, planck_opacity, dplanck_opacity_dT, \
+    #        rosseland_extinction, drosseland_extinction_dT, random_nu_CPD, \
+    #        random_nu_CPD_bw, drandom_nu_CPD_dT, drandom_nu_CPD_bw_dT
 
     def __init__(self, numpy.ndarray[double, ndim=1, mode="c"] lam=None, \
             numpy.ndarray[double, ndim=1, mode="c"] kabs=None, \

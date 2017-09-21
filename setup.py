@@ -5,10 +5,10 @@ from Cython.Distutils import build_ext
 import numpy
 
 mcrt3d = Extension("mcrt3d.mcrt3d", \
-        sources=["mcrt3d/mcrt3d.pxd","mcrt3d/mcrt3d.pyx", "src/mcrt3d.cc", "src/camera.cc", \
-        "src/isotropic_dust.cc", "src/cartesian_grid.cc", \
-        "src/source.cc", "src/cylindrical_grid.cc", \
-        "src/misc.cc", "src/spherical_grid.cc", "src/dust.cc", "src/params.cc",\
+        sources=["mcrt3d/mcrt3d.pxd","mcrt3d/mcrt3d.pyx", "src/mcrt3d.cc", \
+        "src/camera.cc", "src/isotropic_dust.cc", "src/cartesian_grid.cc", \
+        "src/source.cc", "src/cylindrical_grid.cc", "src/misc.cc", \
+        "src/spherical_grid.cc", "src/dust.cc", "src/params.cc",\
         "src/star.cc", "src/grid.cc", "src/photon.cc"], \
         include_dirs=[numpy.get_include(),"./include"], language="c++")
 
@@ -18,4 +18,8 @@ dust = Extension("mcrt3d.dust.Dust", sources=["mcrt3d/Dust.pyx"], \
 star = Extension("mcrt3d.sources.Star", sources=["mcrt3d/Star.pyx"], \
         include_dirs=[numpy.get_include()], language="c++")
 
-setup(cmdclass = {'build_ext': build_ext}, ext_modules = [mcrt3d, dust, star])
+grid = Extension("mcrt3d.grid.Grid", sources=["mcrt3d/Grid.pyx"], \
+        include_dirs=[numpy.get_include()], language="c++")
+
+setup(cmdclass = {'build_ext': build_ext}, ext_modules = [mcrt3d, dust, star, \
+        grid])
