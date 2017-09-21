@@ -1,2 +1,2 @@
-from .Camera import Camera
-from .Image import Image
+from .Camera import CameraObj as Camera
+from .Image import ImageObj as Image
