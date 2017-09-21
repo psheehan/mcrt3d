@@ -12,14 +12,18 @@ mcrt3d = Extension("mcrt3d.mcrt3d", \
         "src/star.cc", "src/grid.cc", "src/photon.cc"], \
         include_dirs=[numpy.get_include(),"./include"], language="c++")
 
-dust = Extension("mcrt3d.dust.Dust", sources=["mcrt3d/Dust.pyx"], \
-        include_dirs=[numpy.get_include()], language="c++")
+dust = Extension("mcrt3d.dust.Dust", sources=["mcrt3d/dust/Dust.pyx"], \
+        include_dirs=[numpy.get_include(),"./include"], language="c++")
 
-star = Extension("mcrt3d.sources.Star", sources=["mcrt3d/Star.pyx"], \
-        include_dirs=[numpy.get_include()], language="c++")
+star = Extension("mcrt3d.sources.Star", sources=["mcrt3d/sources/Star.pyx"], \
+        include_dirs=[numpy.get_include(),"./include"], language="c++")
 
-grid = Extension("mcrt3d.grid.Grid", sources=["mcrt3d/Grid.pyx"], \
-        include_dirs=[numpy.get_include()], language="c++")
+grid = Extension("mcrt3d.grid.Grid", sources=["mcrt3d/grid/Grid.pyx"], \
+        include_dirs=[numpy.get_include(),"./include"], language="c++")
+
+cartesian_grid = Extension("mcrt3d.grid.CartesianGrid", \
+        sources=["mcrt3d/grid/CartesianGrid.pyx"], \
+        include_dirs=[numpy.get_include(),"./include"], language="c++")
 
 setup(cmdclass = {'build_ext': build_ext}, ext_modules = [mcrt3d, dust, star, \
-        grid])
+        grid, cartesian_grid])

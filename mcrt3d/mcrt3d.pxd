@@ -6,7 +6,7 @@ from libcpp.vector cimport vector
 import numpy as np
 cimport numpy as np
 
-cdef extern from "../include/params.h":
+cdef extern from "params.h":
     cppclass Params:
         int nphot
         bool bw
@@ -23,7 +23,7 @@ cdef extern from "../include/params.h":
         void set_mrw(bool _use_mrw)
         void set_mrw_gamma(double _mrw_gamma)
 
-cdef extern from "../include/dust.h":
+cdef extern from "dust.h":
     cppclass Dust:
         int nlam
         double *nu
@@ -56,19 +56,19 @@ cdef extern from "../include/dust.h":
                 double *_random_nu_CPD_bw, double *_drandom_nu_CPD_dT, 
                 double *_drandom_nu_CPD_bw_dT)
 
-cdef extern from "../include/isotropic_dust.h":
+cdef extern from "isotropic_dust.h":
     cppclass IsotropicDust(Dust):
         IsotropicDust(int _nlam, double *_nu, double *_lam, double *_kabs, 
                 double *_ksca, double *_kext, double *_albedo)
             
 
-cdef extern from "../include/source.h":
+cdef extern from "source.h":
     cppclass Source:
         double *nu
         double *Bnu
         int nnu
 
-cdef extern from "../include/star.h":
+cdef extern from "star.h":
     cppclass Star(Source):
         double mass
         double radius
@@ -83,7 +83,7 @@ cdef extern from "../include/star.h":
         void set_blackbody_spectrum(int _nnu, double *_nu, double *_Bnu,
                 double _luminosity, double *_random_nu_CPD)
 
-cdef extern from "../include/grid.h":
+cdef extern from "grid.h":
     cppclass Grid:
         int n1
         int n2
@@ -131,23 +131,23 @@ cdef extern from "../include/grid.h":
         void add_source(Source *S)
         void set_mrw_tables(double *y, double *f, double *dydf, int ny)
 
-cdef extern from "../include/cartesian_grid.h":
+cdef extern from "cartesian_grid.h":
     cppclass CartesianGrid(Grid):
         CartesianGrid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
                 double *_w1, double *_w2, double *_w3, double *_volume)
 
-cdef extern from "../include/cylindrical_grid.h":
+cdef extern from "cylindrical_grid.h":
     cppclass CylindricalGrid(Grid):
         CylindricalGrid(int _n1, int _n2, int _n3, int _nw1, int _nw2, 
                 int _nw3, double *_w1, double *_w2, double *_w3, 
                 double *_volume)
 
-cdef extern from "../include/spherical_grid.h":
+cdef extern from "spherical_grid.h":
     cppclass SphericalGrid(Grid):
         SphericalGrid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
                 double *_w1, double *_w2, double *_w3, double *_volume)
 
-cdef extern from "../include/mcrt3d.h":
+cdef extern from "mcrt3d.h":
     cppclass MCRT:
         Grid *G
         Params *Q
