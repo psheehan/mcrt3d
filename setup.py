@@ -25,5 +25,13 @@ cartesian_grid = Extension("mcrt3d.grid.CartesianGrid", \
         sources=["mcrt3d/grid/CartesianGrid.pyx"], \
         include_dirs=[numpy.get_include(),"./include"], language="c++")
 
+cylindrical_grid = Extension("mcrt3d.grid.CylindricalGrid", \
+        sources=["mcrt3d/grid/CylindricalGrid.pyx"], \
+        include_dirs=[numpy.get_include(),"./include"], language="c++")
+
+spherical_grid = Extension("mcrt3d.grid.SphericalGrid", \
+        sources=["mcrt3d/grid/SphericalGrid.pyx"], \
+        include_dirs=[numpy.get_include(),"./include"], language="c++")
+
 setup(cmdclass = {'build_ext': build_ext}, ext_modules = [mcrt3d, dust, star, \
-        grid, cartesian_grid])
+        grid, cartesian_grid, cylindrical_grid, spherical_grid])
