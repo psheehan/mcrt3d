@@ -1,3 +1,3 @@
-from .CartesianGrid import CartesianGrid
-from .CylindricalGrid import CylindricalGrid
-from .SphericalGrid import SphericalGrid
+from .CartesianGrid import CartesianGridObj as CartesianGrid
+from .CylindricalGrid import CylindricalGridObj as CylindricalGrid
+from .SphericalGrid import SphericalGridObj as SphericalGrid

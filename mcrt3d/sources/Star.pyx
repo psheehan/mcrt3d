@@ -47,8 +47,8 @@ cdef class StarObj:
         def __set__(self, double var):
             self.obj.luminosity = var
 
-    def __init__(self, double x=None, double y=None, double z=None, \
-            double mass=None, double radius=None, double temperature=None, \
+    def __init__(self, double x=0., double y=0., double z=0., \
+            double mass=0., double radius=0., double temperature=0., \
             filename=None):
 
         if filename != None:
