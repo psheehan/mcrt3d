@@ -62,7 +62,6 @@ cdef class MCRTObj:
         self.params = Q
 
         self.obj = new MCRT(G.obj, Q.obj)
-        print('how')
 
     def run_thermal_mc(self):
         self.obj.thermal_mc()

@@ -1,14 +1,10 @@
 #include "mcrt3d.h"
 
 MCRT::MCRT(Grid *_G, Params *_Q) {
-    printf("Hello\n");
     G = _G;
-    printf("This was ok...\n");
 
     Q = _Q;
-    printf("So was this...\n");
     G->Q = _Q;
-    printf("If we got here, then something strange is happening...\n");
 }
 
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
