@@ -41,17 +41,21 @@ cdef class GridObj:
         f.append(decimal.Decimal(1) / decimal.Decimal(2))
         f = decimal.Decimal(2) * numpy.array(f)
 
+        """
         cdef numpy.ndarray[double, ndim=1, mode="c"] \
                 dydf = numpy.diff(y) / numpy.diff(f)
+        """
+        dydf = numpy.diff(y) / numpy.diff(f)
 
         self.y = numpy.array(y, dtype=float)
         self.f = numpy.array(f, dtype=float)
-        self.dydf = dydf
+        self.dydf = dydf.astype(float)
         self.ny = self.y.size
 
-        cdef numpy.ndarray[double, ndim=1, mode="c"] yy = self.y, ff = self.f
+        cdef numpy.ndarray[double, ndim=1, mode="c"] yy = self.y, ff = self.f, \
+                dyydff = self.dydf
 
-        self.obj.set_mrw_tables(&yy[0], &ff[0], &dydf[0], self.ny)
+        self.obj.set_mrw_tables(&yy[0], &ff[0], &dyydff[0], self.ny)
 
     def __del__(self):
         del self.obj

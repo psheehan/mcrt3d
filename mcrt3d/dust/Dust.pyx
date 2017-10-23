@@ -38,7 +38,7 @@ cdef class DustObj:
         cdef numpy.ndarray[double, ndim=1, mode="c"] kext = self.kext
         cdef numpy.ndarray[double, ndim=1, mode="c"] albedo = self.albedo
 
-        self.obj = new IsotropicDust(self.obj.nlam, &nu[0], &lam[0], \
+        self.obj = new IsotropicDust(self.nlam, &nu[0], &lam[0], \
                 &kabs[0], &ksca[0], &kext[0], &albedo[0])
 
         self.make_lookup_tables()
@@ -46,6 +46,10 @@ cdef class DustObj:
     def __del__(self):
         del self.obj
 
+    property nu:
+        def __get__(self):
+            return self.nu
+    """
     property nlam:
         def __get__(self):
             return self.obj.nlam
@@ -57,6 +61,7 @@ cdef class DustObj:
             return self.obj.ntemp
         def __set__(self, int var):
             self.obj.ntemp = var
+    """
 
     def set_properties(self, numpy.ndarray[double, ndim=1, mode="c"] lam, \
             numpy.ndarray[double, ndim=1, mode="c"] kabs, \
@@ -154,19 +159,19 @@ cdef class DustObj:
 
         cdef numpy.ndarray[double, ndim=1, mode="c"] temp_1d = self.temp, \
                 rosseland_extinction = self.rosseland_extinction, \
-                planck_opacity = self.plank_opacity, \
-                dplanck_opacity_dT = self.dplank_opacity_dT, \
+                planck_opacity = self.planck_opacity, \
+                dplanck_opacity_dT = self.dplanck_opacity_dT, \
                 drosseland_extinction_dT = self.drosseland_extinction_dT, \
                 dkextdnu = self.dkextdnu, dalbedodnu = self.dalbedodnu
         cdef numpy.ndarray[double, ndim=2, mode="c"] \
                 random_nu_CPD = self.random_nu_CPD, \
                 random_nu_CPD_bw = self.random_nu_CPD_bw, \
-                drandom_nu_CPD_dT = self.self.drandom_nu_CPD_dT, \
+                drandom_nu_CPD_dT = self.drandom_nu_CPD_dT, \
                 drandom_nu_CPD_bw_dT = self.drandom_nu_CPD_bw_dT
 
         # Pass these arrays to the C++ code.
 
-        self.obj.set_lookup_tables(self.obj.ntemp, &temp_1d[0], \
+        self.obj.set_lookup_tables(self.ntemp, &temp_1d[0], \
                 &planck_opacity[0], &rosseland_extinction[0], \
                 &dplanck_opacity_dT[0], &drosseland_extinction_dT[0],\
                 &dkextdnu[0], &dalbedodnu[0], &random_nu_CPD[0,0], \

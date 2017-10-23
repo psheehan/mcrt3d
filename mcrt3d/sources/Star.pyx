@@ -11,36 +11,6 @@ import h5py
 from ..mcrt3d cimport Source, Star
 
 cdef class StarObj:
-    property nnu:
-        def __get__(self):
-            return self.obj.nnu
-        def __set__(self, int var):
-            self.obj.nnu = var
-
-    property mass:
-        def __get__(self):
-            return self.obj.mass
-        def __set__(self, double var):
-            self.obj.mass = var
-
-    property radius:
-        def __get__(self):
-            return self.obj.radius
-        def __set__(self, double var):
-            self.obj.radius = var
-
-    property temperature:
-        def __get__(self):
-            return self.obj.temperature
-        def __set__(self, double var):
-            self.obj.temperature = var
-
-    property luminosity:
-        def __get__(self):
-            return self.obj.luminosity
-        def __set__(self, double var):
-            self.obj.luminosity = var
-
     def __init__(self, double x=0., double y=0., double z=0., \
             double mass=0., double radius=0., double temperature=0., \
             filename=None):

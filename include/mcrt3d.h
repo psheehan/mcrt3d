@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <cmath>
+#include "params.h"
 #include "isotropic_dust.h"
 #include "grid.h"
 #include "cartesian_grid.h"
@@ -9,7 +10,6 @@
 #include "pymangle.h"
 //#include "timer.c"
 #include "camera.h"
-#include "params.h"
 
 struct MCRT {
     Grid *G;

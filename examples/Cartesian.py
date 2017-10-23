@@ -14,30 +14,24 @@ from numpy import array, arange, pi, zeros, logspace
 def SetupParams():
     Q = Params()
 
-    Q.set_nphot(100000)
-    Q.set_bw(True)
-    Q.set_scattering(False)
-    Q.set_verbose(False)
-    Q.set_mrw(False)
-    Q.set_mrw_gamma(4)
+    Q.nphot = 100000
+    Q.bw = True
+    Q.scattering = False
+    Q.verbose = False
+    Q.use_mrw = False
+    Q.mrw_gamma = 4
 
     return Q
 
 def SetupGrid():
-    G = CartesianGrid()
-
     # Set up the dust.
 
-    dust = Dust()
-    dust.set_properties_from_radmc3d("dustkappa_yso.inp")
+    dust = Dust(filename="dustkappa_yso.inp", radmc3d=True)
 
     # Set up the star.
 
-    star = Star()
-    star.set_parameters(0.0,0.0,0.0,M_sun,R_sun,4000.0)
+    star = Star(0.0,0.0,0.0,M_sun,R_sun,4000.0)
     star.set_blackbody_spectrum(dust.nu)
-
-    G.add_source(star)
 
     # Set up the grid.
 
@@ -49,11 +43,13 @@ def SetupGrid():
     y = (arange(ny)-(float(ny)-1)/2)*AU/1
     z = (arange(nz)-(float(nz)-1)/2)*AU/1
 
-    G.set_walls(x,y,z)
+    G = CartesianGrid(x,y,z)
 
     density = zeros((nx-1,ny-1,nz-1)) + 1.0e-17
 
     G.add_density(density, dust)
+
+    G.add_source(star)
 
     return G
 

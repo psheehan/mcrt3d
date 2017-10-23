@@ -13,9 +13,9 @@ cdef class CartesianGridObj(GridObj):
 
         self.coordsystem = "cartesian"
 
-        self.x = 0.5*(w1[0:w1.size-1] + w1[1:w1.size])
-        self.y = 0.5*(w2[0:w2.size-1] + w2[1:w2.size])
-        self.z = 0.5*(w3[0:w3.size-1] + w3[1:w3.size])
+        self.xx = 0.5*(w1[0:w1.size-1] + w1[1:w1.size])
+        self.yy = 0.5*(w2[0:w2.size-1] + w2[1:w2.size])
+        self.zz = 0.5*(w3[0:w3.size-1] + w3[1:w3.size])
 
         self.nw1 = w1.size
         self.nw2 = w2.size
@@ -34,7 +34,7 @@ cdef class CartesianGridObj(GridObj):
         for i in range(self.n1):
             for j in range(self.n2):
                 for k in range(self.n3):
-                    self.volume[i,j,k] = (self.w1[i+1] - self.w1[i])* \
+                    volume[i,j,k] = (self.w1[i+1] - self.w1[i])* \
                         (self.w2[j+1] - self.w2[j])*(self.w3[k+1] - self.w3[k])
 
         self.volume = volume
