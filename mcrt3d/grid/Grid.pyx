@@ -60,6 +60,10 @@ cdef class GridObj:
     def __del__(self):
         del self.obj
 
+    property temperature:
+        def __get__(self):
+            return self.temperature
+
     def add_density(self, numpy.ndarray[double, ndim=3, mode="c"] density, \
             DustObj dust):
 
