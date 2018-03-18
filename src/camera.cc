@@ -4,33 +4,33 @@ Image::Image(double r, double incl, double pa, double *_x, double *_y,
             double *_intensity, int _nx, int _ny, double *_nu, 
             double _pixel_size, int _nnu) {
 
-        double phi = -pi/2 - pa;
+    double phi = -pi/2 - pa;
 
-        i[0] = r*sin(incl)*cos(phi);
-        i[1] = r*sin(incl)*sin(phi);
-        i[2] = r*cos(incl);
+    i[0] = r*sin(incl)*cos(phi);
+    i[1] = r*sin(incl)*sin(phi);
+    i[2] = r*cos(incl);
 
-        ex[0] = -sin(phi);
-        ex[1] = cos(phi);
-        ex[2] = 0.0;
+    ex[0] = -sin(phi);
+    ex[1] = cos(phi);
+    ex[2] = 0.0;
 
-        ey[0] = -cos(incl)*cos(phi);
-        ey[1] = -cos(incl)*sin(phi);
-        ey[2] = sin(incl);
+    ey[0] = -cos(incl)*cos(phi);
+    ey[1] = -cos(incl)*sin(phi);
+    ey[2] = sin(incl);
 
-        ez[0] = -sin(incl)*cos(phi);
-        ez[1] = -sin(incl)*sin(phi);
-        ez[2] = -cos(incl);
+    ez[0] = -sin(incl)*cos(phi);
+    ez[1] = -sin(incl)*sin(phi);
+    ez[2] = -cos(incl);
 
-        x = _x;
-        y = _y;
-        intensity = pymangle(nx, ny, nnu, _intensity);
-        nx = _nx;
-        ny = _ny;
-        nu = _nu;
-        nnu = _nnu;
+    x = _x;
+    y = _y;
+    intensity = pymangle(_nx, _ny, _nnu, _intensity);
+    nx = _nx;
+    ny = _ny;
+    nu = _nu;
+    nnu = _nnu;
 
-        pixel_size = _pixel_size;
+    pixel_size = _pixel_size;
 }
 
 Camera::Camera(Grid *_G, Params *_Q) {
