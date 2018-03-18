@@ -190,7 +190,10 @@ void Grid::propagate_photon_full(Photon *P) {
             }
 
             // If we've enabled MRW, try running an MRW step.
-            if (Q->use_mrw)
+            // Need to do the in_grid check again because the absorption
+            // or scattering may have been on the outermost wall, putting
+            // it outside of the grid.
+            if ((Q->use_mrw) && (in_grid(P)))
                 propagate_photon_mrw(P);
         }
     }
@@ -284,11 +287,11 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
 void Grid::propagate_photon_mrw(Photon *P) {
     double dmin = minimum_wall_distance(P);
 
-    double alpha = 0;
+    double alpha = 0.0;
     for (int idust = 0; idust<nspecies; idust++)
         alpha += dust[idust]->rosseland_mean_extinction(
                 temp[idust][P->l[0]][P->l[1]][P->l[2]]) * 
-            dens[idust][P->l[0]][P->l[1]][P->l[2]];
+                dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
     if (alpha * dmin > Q->mrw_gamma) {
         if (Q->verbose) {
