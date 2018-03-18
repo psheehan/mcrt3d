@@ -34,7 +34,7 @@ cdef class SphericalGridObj(GridObj):
         for i in range(self.n1):
             for j in range(self.n2):
                 for k in range(self.n3):
-                    self.volume[i,j,k] = (self.w1[i+1]**3 - self.w1[i]**3)* \
+                    volume[i,j,k] = (self.w1[i+1]**3 - self.w1[i]**3)* \
                         (self.w3[k+1] - self.w3[k])* \
                         (numpy.cos(self.w2[j]) - numpy.cos(self.w2[j+1]))/3
 

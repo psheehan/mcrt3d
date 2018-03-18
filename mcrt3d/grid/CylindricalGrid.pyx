@@ -35,7 +35,7 @@ cdef class CylindricalGridObj(GridObj):
         for i in range(self.n1):
             for j in range(self.n2):
                 for k in range(self.n3):
-                    self.volume[i,j,k] = (self.w1[i+1]**2 - self.w1[i]**2)* \
+                    volume[i,j,k] = (self.w1[i+1]**2 - self.w1[i]**2)* \
                         (self.w2[j+1]-self.w2[j]) * (self.w3[k+1]-self.w3[k])/2
 
         self.volume = volume

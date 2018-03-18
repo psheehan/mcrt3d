@@ -15,7 +15,7 @@ cdef class GridObj:
     cdef numpy.ndarray y, f, dydf
 
     cdef numpy.ndarray xx, yy, zz
-    cdef numpy.ndarray r, rho, phi, theta
+    cdef numpy.ndarray r, rho, phi, theta, z
 
     cdef numpy.ndarray volume
 
