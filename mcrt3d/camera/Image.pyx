@@ -33,11 +33,17 @@ cdef class ImageObj:
 
         self.intensity = intensity
 
-        print("Hello!")
         self.obj = new Image(self.r, self.incl, self.pa, &x[0], \
                 &y[0], &intensity[0,0,0], self.nx, self.ny, &nu[0], \
                 self.pixel_size, self.nnu)
-        print("Goodbye")
+
+    property intensity:
+        def __get__(self):
+            return self.intensity
+
+    property nu:
+        def __get__(self):
+            return self.nu
 
     def __del__(self):
         del self.obj
