@@ -26,15 +26,12 @@ M.run_thermal_mc()
 t2 = time()
 print(t2-t1)
 
-print("hello")
 for i in range(images.size):
     C.make_image(images[i])
 
-print("wassup")
 for i in range(spectra.size):
     C.make_image(spectra[i])
 
-print("holla!")
 for i in range(9):
     plt.imshow(G.temperature[0][:,:,i],origin="lower",interpolation="nearest", \
             vmin=G.temperature[0].min(),vmax=G.temperature[0].max())
