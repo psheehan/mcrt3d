@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from mcrt3d import Params
-from mcrt3d.grid import CartesianGrid
+from mcrt3d.grid import SphericalGrid
 from mcrt3d.dust import Dust
 from mcrt3d.sources import Star
 from mcrt3d.camera import Image
@@ -14,30 +14,24 @@ from numpy import array, arange, pi, zeros, logspace
 def SetupParams():
     Q = Params()
 
-    Q.set_nphot(100000)
-    Q.set_bw(True)
-    Q.set_scattering(False)
-    Q.set_verbose(False)
-    Q.set_mrw(False)
-    Q.set_mrw_gamma(4)
+    Q.nphot = 100000
+    Q.bw = True
+    Q.scattering = False
+    Q.verbose = False
+    Q.use_mrw = False
+    Q.mrw_gamma = 4
 
     return Q
 
 def SetupGrid():
-    G = SphericalGrid()
-
     # Set up the dust.
 
-    dust = Dust()
-    dust.set_properties_from_radmc3d("dustkappa_yso.inp")
+    dust = Dust(filename="dustkappa_yso.inp", radmc3d=True)
 
     # Set up the star.
 
-    star = Star()
-    star.set_parameters(0.0,0.0,0.0,M_sun,R_sun,4000.0)
+    star = Star(0.0,0.0,0.0,M_sun,R_sun,4000.0)
     star.set_blackbody_spectrum(dust.nu)
-
-    G.add_source(star)
 
     # Set up the grid.
 
@@ -49,11 +43,13 @@ def SetupGrid():
     t = arange(nt)/(nt-1.)*pi
     p = arange(np)/(np-1.)*2*pi
 
-    G.set_walls(r,t,p)
+    G = SphericalGrid(r,t,p)
 
     density = zeros((nr-1,nt-1,np-1)) + 1.0e-17
 
     G.add_density(density, dust)
+
+    G.add_source(star)
 
     return G
 
@@ -69,8 +65,8 @@ def SetupImages():
     nnu = 1
 
     r = (3*4.5**2)**(1./2)*AU
-    incl = 0
-    pa = 0
+    incl = pi/4
+    pa = pi/4
 
     image = Image(r, incl, pa, x, y, nx, ny, nu, pixel_size, nnu)
 
@@ -88,8 +84,8 @@ def SetupSpectra():
     nnu = 1000
 
     r = (3*4.5**2)**(1./2)*AU
-    incl = pi/4
-    pa = pi/4
+    incl = 0
+    pa = 0
 
     spectrum = Image(r, incl, pa, x, y, nx, ny, nu, pixel_size, nnu)
 
