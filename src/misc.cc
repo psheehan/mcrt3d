@@ -99,7 +99,7 @@ int find_in_arr(double val, double *arr, int lmin, int lmax) {
  * case the array is cyclic. */
 
 int find_in_periodic_arr(double val, double *arr, int n, int lmin, int lmax) {
-    int l;
+    int l = -1;
 
     for (int i=lmin; i <= lmax; i++) {
         int index = (i+n)%(n);

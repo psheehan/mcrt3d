@@ -274,6 +274,8 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
         else
             l[2] = find_in_periodic_arr(phi,w3,n3,P->l[2]-1,P->l[2]+1);
 
+        if (l[2] == -1) find_in_arr(phi,w3,nw3);
+
         /* Check whether the photon is supposed to be exactly on the cell
          * wall. Floating point errors may keep it from being exactly on the
          * wall, and we need to fix that. */
