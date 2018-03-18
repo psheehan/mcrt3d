@@ -6,7 +6,7 @@ cimport numpy
 from ..mcrt3d cimport Dust, IsotropicDust
 
 cdef class DustObj:
-    cdef IsotropicDust *obj
+    cdef Dust *obj
 
     cdef int nlam, ntemp
 
