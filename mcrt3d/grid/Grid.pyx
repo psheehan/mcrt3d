@@ -57,6 +57,9 @@ cdef class GridObj:
 
         self.obj.set_mrw_tables(&yy[0], &ff[0], &dyydff[0], self.ny)
 
+        self.obj.nspecies = 0
+        self.obj.nsources = 0
+
     def __del__(self):
         del self.obj
 
