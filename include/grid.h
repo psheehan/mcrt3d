@@ -51,6 +51,8 @@ struct Grid {
             Dust *D);
     void add_source(Source *S);
     void set_mrw_tables(double *y, double *f, double *dydf, int ny);
+    void initialize_scattering_array();
+    void deallocate_scattering_array();
 
     Photon *emit(int iphot);
 

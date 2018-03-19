@@ -14,10 +14,12 @@
 struct MCRT {
     Grid *G;
     Params *Q;
+    Camera *C;
 
     MCRT(Grid *G, Params *Q);
 
     void thermal_mc();
     void scattering_mc();
     void mc_iteration();
+    void run_image(Image *I);
 };

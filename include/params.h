@@ -2,14 +2,22 @@
 #define PARAMS_H
 
 struct Params {
+    // General purpose parameters.
     int nphot;
     bool bw;
-    bool scattering;
-    double scattering_nu;
     bool verbose;
     bool use_mrw;
     double mrw_gamma;
 
+    // Parameters for doing the scattering simulation.
+    bool scattering;
+    int inu;
+    int nnu;
+    double nu;
+    double dnu;
+    double *scattering_nu;
+
+    // Functions to set various properties.
     void set_nphot(int _nphot);
     void set_bw(bool _bw);
     void set_scattering(bool _scattering);

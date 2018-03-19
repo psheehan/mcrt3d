@@ -42,12 +42,15 @@ void Camera::make_image(Image *I) {
     image = I;
 
     for (int i=0; i<image->nnu; i++)
+    {
+        Q->inu = i;
         for (int j=0; j<image->nx; j++)
             for (int k=0; k<image->ny; k++) {
                 if (Q->verbose) printf("%d   %d\n", j, k);
                 image->intensity[j][k][i] = raytrace_pixel(image->x[j], 
                         image->y[k], image->pixel_size, image->nu[i], 0);
             }
+    }
 }
 
 Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {

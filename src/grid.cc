@@ -46,6 +46,26 @@ void Grid::set_mrw_tables(double *_y, double *_f, double *_dydf, int _ny) {
     ny = _ny;
 }
 
+void Grid::initialize_scattering_array() {
+    for (int idust = 0; idust<nspecies; idust++)
+        scatt.push_back(create4DArrValue(n1, n2, n3, Q->nnu, 0.));
+}
+
+void Grid::deallocate_scattering_array() {
+    for (int idust = 0; idust<nspecies; idust++) {
+        for (int ix = 0; ix<n1; ix++) {
+            for (int iy = 0; iy<n2; iy++) {
+                for (int iz = 0; iz<n3; iz++) {
+                    delete scatt[idust][ix][iy][iz];
+                }
+                delete scatt[idust][ix][iy];
+            }
+            delete scatt[idust][ix];
+        }
+        scatt.erase(scatt.begin());
+    }
+}
+
 /* Emit a photon from the grid. */
 
 Photon *Grid::emit(int iphot) {
@@ -60,6 +80,7 @@ Photon *Grid::emit(int iphot) {
     }
 
     Photon *P = sources[isource]->emit(photons_per_source);
+    if (Q->scattering) P->nu = Q->scattering_nu[Q->inu];
 
     /* Calculate kext and albedo at the photon's current frequency for all
      * dust species. */
@@ -149,7 +170,10 @@ void Grid::propagate_photon_full(Photon *P) {
         bool absorb_photon = random_number() > albedo;
 
         // Move the photon to the point of it's next interaction.
-        propagate_photon(P, tau, absorb_photon);
+        if (Q-> scattering)
+            propagate_photon(P, tau, false);
+        else
+            propagate_photon(P, tau, absorb_photon);
 
         // If the photon is still in the grid when it reaches it's 
         // destination...
@@ -175,11 +199,14 @@ void Grid::propagate_photon_full(Photon *P) {
             }
             // Otherwise, scatter the photon.
             else {
-                scatter(P, idust);
                 // If we're doing a scattering simulation, keep track of the
                 // scatter that is happening.
                 if (Q->scattering) {
+                    scatt[idust][P->l[0]][P->l[1]][P->l[2]][Q->inu] += 
+                        1./pi * P->energy/Q->dnu;
                 }
+                // Now scatter the photon.
+                scatter(P, idust);
                 // If we've asked for verbose output, print some info.
                 if (Q->verbose) {
                     printf("Scattering photon at cell  %i  %i  %i\n",
@@ -381,15 +408,23 @@ void Grid::propagate_ray(Ray *R) {
 
         double s = next_wall_distance(R);
 
+        double tau_abs = 0;
         double tau_cell = 0;
+        double intensity_abs = 0;
+        double intensity_sca = 0;
         double intensity_cell = 0;
         for (int idust=0; idust<nspecies; idust++) {
-            double tau = s*R->current_kext[idust]*
+            tau_abs = s*R->current_kext[idust]*
                 dens[idust][R->l[0]][R->l[1]][R->l[2]];
 
-            tau_cell += tau;
-            intensity_cell += (1.0-exp(-tau))*planck_function(R->nu,
+            tau_cell += s*R->current_kext[idust]*
+                dens[idust][R->l[0]][R->l[1]][R->l[2]];
+
+            intensity_abs += (1.0-exp(-tau_abs))*planck_function(R->nu,
                     temp[idust][R->l[0]][R->l[1]][R->l[2]]);
+            intensity_sca += scatt[idust][R->l[0]][R->l[1]][R->l[2]][Q->inu];
+
+            intensity_cell += intensity_abs + intensity_sca;
         }
 
         if (Q->verbose) {

@@ -213,14 +213,14 @@ std::vector<double***> create4DArr(int nx, int ny, int nz, int nq) {
 
 /* Create a 3-dimensional array filled with a particular value. */
 
-double ****create4DArrValue(int nx, int ny, int nz, int nq, int value) {
+double ****create4DArrValue(int nx, int ny, int nz, int nq, double value) {
     double ****arr = new double***[nx];
     for (int i=0; i<nx; i++) {
         arr[i] = new double**[ny];
         for (int j=0; j<ny; j++) {
             arr[i][j] = new double*[nz];
             for (int k=0; k<nz; k++) {
-                arr[i][j][k] = new double[nz];
+                arr[i][j][k] = new double[nq];
                 for (int l=0; l<nq; l++)
                     arr[i][j][k][l] = value;
             }

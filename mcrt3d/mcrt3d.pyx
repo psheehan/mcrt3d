@@ -3,6 +3,7 @@ import cython
 from mcrt3d cimport *
 
 from .grid.Grid cimport GridObj
+from .camera.Image cimport ImageObj
 
 # Define the Params and MCRT classes here because there isn't yet a better 
 # place.
@@ -66,8 +67,5 @@ cdef class MCRTObj:
     def run_thermal_mc(self):
         self.obj.thermal_mc()
 
-    def run_scattering_mc(self):
-        self.obj.scattering_mc()
-
-    def run_mc_iteration(self):
-        self.obj.mc_iteration()
+    def run_image(self, ImageObj I):
+        self.obj.run_image(I.obj)

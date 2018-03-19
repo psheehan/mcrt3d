@@ -5,6 +5,8 @@ MCRT::MCRT(Grid *_G, Params *_Q) {
 
     Q = _Q;
     G->Q = _Q;
+
+    C = new Camera(G, Q);
 }
 
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
@@ -52,7 +54,26 @@ void MCRT::thermal_mc() {
 }
 
 void MCRT::scattering_mc() {
-    mc_iteration();
+    // Make sure we've turned the scattering simulation option on.
+    bool old_scattering = Q->scattering;
+    Q->scattering = true;
+
+    // Set the Grid's scattering array.
+    G->initialize_scattering_array();
+
+    // Run the simulation for every frequency bin.
+    for (int inu=0; inu<Q->nnu; inu++) {
+        printf("inu = %i\n", inu);
+        // Set up the right parameters.
+        Q->inu = inu;
+        Q->nu = Q->scattering_nu[inu];
+        Q->dnu = abs(Q->scattering_nu[inu+1] - Q->scattering_nu[inu]);
+
+        mc_iteration();
+    }
+
+    // Reset the scattering simulation to what it was before.
+    Q->scattering = old_scattering;
 }
 
 void MCRT::mc_iteration() {
@@ -76,4 +97,19 @@ void MCRT::mc_iteration() {
         delete P;
         if (Q->verbose) printf("Photon has escaped the grid.\n\n");
     }
+}
+
+void MCRT::run_image(Image *I) {
+    // Set some parameters that are going to be needed.
+    Q->scattering_nu = I->nu;
+    Q->nnu = I->nnu;
+
+    // Run a scattering simulation.
+    scattering_mc();
+
+    // Now, run the image through the camera.
+    C->make_image(I);
+
+    // Clean up the appropriate grid parameters.
+    G->deallocate_scattering_array();
 }

@@ -148,8 +148,7 @@ cdef extern from "mcrt3d.h":
         MCRT(Grid *_G, Params *_Q)
 
         void thermal_mc()
-        void scattering_mc()
-        void mc_iteration()
+        void run_image(Image *I)
 
 cdef extern from "camera.h":
     cppclass Image:

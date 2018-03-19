@@ -96,7 +96,7 @@ std::vector<double***> create4DArr(int nx, int ny, int nz, int nq);
 
 /* Create a 3-dimensional array filled with a particular value. */
 
-double ****create4DArrValue(int nx, int ny, int nz, int nq, int value);
+double ****create4DArrValue(int nx, int ny, int nz, int nq, double value);
 
 /* Set the value of a 4-dimensional array to a constant value. */
 
