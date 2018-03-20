@@ -18,8 +18,8 @@ def SetupParams():
     Q.bw = True
     Q.scattering = False
     Q.verbose = False
-    Q.use_mrw = False
-    Q.mrw_gamma = 4
+    Q.use_mrw = True
+    Q.mrw_gamma = 2
 
     return Q
 
@@ -80,8 +80,8 @@ def SetupSpectra():
     x = array([0.0])
     y = array([0.0])
 
-    nu = c / (logspace(-1,4,1000) * 1.0e-4)
-    nnu = 1000
+    nnu = 200
+    nu = c / (logspace(-1,4,nnu) * 1.0e-4)
 
     r = (3*4.5**2)**(1./2)*AU
     incl = 0
