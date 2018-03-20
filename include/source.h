@@ -15,6 +15,7 @@ struct Source {
     int nnu;
 
     virtual Photon *emit(int nphot);
+    virtual Photon *emit(double _nu, double _dnu, int nphot);
     virtual double intercept_distance(Photon *P);
 };
 

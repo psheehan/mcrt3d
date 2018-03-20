@@ -67,6 +67,57 @@ Photon *Star::emit(int nphot) {
     return P;
 };
 
+Photon *Star::emit(double _nu, double _dnu, int nphot) {
+    Photon *P = new Photon();
+
+    double theta = pi*random_number();
+    double phi = 2*pi*random_number();
+
+    P->r[0] = radius*sin(theta)*cos(phi);
+    P->r[1] = radius*sin(theta)*sin(phi);
+    P->r[2] = radius*cos(theta);
+
+    Vector<double, 3> r_hat, theta_hat, phi_hat;
+
+    r_hat[0] = sin(theta)*cos(phi);
+    r_hat[1] = sin(theta)*sin(phi);
+    r_hat[2] = cos(theta);
+    theta_hat[0] = cos(theta)*cos(phi);
+    theta_hat[1] = cos(theta)*sin(phi);
+    theta_hat[2] = -sin(theta);
+    phi_hat[0] = -sin(phi);
+    phi_hat[1] = cos(phi);
+    phi_hat[2] = 0;
+
+    double cost = random_number();
+    double sint = sqrt(1-pow(cost,2));
+    phi = 2*pi*random_number();
+
+    P->n = cost*r_hat + sint*cos(phi)*phi_hat + sint*sin(phi)*theta_hat;
+
+    P->invn[0] = 1.0/P->n[0];
+    P->invn[1] = 1.0/P->n[1];
+    P->invn[2] = 1.0/P->n[2];
+    P->l[0] = -1;
+    P->l[1] = -1;
+    P->l[2] = -1;
+
+    P->nu = _nu;
+
+    // Calculate the fraction of the total luminosity in the current frequency
+    // bin
+    double Bnu_tot = 0.0;
+    for (int i=0; i<nnu-1; i++)
+        Bnu_tot += 0.5*(Bnu[i] + Bnu[i+1]) * abs(nu[i+1] - nu[i]);
+
+    double fractional_luminosity = flux(_nu) * _dnu / Bnu_tot;
+
+    // Now get the total energy of the photon.
+    P->energy = fractional_luminosity * luminosity / nphot;
+
+    return P;
+};
+
 /* Get a random frequency drawn from the spectrum of the source. */
 
 double Star::random_nu() {
@@ -103,3 +154,13 @@ double Star::intercept_distance(Photon *P) {
 
     return s;
 }
+
+double Star::flux(double freq) {
+    int l = find_in_arr(freq, nu, nnu);
+
+    double dBnudnu = (Bnu[l+1] - Bnu[l])/(nu[l+1] - nu[l]);
+
+    double flux = dBnudnu*(freq-nu[l])+Bnu[l];
+
+    return flux;
+};

@@ -79,8 +79,12 @@ Photon *Grid::emit(int iphot) {
         int photons_per_source = int(Q->nphot/nsources);
     }
 
-    Photon *P = sources[isource]->emit(photons_per_source);
-    if (Q->scattering) P->nu = Q->scattering_nu[Q->inu];
+    Photon *P;
+    if (Q->scattering) 
+        P = sources[isource]->emit(Q->scattering_nu[Q->inu], Q->dnu, 
+                photons_per_source);
+    else
+        P = sources[isource]->emit(photons_per_source);
 
     /* Calculate kext and albedo at the photon's current frequency for all
      * dust species. */
@@ -203,7 +207,9 @@ void Grid::propagate_photon_full(Photon *P) {
                 // scatter that is happening.
                 if (Q->scattering) {
                     scatt[idust][P->l[0]][P->l[1]][P->l[2]][Q->inu] += 
-                        1./pi * P->energy/Q->dnu;
+                        1./pi / (mass[idust][P->l[0]][P->l[1]][P->l[2]]/
+                        dens[idust][P->l[0]][P->l[1]][P->l[2]]) * 
+                        P->energy/Q->dnu;
                 }
                 // Now scatter the photon.
                 scatter(P, idust);
@@ -422,7 +428,7 @@ void Grid::propagate_ray(Ray *R) {
 
             intensity_abs += (1.0-exp(-tau_abs))*planck_function(R->nu,
                     temp[idust][R->l[0]][R->l[1]][R->l[2]]);
-            intensity_sca += scatt[idust][R->l[0]][R->l[1]][R->l[2]][Q->inu];
+            intensity_sca += s*scatt[idust][R->l[0]][R->l[1]][R->l[2]][Q->inu];
 
             intensity_cell += intensity_abs + intensity_sca;
         }

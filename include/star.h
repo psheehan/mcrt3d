@@ -24,8 +24,10 @@ struct Star : public Source {
     double *random_nu_CPD;
 
     Photon *emit(int nphot);
+    Photon *emit(double _nu, double _dnu, int nphot);
     double intercept_distance(Photon *P);
     double random_nu();
+    double flux(double freq);
 };
 
 #endif
