@@ -1,8 +1,14 @@
 import cython
 
+import numpy
+cimport numpy
+
 from mcrt3d cimport *
 
 from .grid.Grid cimport GridObj
+from .grid.CartesianGrid cimport CartesianGridObj
+from .grid.CylindricalGrid cimport CylindricalGridObj
+from .grid.SphericalGrid cimport SphericalGridObj
 from .camera.Image cimport ImageObj
 
 # Define the Params and MCRT classes here because there isn't yet a better 
@@ -58,14 +64,40 @@ cdef class MCRTObj:
     cdef GridObj grid
     cdef ParamsObj params
 
-    def __init__(self, GridObj G, ParamsObj Q):
-        self.grid = G
-        self.params = Q
+    def __init__(self):
+        self.params = ParamsObj()
 
-        self.obj = new MCRT(G.obj, Q.obj)
+    def set_cartesian_grid(self, numpy.ndarray[double, ndim=1, mode="c"] x, \
+            numpy.ndarray[double, ndim=1, mode="c"] y, \
+            numpy.ndarray[double, ndim=1, mode="c"] z):
+        self.grid = CartesianGridObj(x, y, z)
+
+        self.obj = new MCRT(self.grid.obj, self.params.obj)
+
+    def set_cylindrical_grid(self, numpy.ndarray[double, ndim=1, mode="c"] r, \
+            numpy.ndarray[double, ndim=1, mode="c"] p, \
+            numpy.ndarray[double, ndim=1, mode="c"] z):
+        self.grid = CylindricalGridObj(r, p ,z)
+
+        self.obj = new MCRT(self.grid.obj, self.params.obj)
+
+    def set_spherical_grid(self, numpy.ndarray[double, ndim=1, mode="c"] r, \
+            numpy.ndarray[double, ndim=1, mode="c"] t, \
+            numpy.ndarray[double, ndim=1, mode="c"] p):
+        self.grid = SphericalGridObj(r, t, p)
+
+        self.obj = new MCRT(self.grid.obj, self.params.obj)
 
     def run_thermal_mc(self):
         self.obj.thermal_mc()
 
     def run_image(self, ImageObj I):
         self.obj.run_image(I.obj)
+
+    property params:
+        def __get__(self):
+            return self.params
+
+    property grid:
+        def __get__(self):
+            return self.grid
