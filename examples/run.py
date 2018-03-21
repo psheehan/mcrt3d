@@ -11,29 +11,30 @@ from mcrt3d.constants.physics import c as c_l
 from Spherical import SetupParams, SetupGrid, SetupImages, SetupSpectra
 #from YSO import *
 
-Q = SetupParams()
-G = SetupGrid()
+model = MCRT()
+
+SetupParams(model)
+SetupGrid(model)
 images = SetupImages()
 spectra = SetupSpectra()
 
 # Now give that all to C.
 
-M = MCRT(G, Q)
-
 t1 = time()
-M.run_thermal_mc()
+model.run_thermal_mc()
 t2 = time()
 print(t2-t1)
 
 for i in range(images.size):
-    M.run_image(images[i])
+    model.run_image(images[i])
 
 for i in range(spectra.size):
-    M.run_image(spectra[i])
+    model.run_image(spectra[i])
 
 for i in range(9):
-    plt.imshow(G.temperature[0][:,:,i],origin="lower",interpolation="nearest", \
-            vmin=G.temperature[0].min(),vmax=G.temperature[0].max())
+    plt.imshow(model.grid.temperature[0][:,:,i], origin="lower",\
+            interpolation="nearest", vmin=model.grid.temperature[0].min(),\
+            vmax=model.grid.temperature[0].max())
     plt.colorbar()
     plt.show()
 

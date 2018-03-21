@@ -11,19 +11,15 @@ from numpy import array, arange, pi, zeros, logspace
 
 # Set up the grid.
 
-def SetupParams():
-    Q = Params()
+def SetupParams(model):
+    model.params.nphot = 100000
+    model.params.bw = True
+    model.params.scattering = False
+    model.params.verbose = False
+    model.params.use_mrw = True
+    model.params.mrw_gamma = 2
 
-    Q.nphot = 100000
-    Q.bw = True
-    Q.scattering = False
-    Q.verbose = False
-    Q.use_mrw = True
-    Q.mrw_gamma = 2
-
-    return Q
-
-def SetupGrid():
+def SetupGrid(model):
     # Set up the dust.
 
     dust = Dust(filename="dustkappa_yso.inp", radmc3d=True)
@@ -43,15 +39,11 @@ def SetupGrid():
     p = arange(np)/(np-1.)*2*pi
     z = (arange(nz)-(nz-1)/2.)*AU/1
 
-    G = CylindricalGrid(r,p,z)
-
     density = zeros((nr-1,np-1,nz-1)) + 1.0e-17
 
-    G.add_density(density, dust)
-
-    G.add_source(star)
-
-    return G
+    model.set_cylindrical_grid(r,p,z)
+    model.grid.add_density(density, dust)
+    model.grid.add_source(star)
 
 def SetupImages():
     nx = 256
