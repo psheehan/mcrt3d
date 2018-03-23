@@ -10,6 +10,11 @@ Photon *Source::emit(double _nu, double _dnu, int nphot) {
     return new Photon();
 }
 
+Ray *Source::emit_ray(double _nu, double _dnu, double _pixelsize, \
+        Vector<double, 3> _n, int nphot) {
+    return new Ray();
+}
+
 double Source::intercept_distance(Photon *P) {
     return 0;
 }
