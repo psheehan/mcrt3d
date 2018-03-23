@@ -51,6 +51,8 @@ void Camera::make_image(Image *I) {
                         image->y[k], image->pixel_size, image->nu[i], 0);
             }
     }
+
+    raytrace_sources(image);
 }
 
 Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
@@ -149,4 +151,50 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu) {
     }
     else
         return 0.0;
+}
+
+void Camera::raytrace_sources(Image *I) {
+    Image *image = I;
+
+    for (int isource=0; isource < G->nsources; isource++) {
+        for (int inu=0; inu < image->nnu; inu++) {
+            double dnu = image->nu[inu+1] - image->nu[inu];
+
+            for (int iphot=0; iphot < 1000; iphot++) {
+                // Emit the ray.
+                Ray *R = G->sources[isource]->emit_ray(image->nu[inu], dnu, 
+                        image->pixel_size, image->ez, 1000);
+
+                R->l = G->photon_loc(R);
+
+                // Get the appropriate dust opacities.
+
+                double *current_kext = new double[G->nspecies];
+                double *current_albedo = new double[G->nspecies];
+
+                for (int j=0; j<G->nspecies; j++) {
+                    current_kext[j] = G->dust[j]->opacity(R->nu);
+                    current_albedo[j] = G->dust[j]->albdo(R->nu);
+                }
+
+                R->current_kext = current_kext;
+                R->current_albedo = current_albedo;
+
+                // Now propagate the ray.
+                G->propagate_ray_from_source(R);
+
+                // Now bin the photon into the right cell.
+                double ximage = R->r * image->ey;
+                double yimage = R->r * image->ex;
+
+                int ix = int(image->nx * (ximage + image->x[image->nx-1]) / 
+                        (2*image->x[image->nx-1]));
+                int iy = int(image->ny * (yimage + image->y[image->ny-1]) / 
+                        (2*image->y[image->ny-1]));
+
+                // Finally, add the energy into the appropriate cell.
+                image->intensity[ix][iy][inu] += R->intensity;
+            }
+        }
+    }
 }

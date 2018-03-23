@@ -118,6 +118,47 @@ Photon *Star::emit(double _nu, double _dnu, int nphot) {
     return P;
 };
 
+Ray *Star::emit_ray(double _nu, double _dnu, double _pixelsize, \
+        Vector<double, 3> _n, int nphot) {
+    Ray *R = new Ray();
+
+    double theta = pi*random_number();
+    double phi = 2*pi*random_number();
+
+    R->r[0] = radius*sin(theta)*cos(phi);
+    R->r[1] = radius*sin(theta)*sin(phi);
+    R->r[2] = radius*cos(theta);
+
+    R->n = -_n;
+
+    R->invn[0] = 1.0/R->n[0];
+    R->invn[1] = 1.0/R->n[1];
+    R->invn[2] = 1.0/R->n[2];
+    R->l[0] = -1;
+    R->l[1] = -1;
+    R->l[2] = -1;
+
+    R->nu = _nu;
+
+    // Calculate the fraction of the total luminosity in the current frequency
+    // bin
+    double Bnu_tot = 0.0;
+    for (int i=0; i<nnu-1; i++)
+        Bnu_tot += 0.5*(Bnu[i] + Bnu[i+1]) * abs(nu[i+1] - nu[i]);
+
+    double fractional_luminosity = flux(_nu) * _dnu / Bnu_tot;
+
+    // Now get the total energy of the photon.
+    R->energy = fractional_luminosity * luminosity / nphot;
+    R->intensity = R->energy / (_pixelsize * _pixelsize) / _dnu / (4*pi);
+
+    R->tau = 0.0;
+    R->pixel_size = _pixelsize;
+    R->pixel_too_large = false;
+
+    return R;
+};
+
 /* Get a random frequency drawn from the spectrum of the source. */
 
 double Star::random_nu() {

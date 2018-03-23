@@ -38,6 +38,8 @@ struct Camera {
     double raytrace_pixel(double x, double y, double pixel_size, double nu, 
             int count);
     double raytrace(double x, double y, double pixel_size, double nu);
+
+    void raytrace_sources(Image *I);
 };
 
 #endif

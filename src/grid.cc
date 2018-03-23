@@ -453,6 +453,38 @@ void Grid::propagate_ray(Ray *R) {
     } while (in_grid(R));
 }
 
+/* Propagate a ray through the grid for raytracing. */
+
+void Grid::propagate_ray_from_source(Ray *R) {
+
+    int i=0;
+    do {
+        double s = next_wall_distance(R);
+
+        double tau_cell = 0;
+        for (int idust=0; idust<nspecies; idust++)
+            tau_cell += s*R->current_kext[idust]*
+                dens[idust][R->l[0]][R->l[1]][R->l[2]];
+
+        if (Q->verbose) {
+            printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
+                    R->l[0], R->r[0]/au, s*R->n[0]/au);
+            printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity, R->l[1], 
+                    R->r[1]/au, s*R->n[1]/au);
+            printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau, R->l[2], R->r[2]/au, 
+                    s*R->n[2]/au);
+        }
+
+        R->intensity *= exp(-tau_cell);
+
+        R->move(s);
+
+        R->l = photon_loc(R);
+
+        i++;
+    } while (in_grid(R));
+}
+
 /* Calculate the distance between the photon and the nearest wall. */
 
 double Grid::next_wall_distance(Photon *P) {
