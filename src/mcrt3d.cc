@@ -113,3 +113,18 @@ void MCRT::run_image(Image *I) {
     // Clean up the appropriate grid parameters.
     G->deallocate_scattering_array();
 }
+
+void MCRT::run_spectrum(Spectrum *S) {
+    // Set some parameters that are going to be needed.
+    Q->scattering_nu = S->nu;
+    Q->nnu = S->nnu;
+
+    // Run a scattering simulation.
+    scattering_mc();
+
+    // Now, run the image through the camera.
+    C->make_spectrum(S);
+
+    // Clean up the appropriate grid parameters.
+    G->deallocate_scattering_array();
+}

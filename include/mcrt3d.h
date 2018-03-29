@@ -22,4 +22,5 @@ struct MCRT {
     void scattering_mc();
     void mc_iteration();
     void run_image(Image *I);
+    void run_spectrum(Spectrum *S);
 };

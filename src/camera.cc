@@ -1,8 +1,12 @@
 #include "camera.h"
 
-Image::Image(double r, double incl, double pa, double *_x, double *_y, 
+Image::Image(double _r, double _incl, double _pa, double *_x, double *_y, 
             double *_intensity, int _nx, int _ny, double *_nu, 
             double _pixel_size, int _nnu) {
+
+    r = _r;
+    incl = _incl;
+    pa = _pa;
 
     double phi = -pi/2 - pa;
 
@@ -33,6 +37,75 @@ Image::Image(double r, double incl, double pa, double *_x, double *_y,
     pixel_size = _pixel_size;
 }
 
+Image::Image(double _r, double _incl, double _pa, double *_x, double *_y, 
+            double ***_intensity, int _nx, int _ny, double *_nu, 
+            double _pixel_size, int _nnu) {
+
+    r = _r;
+    incl = _incl;
+    pa = _pa;
+
+    double phi = -pi/2 - pa;
+
+    i[0] = r*sin(incl)*cos(phi);
+    i[1] = r*sin(incl)*sin(phi);
+    i[2] = r*cos(incl);
+
+    ex[0] = -sin(phi);
+    ex[1] = cos(phi);
+    ex[2] = 0.0;
+
+    ey[0] = -cos(incl)*cos(phi);
+    ey[1] = -cos(incl)*sin(phi);
+    ey[2] = sin(incl);
+
+    ez[0] = -sin(incl)*cos(phi);
+    ez[1] = -sin(incl)*sin(phi);
+    ez[2] = -cos(incl);
+
+    x = _x;
+    y = _y;
+    intensity = _intensity;
+    nx = _nx;
+    ny = _ny;
+    nu = _nu;
+    nnu = _nnu;
+
+    pixel_size = _pixel_size;
+}
+
+Spectrum::Spectrum(double _r, double _incl, double _pa, double *_intensity, 
+        double *_nu, double _pixel_size, int _nnu) {
+
+    r = _r;
+    incl = _incl;
+    pa = _pa;
+
+    double phi = -pi/2 - pa;
+
+    i[0] = r*sin(incl)*cos(phi);
+    i[1] = r*sin(incl)*sin(phi);
+    i[2] = r*cos(incl);
+
+    ex[0] = -sin(phi);
+    ex[1] = cos(phi);
+    ex[2] = 0.0;
+
+    ey[0] = -cos(incl)*cos(phi);
+    ey[1] = -cos(incl)*sin(phi);
+    ey[2] = sin(incl);
+
+    ez[0] = -sin(incl)*cos(phi);
+    ez[1] = -sin(incl)*sin(phi);
+    ez[2] = -cos(incl);
+
+    intensity = _intensity;
+    nu = _nu;
+    nnu = _nnu;
+
+    pixel_size = _pixel_size;
+}
+
 Camera::Camera(Grid *_G, Params *_Q) {
     G = _G;
     Q = _Q;
@@ -53,6 +126,40 @@ void Camera::make_image(Image *I) {
     }
 
     raytrace_sources(image);
+}
+
+void Camera::make_spectrum(Spectrum *S) {
+    // Set up parameters for the image.
+    int nx = 100;
+    int ny = 100;
+
+    double *x = new double[nx];
+    double *y = new double[ny];
+
+    for (int i=0; i<nx; i++)
+        x[i] = (i - nx/2)*S->pixel_size;
+    for (int i=0; i<ny; i++)
+        y[i] = (i - ny/2)*S->pixel_size;
+    
+    double ***intensity = create3DArrValue(nx, ny, S->nnu, 0.);
+
+    // Set up and create an image.
+    Image *image = new Image(S->r, S->incl, S->pa, x, y, intensity,  
+            nx, ny, S->nu, S->pixel_size, S->nnu);
+
+    // Run the image.
+    make_image(image);
+
+    // Sum the image intensity.
+    for (int i=0; i<image->nnu; i++)
+        for (int j=0; j<image->nx; j++)
+            for (int k=0; k<image->ny; k++) {
+                S->intensity[i] += image->intensity[j][k][i];
+            }
+
+    // Delete the parts of the image we no longer need.
+    delete[] x;
+    delete[] y;
 }
 
 Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {

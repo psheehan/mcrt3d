@@ -36,9 +36,13 @@ spherical_grid = Extension("mcrt3d.grid.SphericalGrid", \
 image = Extension("mcrt3d.camera.Image", sources=["mcrt3d/camera/Image.pyx"], \
         include_dirs=[numpy.get_include(),"./include"], language="c++")
 
+spectrum = Extension("mcrt3d.camera.Spectrum", \
+        sources=["mcrt3d/camera/Spectrum.pyx"], \
+        include_dirs=[numpy.get_include(),"./include"], language="c++")
+
 camera = Extension("mcrt3d.camera.Camera",sources=["mcrt3d/camera/Camera.pyx"],\
         include_dirs=[numpy.get_include(),"./include"], language="c++")
 
 setup(cmdclass = {'build_ext': build_ext}, ext_modules = [mcrt3d, dust, star, \
         grid, cartesian_grid, cylindrical_grid, spherical_grid, image, \
-        camera])
+        spectrum, camera])

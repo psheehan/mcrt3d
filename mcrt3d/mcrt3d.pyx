@@ -10,6 +10,7 @@ from .grid.CartesianGrid cimport CartesianGridObj
 from .grid.CylindricalGrid cimport CylindricalGridObj
 from .grid.SphericalGrid cimport SphericalGridObj
 from .camera.Image cimport ImageObj
+from .camera.Spectrum cimport SpectrumObj
 
 # Define the Params and MCRT classes here because there isn't yet a better 
 # place.
@@ -93,6 +94,9 @@ cdef class MCRTObj:
 
     def run_image(self, ImageObj I):
         self.obj.run_image(I.obj)
+
+    def run_spectrum(self, SpectrumObj S):
+        self.obj.run_spectrum(S.obj)
 
     property params:
         def __get__(self):

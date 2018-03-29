@@ -149,6 +149,7 @@ cdef extern from "mcrt3d.h":
 
         void thermal_mc()
         void run_image(Image *I)
+        void run_spectrum(Spectrum *S)
 
 cdef extern from "camera.h":
     cppclass Image:
@@ -165,6 +166,19 @@ cdef extern from "camera.h":
                 double *_intensity, int _nx, int _ny, double *_nu, 
                 double _pixel_size, int _nnu)
 
+    cppclass Spectrum:
+        double r
+        double incl
+        double pa
+
+        double *nu
+        double *intensity
+        double pixel_size
+        int nnu
+
+        Spectrum(double r, double incl, double pa, double *_intensity, 
+                double *_nu, double _pixel_size, int _nnu);
+
     cppclass Camera:
         Image* image
         Grid* G
@@ -172,6 +186,7 @@ cdef extern from "camera.h":
 
         Camera(Grid *_G, Params *_Q)
 
+        void make_image(Spectrum *S)
         void make_image(Image *I)
 
 cdef class ParamsObj:
