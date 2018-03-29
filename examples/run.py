@@ -29,7 +29,7 @@ for i in range(images.size):
     model.run_image(images[i])
 
 for i in range(spectra.size):
-    model.run_image(spectra[i])
+    model.run_spectrum(spectra[i])
 
 for i in range(9):
     plt.imshow(model.grid.temperature[0][:,:,i], origin="lower",\
@@ -41,6 +41,6 @@ for i in range(9):
 plt.imshow(images[0].intensity[:,:,0],origin="lower",interpolation="none")
 plt.show()
 
-plt.loglog(c_l / spectra[0].nu*1.0e4, spectra[0].intensity[0,0,:])
-plt.axis([1e-1,1e4,1e-19,1e-9])
+plt.loglog(c_l / spectra[0].nu*1.0e4, spectra[0].intensity)
+plt.axis([1e-1,1e4,1e-15,1e-5])
 plt.show()

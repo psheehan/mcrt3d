@@ -4,7 +4,7 @@ from mcrt3d import Params
 from mcrt3d.grid import CartesianGrid
 from mcrt3d.dust import Dust
 from mcrt3d.sources import Star
-from mcrt3d.camera import Image
+from mcrt3d.camera import Image, Spectrum
 from mcrt3d.constants.astronomy import M_sun, R_sun, AU
 from mcrt3d.constants.physics import c
 from numpy import array, arange, pi, zeros, logspace
@@ -39,7 +39,7 @@ def SetupGrid(model):
     y = (arange(ny)-(float(ny)-1)/2)*AU/1
     z = (arange(nz)-(float(nz)-1)/2)*AU/1
 
-    density = zeros((nx-1,ny-1,nz-1)) + 1.0e-17
+    density = zeros((nx-1,ny-1,nz-1)) + 1.0e-16
 
     model.set_cartesian_grid(x,y,z)
     model.grid.add_density(density, dust)
@@ -65,12 +65,7 @@ def SetupImages():
     return array([image])
 
 def SetupSpectra():
-    nx = 1
-    ny = 1
-    pixel_size = 10*AU
-
-    x = array([0.0])
-    y = array([0.0])
+    pixel_size = 10*AU/100
 
     nnu = 200
     nu = c / (logspace(-1,4,nnu) * 1.0e-4)
@@ -79,6 +74,6 @@ def SetupSpectra():
     incl = 0
     pa = 0
 
-    spectrum = Image(r, incl, pa, x, y, nx, ny, nu, pixel_size, nnu)
+    spectrum = Spectrum(r, incl, pa, nu, pixel_size, nnu)
 
     return array([spectrum])
