@@ -7,6 +7,6 @@ from ..mcrt3d cimport Spectrum
 
 cdef class SpectrumObj:
     cdef Spectrum *obj
-    cdef int nnu
+    cdef int nnu, nlam
     cdef double r, incl, pa, pixel_size
-    cdef numpy.ndarray nu, intensity
+    cdef numpy.ndarray nu, lam, intensity
