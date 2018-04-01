@@ -37,7 +37,7 @@ z = (arange(nz)-(float(nz)-1)/2)*AU/1
 
 density = zeros((nx-1,ny-1,nz-1)) + 1.0e-16
 
-model.set_spherical_grid(x,y,z)
+model.set_cartesian_grid(x,y,z)
 model.grid.add_density(density, dust)
 model.grid.add_source(star)
 
@@ -47,7 +47,7 @@ model.params.nphot = 100000
 model.params.bw = True
 model.params.scattering = False
 model.params.verbose = False
-model.params.use_mrw = True
+model.params.use_mrw = False
 model.params.mrw_gamma = 2
 
 # Run the thermal simulation.

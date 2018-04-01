@@ -37,7 +37,7 @@ z = (arange(nz)-(nz-1)/2.)*AU/1
 
 density = zeros((nr-1,np-1,nz-1)) + 1.0e-16
 
-model.set_spherical_grid(r,p,z)
+model.set_cylindrical_grid(r,p,z)
 model.grid.add_density(density, dust)
 model.grid.add_source(star)
 
