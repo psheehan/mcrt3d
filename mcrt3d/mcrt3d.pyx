@@ -9,6 +9,7 @@ from .grid.Grid cimport GridObj
 from .grid.CartesianGrid cimport CartesianGridObj
 from .grid.CylindricalGrid cimport CylindricalGridObj
 from .grid.SphericalGrid cimport SphericalGridObj
+from .camera.Camera cimport CameraObj
 from .camera.Image cimport ImageObj
 from .camera.Spectrum cimport SpectrumObj
 
@@ -64,9 +65,11 @@ cdef class MCRTObj:
     cdef MCRT *obj
     cdef GridObj grid
     cdef ParamsObj params
+    cdef CameraObj camera
 
     def __init__(self):
         self.params = ParamsObj()
+        self.camera = CameraObj()
 
     def set_cartesian_grid(self, numpy.ndarray[double, ndim=1, mode="c"] x, \
             numpy.ndarray[double, ndim=1, mode="c"] y, \
@@ -92,15 +95,41 @@ cdef class MCRTObj:
     def run_thermal_mc(self):
         self.obj.thermal_mc()
 
-    def run_image(self, ImageObj I):
-        self.obj.run_image(I.obj)
+    def run_image(self, double incl=0., double pa=0.):
+        self.camera.x = (numpy.arange(self.camera.nx,dtype=float)-\
+                float(self.camera.nx)/2)*self.camera.pixel_size
+        self.camera.y = (numpy.arange(self.camera.ny,dtype=float)-\
+                float(self.camera.ny)/2)*self.camera.pixel_size
 
-    def run_spectrum(self, SpectrumObj S):
-        self.obj.run_spectrum(S.obj)
+        cdef double r = (4*max(self.grid.w1[-1],self.grid.w2[-1], \
+                self.grid.w3[-1])**2)**0.5
+
+        cdef ImageObj image = ImageObj(r, incl, pa, self.camera.x, \
+                self.camera.y, self.camera.nx, self.camera.ny, \
+                self.camera.lam, self.camera.pixel_size, self.camera.nlam)
+
+        self.obj.run_image(image.obj)
+
+        return image
+
+    def run_spectrum(self, double incl=0., double pa=0.):
+        cdef double r = (4*max(self.grid.w1[-1],self.grid.w2[-1], \
+                self.grid.w3[-1])**2)**0.5
+
+        cdef SpectrumObj spectrum = SpectrumObj(r, incl, pa, self.camera.lam, \
+                self.camera.pixel_size, self.camera.nlam)
+
+        self.obj.run_spectrum(spectrum.obj)
+
+        return spectrum
 
     property params:
         def __get__(self):
             return self.params
+
+    property camera:
+        def __get__(self):
+            return self.camera
 
     property grid:
         def __get__(self):
