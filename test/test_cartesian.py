@@ -145,6 +145,7 @@ image = model.run_image(incl=pi/4, pa=pi/4, dpc=1.)
 
 # Run the spectra.
 
+model.params.nphot = 10000
 model.camera.pixel_size = 10*AU/100
 model.camera.lam = logspace(-1,4,200)
 
@@ -192,7 +193,7 @@ ax[0].imshow(m.images["image"].image[:,:,0,0], origin="lower", \
 
 ax[1].imshow(image.intensity[:,:,0], origin="lower", interpolation="none")
 
-fig.subplots_adjust(left=0.1, right=0.95, wspace=0.25)
+fig.subplots_adjust(left=0.05, right=0.95, wspace=0.33)
 fig.set_size_inches((6,3))
 
 plt.show()
