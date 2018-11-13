@@ -41,6 +41,9 @@ cdef class ImageObj:
     property intensity:
         def __get__(self):
             return self.intensity
+        def __set__(self, numpy.ndarray[double, ndim=3, mode="c"] \
+                new_intensity):
+            self.intensity = new_intensity
 
     property lam:
         def __get__(self):
@@ -49,6 +52,10 @@ cdef class ImageObj:
     property nu:
         def __get__(self):
             return self.nu
+
+    property x:
+        def __get__(self):
+            return self.x
 
     def __del__(self):
         del self.obj

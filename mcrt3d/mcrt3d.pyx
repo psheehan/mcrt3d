@@ -13,6 +13,8 @@ from .camera.Camera cimport CameraObj
 from .camera.Image cimport ImageObj
 from .camera.Spectrum cimport SpectrumObj
 
+from .constants.astronomy import Jy, pc
+
 # Define the Params and MCRT classes here because there isn't yet a better 
 # place.
 
@@ -95,7 +97,7 @@ cdef class MCRTObj:
     def run_thermal_mc(self):
         self.obj.thermal_mc()
 
-    def run_image(self, double incl=0., double pa=0.):
+    def run_image(self, double incl=0., double pa=0., double dpc=1.):
         self.camera.x = (numpy.arange(self.camera.nx,dtype=float)-\
                 float(self.camera.nx)/2)*self.camera.pixel_size
         self.camera.y = (numpy.arange(self.camera.ny,dtype=float)-\
@@ -110,9 +112,11 @@ cdef class MCRTObj:
 
         self.obj.run_image(image.obj)
 
+        image.intensity *= (self.camera.pixel_size / (dpc*pc))**2 / Jy
+
         return image
 
-    def run_spectrum(self, double incl=0., double pa=0.):
+    def run_spectrum(self, double incl=0., double pa=0., double dpc=1.):
         cdef double r = (4*max(self.grid.w1[-1],self.grid.w2[-1], \
                 self.grid.w3[-1])**2)**0.5
 
@@ -120,6 +124,8 @@ cdef class MCRTObj:
                 self.camera.pixel_size, self.camera.nlam)
 
         self.obj.run_spectrum(spectrum.obj)
+
+        spectrum.intensity *= (self.camera.pixel_size / (dpc*pc))**2 / Jy
 
         return spectrum
 

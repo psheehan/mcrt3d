@@ -33,6 +33,9 @@ cdef class SpectrumObj:
     property intensity:
         def __get__(self):
             return self.intensity
+        def __set__(self, numpy.ndarray[double, ndim=1, mode="c"] \
+                new_intensity):
+            self.intensity = new_intensity
 
     property lam:
         def __get__(self):
