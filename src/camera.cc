@@ -295,9 +295,9 @@ void Camera::raytrace_sources(Image *I) {
                 double yimage = R->r * image->ex;
 
                 int ix = int(image->nx * (ximage + image->x[image->nx-1]) / 
-                        (2*image->x[image->nx-1]));
+                        (2*image->x[image->nx-1]) + 0.5);
                 int iy = int(image->ny * (yimage + image->y[image->ny-1]) / 
-                        (2*image->y[image->ny-1]));
+                        (2*image->y[image->ny-1]) + 0.5);
 
                 // Finally, add the energy into the appropriate cell.
                 image->intensity[ix][iy][inu] += R->intensity;
