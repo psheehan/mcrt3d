@@ -66,6 +66,55 @@ void Grid::deallocate_scattering_array() {
     }
 }
 
+void Grid::initialize_luminosity_array() {
+    total_lum = 0.;
+
+    for (int idust = 0; idust<nspecies; idust++) {
+        luminosity.push_back(create3DArrValue(n1, n2, n3, 0.));
+
+        for (int ix = 0; ix<n1; ix++) {
+            for (int iy = 0; iy<n2; iy++) {
+                for (int iz = 0; iz<n3; iz++) {
+                    luminosity[idust][ix][iy][iz] = cell_lum(idust, ix, iy, iz);
+
+                    total_lum += luminosity[idust][ix][iy][iz];
+                }
+            }
+        }
+    }
+}
+
+void Grid::initialize_luminosity_array(double nu) {
+    total_lum = 0.;
+
+    for (int idust = 0; idust<nspecies; idust++) {
+        luminosity.push_back(create3DArrValue(n1, n2, n3, 0.));
+
+        for (int ix = 0; ix<n1; ix++) {
+            for (int iy = 0; iy<n2; iy++) {
+                for (int iz = 0; iz<n3; iz++) {
+                    luminosity[idust][ix][iy][iz] = cell_lum(idust, ix, iy, 
+                            iz, nu);
+
+                    total_lum += luminosity[idust][ix][iy][iz];
+                }
+            }
+        }
+    }
+}
+
+void Grid::deallocate_luminosity_array() {
+    for (int idust = 0; idust<nspecies; idust++) {
+        for (int ix = 0; ix<n1; ix++) {
+            for (int iy = 0; iy<n2; iy++) {
+                delete luminosity[idust][ix][iy];
+            }
+            delete luminosity[idust][ix];
+        }
+        luminosity.erase(luminosity.begin());
+    }
+}
+
 /* Emit a photon from the grid. */
 
 Photon *Grid::emit(int iphot) {
@@ -74,15 +123,23 @@ Photon *Grid::emit(int iphot) {
      * +/- 1. */
     int isource = 0;
     int photons_per_source = Q->nphot;
-    if (nsources > 1) {
-        int isource = fmod(iphot, nsources);
-        int photons_per_source = int(Q->nphot/nsources);
+    if (Q->scattering) {
+        isource = fmod(iphot, nsources+1);
+        photons_per_source = int(Q->nphot/(nsources+1));
+    }
+    else if (nsources > 1) {
+        isource = fmod(iphot, nsources);
+        photons_per_source = int(Q->nphot/nsources);
     }
 
     Photon *P;
-    if (Q->scattering) 
-        P = sources[isource]->emit(Q->scattering_nu[Q->inu], Q->dnu, 
-                photons_per_source);
+    if (Q->scattering) {
+        if (isource == nsources)
+            P = emit(Q->scattering_nu[Q->inu], Q->dnu, photons_per_source);
+        else
+            P = sources[isource]->emit(Q->scattering_nu[Q->inu], Q->dnu, 
+                    photons_per_source);
+    }
     else
         P = sources[isource]->emit(photons_per_source);
 
@@ -98,6 +155,56 @@ Photon *Grid::emit(int iphot) {
 
     /* Check the photon's location in the grid. */
     P->l = photon_loc(P);
+
+    return P;
+}
+
+Photon *Grid::emit(double _nu, double _dnu, int nphot) {
+    Photon *P = new Photon();
+
+    int idust, ix, iy, iz;
+
+    // Get the cell that randomly emits.
+
+    double rand = random_number();
+    double cum_lum = 0.;
+
+    for (idust = 0; idust<nspecies; idust++) {
+        for (ix = 0; ix<n1; ix++) {
+            for (iy = 0; iy<n2; iy++) {
+                for (iz = 0; iz<n3; iz++) {
+                    cum_lum += luminosity[idust][ix][iy][iz] / total_lum;
+
+                    if (cum_lum >= rand)
+                        break;
+                }
+            }
+        }
+    }
+
+    // Now set up the photon.
+
+    P->r[0] = w1[ix] + random_number() * (w1[ix+1] - w1[ix]);
+    P->r[1] = w2[iy] + random_number() * (w2[iy+1] - w1[iy]);
+    P->r[2] = w3[iz] + random_number() * (w3[iz+1] - w1[iz]);
+
+    double theta = pi*random_number();
+    double phi = 2*pi*random_number();
+
+    P->n[0] = sin(theta)*cos(phi);
+    P->n[1] = sin(theta)*sin(phi);
+    P->n[2] = cos(theta);
+
+    P->invn[0] = 1.0/P->n[0];
+    P->invn[1] = 1.0/P->n[1];
+    P->invn[2] = 1.0/P->n[2];
+    P->l[0] = -1;
+    P->l[1] = -1;
+    P->l[2] = -1;
+
+    P->nu = _nu;
+
+    P->energy = total_lum / nphot;
 
     return P;
 }
@@ -205,12 +312,12 @@ void Grid::propagate_photon_full(Photon *P) {
             else {
                 // If we're doing a scattering simulation, keep track of the
                 // scatter that is happening.
-                if (Q->scattering) {
+                /*if (Q->scattering) {
                     scatt[idust][P->l[0]][P->l[1]][P->l[2]][Q->inu] += 
-                        1./pi / (mass[idust][P->l[0]][P->l[1]][P->l[2]]/
+                        1./(4*pi) / (mass[idust][P->l[0]][P->l[1]][P->l[2]]/
                         dens[idust][P->l[0]][P->l[1]][P->l[2]]) * 
                         P->energy/Q->dnu;
-                }
+                }*/
                 // Now scatter the photon.
                 scatter(P, idust);
                 // If we've asked for verbose output, print some info.
@@ -277,6 +384,14 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
             if (Q->bw) {
                 update_grid(P->l);
             }
+        }
+        // Continuously scatter, if this is a scattering simulation.
+        if (Q->scattering) {
+            for (int idust=0; idust<nspecies; idust++)
+                scatt[idust][P->l[0]][P->l[1]][P->l[2]][Q->inu] += 
+                    P->energy * s * P->current_albedo[idust] /
+                    (4*pi * mass[idust][P->l[0]][P->l[1]][P->l[2]]/
+                    dens[idust][P->l[0]][P->l[1]][P->l[2]]);
         }
 
         // Remvove the tau we've used up with this stepl
@@ -415,20 +530,24 @@ void Grid::propagate_ray(Ray *R) {
         double s = next_wall_distance(R);
 
         double tau_abs = 0;
+        double tau_sca = 0;
         double tau_cell = 0;
         double intensity_abs = 0;
         double intensity_sca = 0;
         double intensity_cell = 0;
         for (int idust=0; idust<nspecies; idust++) {
-            tau_abs = s*R->current_kext[idust]*
+            tau_abs = s*R->current_kext[idust]*(1.-R->current_albedo[idust])*
+                dens[idust][R->l[0]][R->l[1]][R->l[2]];
+            tau_sca = s*R->current_kext[idust]*R->current_albedo[idust]*
                 dens[idust][R->l[0]][R->l[1]][R->l[2]];
 
             tau_cell += s*R->current_kext[idust]*
                 dens[idust][R->l[0]][R->l[1]][R->l[2]];
 
-            intensity_abs += (1.0-exp(-tau_abs))*planck_function(R->nu,
-                    temp[idust][R->l[0]][R->l[1]][R->l[2]]);
-            intensity_sca += s*scatt[idust][R->l[0]][R->l[1]][R->l[2]][Q->inu];
+            intensity_abs += (1.0-exp(-tau_cell)) * (1-R->current_albedo[idust])
+                * planck_function(R->nu,temp[idust][R->l[0]][R->l[1]][R->l[2]]);
+            intensity_sca += (1.0-exp(-tau_cell)) * R->current_albedo[idust] * 
+                scatt[idust][R->l[0]][R->l[1]][R->l[2]][Q->inu];
 
             intensity_cell += intensity_abs + intensity_sca;
         }
@@ -554,4 +673,22 @@ double Grid::cell_lum(Vector<int, 3> l) {
     return 4*mass[0][l[0]][l[1]][l[2]]*dust[0]->
         planck_mean_opacity(temp[0][l[0]][l[1]][l[2]])*sigma*
         pow(temp[0][l[0]][l[1]][l[2]],4);
+}
+
+double Grid::cell_lum(int idust, int ix, int iy, int iz) {
+    return 4*mass[idust][ix][iy][iz]*dust[idust]->
+        planck_mean_opacity(temp[idust][ix][iy][iz])*sigma*
+        pow(temp[idust][ix][iy][iz],4);
+}
+
+double Grid::cell_lum(Vector<int, 3> l, double nu) {
+    return 4*pi*mass[0][l[0]][l[1]][l[2]]*
+        dust[0]->opacity(nu)*(1. - dust[0]->albdo(nu))*
+        planck_function(nu, temp[0][l[0]][l[1]][l[2]]);
+}
+
+double Grid::cell_lum(int idust, int ix, int iy, int iz, double nu) {
+    return 4*pi*mass[idust][ix][iy][iz]*
+        dust[0]->opacity(nu)*(1. - dust[0]->albdo(nu))*
+        planck_function(nu, temp[idust][ix][iy][iz]);
 }
