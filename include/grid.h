@@ -27,6 +27,7 @@ struct Grid {
     std::vector<double***> energy;
     std::vector<double***> temp;
     std::vector<double***> mass;
+    std::vector<double***> luminosity;
     std::vector<double****> scatt;
     double ***volume;
 
@@ -53,8 +54,12 @@ struct Grid {
     void set_mrw_tables(double *y, double *f, double *dydf, int ny);
     void initialize_scattering_array();
     void deallocate_scattering_array();
+    void initialize_luminosity_array();
+    void initialize_luminosity_array(double nu);
+    void deallocate_luminosity_array();
 
     Photon *emit(int iphot);
+    Photon *emit(double _nu, double _dnu, int photons_per_source);
 
     virtual double next_wall_distance(Photon *P);
     virtual double outer_wall_distance(Photon *P);
@@ -76,6 +81,9 @@ struct Grid {
     void update_grid();
 
     double cell_lum(Vector<int, 3> l);
+    double cell_lum(int idust, int ix, int iy, int iz);
+    double cell_lum(Vector<int, 3> l, double nu);
+    double cell_lum(int idust, int ix, int iy, int iz, double nu);
 };
 
 #endif
