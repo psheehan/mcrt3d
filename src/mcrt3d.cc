@@ -69,7 +69,9 @@ void MCRT::scattering_mc() {
         Q->nu = Q->scattering_nu[inu];
         Q->dnu = abs(Q->scattering_nu[inu+1] - Q->scattering_nu[inu]);
 
+        G->initialize_luminosity_array(Q->nu);
         mc_iteration();
+        G->deallocate_luminosity_array();
     }
 
     // Reset the scattering simulation to what it was before.
