@@ -67,6 +67,7 @@ struct Grid {
 
     void propagate_photon_full(Photon *P);
     void propagate_photon(Photon *P, double tau, bool absorb);
+    void propagate_photon_scattering(Photon *P);
     void propagate_photon_mrw(Photon *P);
     void propagate_ray(Ray *R);
     void propagate_ray_from_source(Ray *R);

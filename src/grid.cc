@@ -291,33 +291,20 @@ void Grid::propagate_photon_full(Photon *P) {
         if (in_grid(P)) {
             // If the next interaction is absorption...
             if (absorb_photon) {
-                if (Q->scattering) {
-                    break;
-                }
-                else {
-                    absorb(P, idust);
-                    // If we've asked for verbose output, print some info.
-                    if (Q->verbose) {
-                        printf("Absorbing photon at %i  %i  %i\n", P->l[0],
-                                P->l[1], P->l[2]);
-                        printf("Absorbed in a cell with temperature: %f\n",
-                                temp[idust][P->l[0]][P->l[1]][P->l[2]]);
-                        printf("Re-emitted with direction: %f  %f  %f\n",
-                                P->n[0], P->n[1], P->n[2]);
-                        printf("Re-emitted with frequency: %e\n", P->nu);
-                    }
+                absorb(P, idust);
+                // If we've asked for verbose output, print some info.
+                if (Q->verbose) {
+                    printf("Absorbing photon at %i  %i  %i\n", P->l[0],
+                            P->l[1], P->l[2]);
+                    printf("Absorbed in a cell with temperature: %f\n",
+                            temp[idust][P->l[0]][P->l[1]][P->l[2]]);
+                    printf("Re-emitted with direction: %f  %f  %f\n",
+                            P->n[0], P->n[1], P->n[2]);
+                    printf("Re-emitted with frequency: %e\n", P->nu);
                 }
             }
             // Otherwise, scatter the photon.
             else {
-                // If we're doing a scattering simulation, keep track of the
-                // scatter that is happening.
-                /*if (Q->scattering) {
-                    scatt[idust][P->l[0]][P->l[1]][P->l[2]][Q->inu] += 
-                        1./(4*pi) / (mass[idust][P->l[0]][P->l[1]][P->l[2]]/
-                        dens[idust][P->l[0]][P->l[1]][P->l[2]]) * 
-                        P->energy/Q->dnu;
-                }*/
                 // Now scatter the photon.
                 scatter(P, idust);
                 // If we've asked for verbose output, print some info.
@@ -385,14 +372,6 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
                 update_grid(P->l);
             }
         }
-        // Continuously scatter, if this is a scattering simulation.
-        if (Q->scattering) {
-            for (int idust=0; idust<nspecies; idust++)
-                scatt[idust][P->l[0]][P->l[1]][P->l[2]][Q->inu] += 
-                    P->energy * s * P->current_albedo[idust] /
-                    (4*pi * mass[idust][P->l[0]][P->l[1]][P->l[2]]/
-                    dens[idust][P->l[0]][P->l[1]][P->l[2]]);
-        }
 
         // Remvove the tau we've used up with this stepl
         tau -= s*alpha;
@@ -426,6 +405,63 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
         if (i > 1000) {
             tau = -1.0;
             printf("!!!!!!! ERROR - Killing photon because it seems to be stuck.\n");
+        }
+    }
+}
+
+/* Propagate a photon through the grid for a scattering simulation. */
+
+void Grid::propagate_photon_scattering(Photon *P) {
+    while (in_grid(P) && P->energy > 1.0e-6) {
+        // Determin the optical depth that the photon can travel until it's
+        // next interaction.
+        double tau = -log(1-random_number());
+
+        // Move the photon to the point of it's next interaction.
+        while ((tau > 0) && (in_grid(P))) {
+            // Calculate the distance to the next wall.
+            double s1 = next_wall_distance(P);
+
+            // Calculate how far the photon can go with the current tau.
+            double alpha_scat = 0;
+            for (int idust = 0; idust<nspecies; idust++)
+                alpha_scat += P->current_kext[idust]*P->current_albedo[idust]*
+                    dens[idust][P->l[0]][P->l[1]][P->l[2]];
+
+            double s2 = tau/alpha_scat;
+
+            // Determine whether to move to the next wall or to the end of tau.
+            double s = s1;
+            if (s2 < s) s = s2;
+
+            // Add some of the energy to the scattering array.
+            for (int idust=0; idust<nspecies; idust++)
+                scatt[idust][P->l[0]][P->l[1]][P->l[2]][Q->inu] +=
+                P->energy * s * P->current_albedo[idust] /
+                (4*pi * mass[idust][P->l[0]][P->l[1]][P->l[2]]/
+                dens[idust][P->l[0]][P->l[1]][P->l[2]]);
+
+            // Absorb some of the photon's energy.
+            for (int idust=0; idust<nspecies; idust++)
+                P->energy *= exp(-s*P->current_kext[idust]* 
+                    (1. - P->current_albedo[idust]) * 
+                    dens[idust][P->l[0]][P->l[1]][P->l[2]]);
+
+            // Remvove the tau we've used up with this stepl
+            tau -= s*alpha_scat;
+
+            // Move the photon to it's new position.
+            P->move(s);
+
+            // If the photon moved to the next cell, update it's location.
+            if (s1 < s2) P->l = photon_loc(P);
+        }
+
+        // If the photon is still in the grid when it reaches it's 
+        // destination...
+        if (in_grid(P)) {
+            // Now scatter the photon.
+            scatter(P, 0);
         }
     }
 }

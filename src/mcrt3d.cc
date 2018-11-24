@@ -93,7 +93,10 @@ void MCRT::mc_iteration() {
             printf("Emitted with frequency: %e\n", P->nu);
         }
 
-        G->propagate_photon_full(P);
+        if (Q->scattering)
+            G->propagate_photon_scattering(P);
+        else
+            G->propagate_photon_full(P);
 
         P->clean();
         delete P;
