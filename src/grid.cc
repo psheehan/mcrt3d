@@ -442,15 +442,15 @@ void Grid::propagate_photon_scattering(Photon *P) {
             double s = s1;
             if (s2 < s) s = s2;
 
-            // Absorb some of the photon's energy.
-            P->energy *= exp(-s*alpha_abs);
-
             // Add some of the energy to the scattering array.
             for (int idust=0; idust<nspecies; idust++)
                 scatt[idust][P->l[0]][P->l[1]][P->l[2]][Q->inu] +=
                 P->energy * s * P->current_albedo[idust] /
                 (4*pi * mass[idust][P->l[0]][P->l[1]][P->l[2]]/
                 dens[idust][P->l[0]][P->l[1]][P->l[2]]);
+
+            // Absorb some of the photon's energy.
+            P->energy *= exp(-s*alpha_abs);
 
             // Remvove the tau we've used up with this stepl
             tau -= s*alpha_scat;
