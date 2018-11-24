@@ -131,14 +131,6 @@ Ray *Star::emit_ray(double _nu, double _dnu, double _pixelsize, \
 
     R->nu = _nu;
 
-    // Calculate the fraction of the total luminosity in the current frequency
-    // bin
-    double Bnu_tot = 0.0;
-    for (int i=0; i<nnu-1; i++)
-        Bnu_tot += 0.5*(Bnu[i] + Bnu[i+1]) * abs(nu[i+1] - nu[i]);
-
-    double fractional_luminosity = flux(_nu) * _dnu / Bnu_tot;
-
     // Now get the total energy of the photon.
     R->intensity = flux(_nu) * pi*radius*radius / (_pixelsize * _pixelsize) /
         nphot;

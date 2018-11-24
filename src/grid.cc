@@ -275,7 +275,7 @@ void Grid::propagate_photon_full(Photon *P) {
                     break;
                 }
             }
-            delete ksca_cum;
+            delete[] ksca_cum;
         }
 
         bool absorb_photon = random_number() > albedo;
@@ -517,7 +517,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
         P->move(R_0);
 
         // Absorb the photon
-        int idust;
+        int idust = 0;
         if (nspecies == 1) {
             idust = 0;
         }
@@ -540,7 +540,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
                     break;
                 }
             }
-            delete ksca_cum;
+            delete[] ksca_cum;
         }
 
         absorb(P, idust);

@@ -277,7 +277,7 @@ double quantile(std::vector<double***> R, double p, int nx, int ny, int nz,
 
     double quant = Rline[int(p*nx*ny*nz*nq)];
 
-    delete Rline;
+    delete[] Rline;
 
     return quant;
 }
