@@ -412,7 +412,10 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
 /* Propagate a photon through the grid for a scattering simulation. */
 
 void Grid::propagate_photon_scattering(Photon *P) {
-    while (in_grid(P) && P->energy > 1.0e-6) {
+    double total_tau_abs = 0.;
+
+    //while (in_grid(P) && P->energy > 1.0e-6) {
+    while (in_grid(P) && total_tau_abs < 30.) {
         // Determin the optical depth that the photon can travel until it's
         // next interaction.
         double tau = -log(1-random_number());
@@ -423,16 +426,24 @@ void Grid::propagate_photon_scattering(Photon *P) {
             double s1 = next_wall_distance(P);
 
             // Calculate how far the photon can go with the current tau.
+            double alpha_abs = 0;
             double alpha_scat = 0;
-            for (int idust = 0; idust<nspecies; idust++)
+            for (int idust = 0; idust<nspecies; idust++) {
+                alpha_abs += P->current_kext[idust]* 
+                    (1.-P->current_albedo[idust])*
+                    dens[idust][P->l[0]][P->l[1]][P->l[2]];
                 alpha_scat += P->current_kext[idust]*P->current_albedo[idust]*
                     dens[idust][P->l[0]][P->l[1]][P->l[2]];
+            }
 
             double s2 = tau/alpha_scat;
 
             // Determine whether to move to the next wall or to the end of tau.
             double s = s1;
             if (s2 < s) s = s2;
+
+            // Absorb some of the photon's energy.
+            P->energy *= exp(-s*alpha_abs);
 
             // Add some of the energy to the scattering array.
             for (int idust=0; idust<nspecies; idust++)
@@ -441,14 +452,11 @@ void Grid::propagate_photon_scattering(Photon *P) {
                 (4*pi * mass[idust][P->l[0]][P->l[1]][P->l[2]]/
                 dens[idust][P->l[0]][P->l[1]][P->l[2]]);
 
-            // Absorb some of the photon's energy.
-            for (int idust=0; idust<nspecies; idust++)
-                P->energy *= exp(-s*P->current_kext[idust]* 
-                    (1. - P->current_albedo[idust]) * 
-                    dens[idust][P->l[0]][P->l[1]][P->l[2]]);
-
             // Remvove the tau we've used up with this stepl
             tau -= s*alpha_scat;
+
+            // Add to the total absorbed tau.
+            total_tau_abs += s*alpha_abs;
 
             // Move the photon to it's new position.
             P->move(s);
