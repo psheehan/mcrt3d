@@ -72,8 +72,8 @@ print(t2-t1)
 
 # Run the image.
 
-m.run_image(name="image", nphot=1e5, npix=256, pixelsize=0.1, lam="1300", \
-        phi=45, incl=45, code="radmc3d", dpc=1, verbose=False)
+m.run_image(name="image", nphot=1e5, npix=256, pixelsize=0.1, lam="1", \
+        phi=0, incl=0, code="radmc3d", dpc=1, verbose=False)
 
 # Run the SED.
 
@@ -108,11 +108,11 @@ nx = 10
 ny = 10
 nz = 10
 
-x = (arange(nx)-(float(nx)-1)/2)*AU/1
-y = (arange(ny)-(float(ny)-1)/2)*AU/1
-z = (arange(nz)-(float(nz)-1)/2)*AU/1
+x = (numpy.arange(nx)-(float(nx)-1)/2)*AU/1
+y = (numpy.arange(ny)-(float(ny)-1)/2)*AU/1
+z = (numpy.arange(nz)-(float(nz)-1)/2)*AU/1
 
-density = zeros((nx-1,ny-1,nz-1)) + 1.0e-16
+density = numpy.zeros((nx-1,ny-1,nz-1)) + 1.0e-16
 
 model.set_cartesian_grid(x,y,z)
 model.grid.add_density(density, dust)
@@ -136,12 +136,13 @@ print(t2-t1)
 
 # Run the images.
 
+model.params.nphot = 100000
 model.camera.nx = 256
 model.camera.ny = 256
 model.camera.pixel_size = AU/10
-model.camera.lam = array([1300.])
+model.camera.lam = array([1.])
 
-image = model.run_image(incl=pi/4, pa=pi/4, dpc=1.)
+image = model.run_image(incl=0, pa=0, dpc=1.)
 
 # Run the spectra.
 
@@ -184,17 +185,39 @@ for i in range(9):
 
     plt.show()
 
+# Plot the scattering function.
+
+for i in range(9):
+    fig, ax = plt.subplots(nrows=1, ncols=1)
+
+    vmin = model.grid.scatt[0][:,:,i,0].min()
+    vmax = model.grid.scatt[0][:,:,i,0].max()
+
+    ax.imshow(model.grid.scatt[0][:,:,i,0], origin="lower", \
+            interpolation="nearest", vmin=vmin, vmax=vmax)
+
+    plt.show()
+
 # Plot the images.
 
-fig, ax = plt.subplots(nrows=1, ncols=2)
+fig, ax = plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True)
 
-ax[0].imshow(m.images["image"].image[:,:,0,0], origin="lower", \
+diff = (numpy.log10(m.images["image"].image[:,:,0,0]) - \
+        numpy.log10(image.intensity[:,:,0])) / \
+        numpy.log10(m.images["image"].image[:,:,0,0]) * 100
+
+im1 = ax[0].imshow(numpy.log10(m.images["image"].image[:,:,0,0]), \
+        origin="lower", interpolation="none")
+
+im2 = ax[1].imshow(numpy.log10(image.intensity[:,:,0]), origin="lower", \
         interpolation="none")
 
-ax[1].imshow(image.intensity[:,:,0], origin="lower", interpolation="none")
+im3 = ax[2].imshow(diff, origin="lower", interpolation="none")
 
-fig.subplots_adjust(left=0.05, right=0.95, wspace=0.33)
-fig.set_size_inches((6,3))
+fig.colorbar(im3, ax=ax[2], fraction=0.046)
+
+fig.subplots_adjust(left=0.05, right=0.95, wspace=0.25)
+fig.set_size_inches((9,3))
 
 plt.show()
 
