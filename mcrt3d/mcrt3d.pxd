@@ -121,6 +121,7 @@ cdef extern from "grid.h":
 
         void add_density(double *_dens, double *_temp, double *_mass, 
                 Dust *D)
+        void add_scattering_array(double *_scatt, int nnu)
         void add_source(Source *S)
         void set_mrw_tables(double *y, double *f, double *dydf, int ny)
 

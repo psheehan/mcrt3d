@@ -59,7 +59,7 @@ void MCRT::scattering_mc() {
     Q->scattering = true;
 
     // Set the Grid's scattering array.
-    G->initialize_scattering_array();
+    //G->initialize_scattering_array();
 
     // Run the simulation for every frequency bin.
     for (int inu=0; inu<Q->nnu; inu++) {
@@ -116,7 +116,9 @@ void MCRT::run_image(Image *I) {
     C->make_image(I);
 
     // Clean up the appropriate grid parameters.
-    G->deallocate_scattering_array();
+    //G->deallocate_scattering_array();
+    freepymangle(G->scatt[0]);
+    G->scatt.clear();
 }
 
 void MCRT::run_spectrum(Spectrum *S) {
@@ -131,5 +133,7 @@ void MCRT::run_spectrum(Spectrum *S) {
     C->make_spectrum(S);
 
     // Clean up the appropriate grid parameters.
-    G->deallocate_scattering_array();
+    //G->deallocate_scattering_array();
+    freepymangle(G->scatt[0]);
+    G->scatt.clear();
 }

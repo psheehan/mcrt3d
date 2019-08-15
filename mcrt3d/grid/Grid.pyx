@@ -20,6 +20,7 @@ cdef class GridObj:
         self.temperature = []
         self.dust = []
         self.sources = []
+        self.scatt = []
 
         decimal.getcontext().prec = 80
         y = [i * decimal.Decimal(1) / decimal.Decimal(100) for i in range(101)]
@@ -67,6 +68,10 @@ cdef class GridObj:
         def __get__(self):
             return self.temperature
 
+    property scatt:
+        def __get__(self):
+            return self.scatt
+
     def add_density(self, numpy.ndarray[double, ndim=3, mode="c"] density, \
             DustObj dust):
 
@@ -86,6 +91,13 @@ cdef class GridObj:
         self.sources.append(source)
 
         self.obj.add_source(source.obj)
+
+    def add_scattering_array(self, numpy.ndarray[double, ndim=4, mode="c"] \
+            scatt, int nnu):
+        
+        self.scatt.append(scatt)
+
+        self.obj.add_scattering_array(&scatt[0,0,0,0], nnu)
 
     def read(self, filename=None, usefile=None):
         if (usefile == None):

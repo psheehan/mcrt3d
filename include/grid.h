@@ -52,6 +52,7 @@ struct Grid {
             Dust *D);
     void add_source(Source *S);
     void set_mrw_tables(double *y, double *f, double *dydf, int ny);
+    void add_scattering_array(double *_scatt, int nnu);
     void initialize_scattering_array();
     void deallocate_scattering_array();
     void initialize_luminosity_array();

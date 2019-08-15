@@ -110,6 +110,12 @@ cdef class MCRTObj:
                 self.camera.y, self.camera.nx, self.camera.ny, \
                 self.camera.lam, self.camera.pixel_size, self.camera.nlam)
 
+        self.grid.scatt = []
+        for i in range(len(self.grid.density)):
+            scatt = numpy.zeros((self.grid.n1,self.grid.n2, \
+                    self.grid.n3,self.camera.nlam), dtype=float)
+            self.grid.add_scattering_array(scatt, self.camera.nlam)
+
         self.obj.run_image(image.obj)
 
         image.intensity *= (self.camera.pixel_size / (dpc*pc))**2 / Jy
@@ -122,6 +128,12 @@ cdef class MCRTObj:
 
         cdef SpectrumObj spectrum = SpectrumObj(r, incl, pa, self.camera.lam, \
                 self.camera.pixel_size, self.camera.nlam)
+
+        self.grid.scatt = []
+        for i in range(len(self.grid.density)):
+            scatt = numpy.zeros((self.grid.n1,self.grid.n2, \
+                    self.grid.n3,self.camera.nlam), dtype=float)
+            self.grid.add_scattering_array(scatt, self.camera.nlam)
 
         self.obj.run_spectrum(spectrum.obj)
 

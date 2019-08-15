@@ -46,6 +46,12 @@ void Grid::set_mrw_tables(double *_y, double *_f, double *_dydf, int _ny) {
     ny = _ny;
 }
 
+void Grid::add_scattering_array(double *_scatt, int nnu) {
+    double ****__scatt = pymangle(n1, n2, n3, nnu, _scatt);
+
+    scatt.push_back(__scatt);
+}
+
 void Grid::initialize_scattering_array() {
     for (int idust = 0; idust<nspecies; idust++)
         scatt.push_back(create4DArrValue(n1, n2, n3, Q->nnu, 0.));
@@ -97,6 +103,15 @@ void Grid::initialize_luminosity_array(double nu) {
                             iz, nu);
 
                     total_lum += luminosity[idust][ix][iy][iz];
+                }
+            }
+        }
+    }
+
+    for (int idust = 0; idust<nspecies; idust++) {
+        for (int ix = 0; ix<n1; ix++) {
+            for (int iy = 0; iy<n2; iy++) {
+                for (int iz = 0; iz<n3; iz++) {
                 }
             }
         }
@@ -178,8 +193,14 @@ Photon *Grid::emit(double _nu, double _dnu, int nphot) {
                     if (cum_lum >= rand)
                         break;
                 }
+                if (cum_lum >= rand)
+                    break;
             }
+            if (cum_lum >= rand)
+                break;
         }
+        if (cum_lum >= rand)
+            break;
     }
 
     // Now set up the photon.

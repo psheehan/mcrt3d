@@ -19,4 +19,4 @@ cdef class GridObj:
 
     cdef numpy.ndarray volume
 
-    cdef list density, mass, temperature, dust, sources
+    cdef list density, mass, temperature, dust, sources, scatt
