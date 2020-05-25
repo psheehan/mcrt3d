@@ -15,6 +15,7 @@ struct CartesianGrid : public Grid {
     double minimum_wall_distance(Photon *P);
     Vector<int, 3> photon_loc(Photon *P);
     bool in_grid(Photon *P);
+    bool on_and_parallel_to_wall(Photon *P);
 };
 
 #endif

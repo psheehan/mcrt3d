@@ -693,6 +693,12 @@ Vector<int, 3> Grid::photon_loc(Photon *P) {
     return Vector<int, 3>();
 }
 
+/* Check whether a photon is on a wall and going parallel to it. */
+
+bool Grid::on_and_parallel_to_wall(Photon *P) {
+    return false;
+}
+
 /* Check whether a photon is in the boundaries of the grid. */
 
 bool Grid::in_grid(Photon *P) {

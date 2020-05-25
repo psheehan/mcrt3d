@@ -28,33 +28,39 @@ double CartesianGrid::next_wall_distance(Photon *P) {
 double CartesianGrid::outer_wall_distance(Photon *P) {
     double s = 0;
 
-    if (P->r[0] <= w1[0]) {
-        double sx = (w1[0] - P->r[0])*P->invn[0];
-        if (sx > s) s = sx;
-    }
-    else if (P->r[0] >= w1[nw1-1]) {
-        double sx = (w1[nw1-1] - P->r[0])*P->invn[0];
-        if (sx > s) s = sx;
-    }
-    if (Q->verbose) printf("%7.4f\n", s/au);
-    
-    if (P->r[1] <= w2[0]) {
-        double sy = (w2[0] - P->r[1])*P->invn[1];
-        if (sy > s) s = sy;
-    }
-    else if (P->r[1] >= w2[nw2-1]) {
-        double sy = (w2[nw2-1] - P->r[1])*P->invn[1];
-        if (sy > s) s = sy;
+    if (P->n[0] != 0) {
+        if (P->r[0] <= w1[0]) {
+            double sx = (w1[0] - P->r[0])*P->invn[0];
+            if (sx > s) s = sx;
+        }
+        else if (P->r[0] >= w1[nw1-1]) {
+            double sx = (w1[nw1-1] - P->r[0])*P->invn[0];
+            if (sx > s) s = sx;
+        }
     }
     if (Q->verbose) printf("%7.4f\n", s/au);
     
-    if (P->r[2] <= w3[0]) {
-        double sz = (w3[0] - P->r[2])*P->invn[2];
-        if (sz > s) s = sz;
+    if (P->n[1] != 0) {
+        if (P->r[1] <= w2[0]) {
+            double sy = (w2[0] - P->r[1])*P->invn[1];
+            if (sy > s) s = sy;
+        }
+        else if (P->r[1] >= w2[nw2-1]) {
+            double sy = (w2[nw2-1] - P->r[1])*P->invn[1];
+            if (sy > s) s = sy;
+        }
     }
-    if (P->r[2] >= w3[nw3-1]) {
-        double sz = (w3[nw3-1] - P->r[2])*P->invn[2];
-        if (sz > s) s = sz;
+    if (Q->verbose) printf("%7.4f\n", s/au);
+    
+    if (P->n[2] != 0) {
+        if (P->r[2] <= w3[0]) {
+            double sz = (w3[0] - P->r[2])*P->invn[2];
+            if (sz > s) s = sz;
+        }
+        else if (P->r[2] >= w3[nw3-1]) {
+            double sz = (w3[nw3-1] - P->r[2])*P->invn[2];
+            if (sz > s) s = sz;
+        }
     }
     if (Q->verbose) printf("%7.4f\n", s/au);
 
@@ -63,12 +69,12 @@ double CartesianGrid::outer_wall_distance(Photon *P) {
     if (Q->verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
             newr[2]/au);
 
-    if (equal(newr[0],w1[0],1.0e-10)) newr[0] = w1[0];
-    else if (equal(newr[0],w1[nw1-1],1.0e-10)) newr[0] = w1[nw1-1];
-    if (equal(newr[1],w2[0],1.0e-10)) newr[1] = w2[0];
-    else if (equal(newr[1],w2[nw2-1],1.0e-10)) newr[1] = w2[nw2-1];
-    if (equal(newr[2],w3[0],1.0e-10)) newr[2] = w3[0];
-    else if (equal(newr[2],w3[nw3-1],1.0e-10)) newr[2] = w3[nw3-1];
+    if (equal(newr[0],w1[0],1.0e-6)) newr[0] = w1[0];
+    else if (equal(newr[0],w1[nw1-1],1.0e-6)) newr[0] = w1[nw1-1];
+    if (equal(newr[1],w2[0],1.0e-6)) newr[1] = w2[0];
+    else if (equal(newr[1],w2[nw2-1],1.0e-6)) newr[1] = w2[nw2-1];
+    if (equal(newr[2],w3[0],1.0e-6)) newr[2] = w3[0];
+    else if (equal(newr[2],w3[nw3-1],1.0e-6)) newr[2] = w3[nw3-1];
 
     if (Q->verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
             newr[2]/au);
@@ -139,9 +145,9 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
     /* Finally, update which cell the photon is in based on the direction it
      * is going. */
     
-    if ((P->r[0] == w1[l[0]]) && (P->n[0] <= 0))
+    if ((P->r[0] == w1[l[0]]) && (P->n[0] < 0))
         l[0] -= 1;
-    else if ((P->r[0] == w1[l[0]+1]) && (P->n[0] >= 0))
+    else if ((P->r[0] == w1[l[0]+1]) && (P->n[0] > 0))
         l[0] += 1;
     
     // Determine which cell the photon is currently in.
@@ -175,9 +181,9 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
     /* Finally, update which cell the photon is in based on the direction it
      * is going. */
     
-    if ((P->r[1] == w2[l[1]]) && (P->n[1] <= 0))
+    if ((P->r[1] == w2[l[1]]) && (P->n[1] < 0))
         l[1] -= 1;
-    else if ((P->r[1] == w2[l[1]+1]) && (P->n[1] >= 0))
+    else if ((P->r[1] == w2[l[1]+1]) && (P->n[1] > 0))
         l[1] += 1;
     
     // Determine which cell the photon is currently in.
@@ -211,12 +217,33 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
     /* Finally, update which cell the photon is in based on the direction it
      * is going. */
     
-    if ((P->r[2] == w3[l[2]]) && (P->n[2] <= 0))
+    if ((P->r[2] == w3[l[2]]) && (P->n[2] < 0))
         l[2] -= 1;
-    else if ((P->r[2] == w3[l[2]+1]) && (P->n[2] >= 0))
+    else if ((P->r[2] == w3[l[2]+1]) && (P->n[2] > 0))
         l[2] += 1;
     
     return l;
+}
+
+/* Check whether a photon is on a wall and going parallel to it. */
+
+bool CartesianGrid::on_and_parallel_to_wall(Photon *P) {
+    if (P->r[0] == w1[P->l[0]] and P->n[0] == 0)
+        return true;
+    if (P->r[0] == w1[P->l[0]+1] and P->n[0] == 0)
+        return true;
+
+    if (P->r[1] == w2[P->l[1]] and P->n[1] == 0)
+        return true;
+    if (P->r[1] == w2[P->l[1]+1] and P->n[1] == 0)
+        return true;
+
+    if (P->r[2] == w3[P->l[2]] and P->n[2] == 0)
+        return true;
+    if (P->r[2] == w3[P->l[2]+1] and P->n[2] == 0)
+        return true;
+
+    return false;
 }
 
 /* Check whether a photon is in the boundaries of the grid. */

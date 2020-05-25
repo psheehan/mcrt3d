@@ -160,6 +160,7 @@ void Camera::make_spectrum(Spectrum *S) {
     // Delete the parts of the image we no longer need.
     delete[] x;
     delete[] y;
+    delete[] image;
 }
 
 Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
@@ -237,6 +238,13 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu) {
         if (Q->verbose) printf("%7.4f   %7.4f   %7.4f\n", R->r[0]/au, 
                 R->r[1]/au, R->r[2]/au);
         R->l = G->photon_loc(R);
+
+        /* Check whether this photon happens to fall on a wall and is traveling
+         * along that wall. */
+
+        if (G->on_and_parallel_to_wall(R)) {
+            return -1.0;
+        }
 
         /* Move the ray through the grid, calculating the intensity as 
          * you go. */

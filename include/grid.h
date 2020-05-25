@@ -78,6 +78,7 @@ struct Grid {
 
     virtual Vector<int, 3> photon_loc(Photon *P);
     virtual bool in_grid(Photon *P);
+    virtual bool on_and_parallel_to_wall(Photon *P);
 
     void update_grid(Vector<int, 3> l);
     void update_grid();
