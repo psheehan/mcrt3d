@@ -73,7 +73,7 @@ print(t2-t1)
 # Run the image.
 
 m.run_image(name="image", nphot=1e5, npix=256, pixelsize=0.1, lam="1", \
-        phi=0, incl=0, code="radmc3d", dpc=1, verbose=False)
+        pa=0, incl=0, phi=0, code="radmc3d", dpc=1, verbose=False)
 
 # Run the SED.
 
@@ -161,7 +161,9 @@ spectrum = model.run_spectrum(incl=0, pa=0, dpc=1.)
 # Plot the temperature structure.
 
 for i in range(9):
-    fig, ax = plt.subplots(nrows=1, ncols=3)
+    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(10,3), \
+            gridspec_kw=dict(left=0.05, right=0.95, wspace=0.25))
+
 
     vmin = min(m.grid.temperature[0].min(), model.grid.temperature[0].min())
     vmax = min(m.grid.temperature[0].max(), model.grid.temperature[0].max())
@@ -177,47 +179,39 @@ for i in range(9):
 
     im3 = ax[2].imshow(diff, origin="lower", interpolation="nearest")
 
+    ax[0].set_title("RADMC-3D")
+    ax[1].set_title("MCRT3D")
+    ax[2].set_title("RADMC-3D - MCRT3D")
+
     fig.colorbar(im1, ax=ax[1], fraction=0.046)
     fig.colorbar(im3, ax=ax[2], fraction=0.046)
-
-    fig.subplots_adjust(left=0.1, right=0.95, wspace=0.25)
-    fig.set_size_inches((9,3))
-
-    plt.show()
-
-# Plot the scattering function.
-
-for i in range(9):
-    fig, ax = plt.subplots(nrows=1, ncols=1)
-
-    vmin = model.grid.scatt[0][:,:,i,0].min()
-    vmax = model.grid.scatt[0][:,:,i,0].max()
-
-    ax.imshow(model.grid.scatt[0][:,:,i,0], origin="lower", \
-            interpolation="nearest", vmin=vmin, vmax=vmax)
 
     plt.show()
 
 # Plot the images.
 
-fig, ax = plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True)
+fig, ax = plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True, \
+        figsize=(10,3), gridspec_kw=dict(left=0.05, right=0.95, wspace=0.25))
 
-diff = (numpy.log10(m.images["image"].image[:,:,0,0]) - \
-        numpy.log10(image.intensity[:,:,0])) / \
-        numpy.log10(m.images["image"].image[:,:,0,0]) * 100
 
-im1 = ax[0].imshow(numpy.log10(m.images["image"].image[:,:,0,0]), \
-        origin="lower", interpolation="none")
+with numpy.errstate(divide="ignore", invalid="ignore"):
+    diff = (numpy.log10(m.images["image"].image[:,:,0,0]) - \
+            numpy.log10(image.intensity[:,:,0])) / \
+            numpy.log10(m.images["image"].image[:,:,0,0]) * 100
 
-im2 = ax[1].imshow(numpy.log10(image.intensity[:,:,0]), origin="lower", \
-        interpolation="none")
+    im1 = ax[0].imshow(numpy.log10(m.images["image"].image[:,:,0,0]), \
+            origin="lower", interpolation="none")
 
-im3 = ax[2].imshow(diff, origin="lower", interpolation="none")
+    im2 = ax[1].imshow(numpy.log10(image.intensity[:,:,0]), origin="lower", \
+            interpolation="none")
+
+    im3 = ax[2].imshow(diff, origin="lower", interpolation="none")
+
+ax[0].set_title("RADMC-3D")
+ax[1].set_title("MCRT3D")
+ax[2].set_title("RADMC-3D - MCRT3D")
 
 fig.colorbar(im3, ax=ax[2], fraction=0.046)
-
-fig.subplots_adjust(left=0.05, right=0.95, wspace=0.25)
-fig.set_size_inches((9,3))
 
 plt.show()
 
@@ -227,5 +221,7 @@ fig, ax = plt.subplots(nrows=1, ncols=1)
 
 ax.loglog(m.spectra["SED"].wave, m.spectra["SED"].flux)
 ax.loglog(spectrum.lam, spectrum.intensity)
+
+ax.set_ylim(1.0e-23,1.0e7)
 
 plt.show()
