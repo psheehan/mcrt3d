@@ -15,9 +15,11 @@ double SphericalGrid::next_wall_distance(Photon *P) {
     for (int i=P->l[0]; i <= P->l[0]+1; i++) {
         if (r == w1[i]) {
             double sr1 = -b + fabs(b);
-            if ((sr1 < s) && (sr1 > 0)) s = sr1;
+            if ((sr1 < s) && (sr1 > 0) && (not equal_zero(sr1/
+                    (P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),1.0e-6))) s = sr1;
             double sr2 = -b - fabs(b);
-            if ((sr2 < s) && (sr2 > 0)) s = sr2;
+            if ((sr2 < s) && (sr2 > 0) && (not equal_zero(sr2/
+                    (P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),1.0e-6))) s = sr2;
         }
         else {
             double c = r*r - w1[i]*w1[i];
@@ -185,6 +187,9 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
     double gnx = sin(theta)*cos(phi);
     double gny = sin(theta)*sin(phi);
     double gnz = cos(theta);
+    if (equal_zero(gnx, 1.0e-6)) gnx = 0.;
+    if (equal_zero(gny, 1.0e-6)) gny = 0.;
+    if (equal_zero(gnz, 1.0e-6)) gnz = 0.;
     
     if (r >= w1[nw1-1])
         l[0] = n1-1;
@@ -258,6 +263,9 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
         double gnx = cos(theta)*cos(phi);
         double gny = cos(theta)*sin(phi);
         double gnz = -sin(theta);
+        if (equal_zero(gnx, 1.0e-6)) gnx = 0.;
+        if (equal_zero(gny, 1.0e-6)) gny = 0.;
+        if (equal_zero(gnz, 1.0e-6)) gnz = 0.;
         
         if ((theta == w2[l[1]]) && (P->n[0]*gnx+P->n[1]*gny+P->n[2]*gnz < 0))
             l[1] -= 1;
@@ -299,6 +307,9 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
         double gnx = -sin(phi);
         double gny = cos(phi);
         double gnz = 0.0;
+        if (equal_zero(gnx, 1.0e-6)) gnx = 0.;
+        if (equal_zero(gny, 1.0e-6)) gny = 0.;
+        if (equal_zero(gnz, 1.0e-6)) gnz = 0.;
         
         if ((phi == w3[l[2]]) && (P->n[0]*gnx+P->n[1]*gny <= 0))
             l[2] -= 1;
