@@ -38,28 +38,36 @@ double SphericalGrid::next_wall_distance(Photon *P) {
         double theta = P->theta;
         
         for (int i=P->l[1]; i <= P->l[1]+1; i++) {
-            double a = P->n[0]*P->n[0]+P->n[1]*P->n[1]-P->n[2]*P->n[2]*
-                pow(tan(w2[i]),2);
-            double b = 2*(P->r[0]*P->n[0]+P->r[1]*P->n[1]-P->r[2]*P->n[2]*
-                pow(tan(w2[i]),2));
-
-            //if (theta == w2[i]) {
-            if (equal(sin(theta),sin(w2[i]),1.0e-10)) {
-                double st1 = (-b + fabs(b))/(2*a);
-                if ((st1 < s) && (st1 > 0)) s = st1;
-                double st2 = (-b - fabs(b))/(2*a);
-                if ((st2 < s) && (st2 > 0)) s = st2;
+            if (equal_zero(cos(w2[i]),1.0e-10)) {
+                double sz1 = -P->r[2]*P->invn[2];
+                if (equal_zero(sz1/(P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),
+                        1.0e-10)) sz1 = 0;
+                if ((sz1 < s) && (sz1 > 0)) s = sz1;
             }
             else {
-                double c = P->r[0]*P->r[0]+P->r[1]*P->r[1]-P->r[2]*P->r[2]*
+                double a = P->n[0]*P->n[0]+P->n[1]*P->n[1]-P->n[2]*P->n[2]*
                     pow(tan(w2[i]),2);
-                double d = b*b-4*a*c;
+                double b = 2*(P->r[0]*P->n[0]+P->r[1]*P->n[1]-P->r[2]*P->n[2]*
+                    pow(tan(w2[i]),2));
 
-                if (d >= 0) {
-                    double st1 = (-b + sqrt(d))/(2*a);
+                //if (theta == w2[i]) {
+                if (equal(sin(theta),sin(w2[i]),1.0e-10)) {
+                    double st1 = (-b + fabs(b))/(2*a);
                     if ((st1 < s) && (st1 > 0)) s = st1;
-                    double st2 = (-b - sqrt(d))/(2*a);
+                    double st2 = (-b - fabs(b))/(2*a);
                     if ((st2 < s) && (st2 > 0)) s = st2;
+                }
+                else {
+                    double c = P->r[0]*P->r[0]+P->r[1]*P->r[1]-P->r[2]*P->r[2]*
+                        pow(tan(w2[i]),2);
+                    double d = b*b-4*a*c;
+
+                    if (d >= 0) {
+                        double st1 = (-b + sqrt(d))/(2*a);
+                        if ((st1 < s) && (st1 > 0)) s = st1;
+                        double st2 = (-b - sqrt(d))/(2*a);
+                        if ((st2 < s) && (st2 > 0)) s = st2;
+                    }
                 }
             }
         }
