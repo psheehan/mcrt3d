@@ -205,9 +205,7 @@ Photon *Grid::emit(double _nu, double _dnu, int nphot) {
 
     // Now set up the photon.
 
-    P->r[0] = w1[ix] + random_number() * (w1[ix+1] - w1[ix]);
-    P->r[1] = w2[iy] + random_number() * (w2[iy+1] - w1[iy]);
-    P->r[2] = w3[iz] + random_number() * (w3[iz+1] - w1[iz]);
+    P->r = random_location_in_cell(ix, iy, iz);
 
     double theta = pi*random_number();
     double phi = 2*pi*random_number();
@@ -691,6 +689,12 @@ double Grid::minimum_wall_distance(Photon *P) {
 
 Vector<int, 3> Grid::photon_loc(Photon *P) {
     return Vector<int, 3>();
+}
+
+/* Randomly generate a photon location within a cell. */
+ 
+Vector<double, 3> Grid::random_location_in_cell(int ix, int iy, int iz) {
+    return Vector<double, 3>();
 }
 
 /* Check whether a photon is on a wall and going parallel to it. */

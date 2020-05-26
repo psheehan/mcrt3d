@@ -62,6 +62,8 @@ struct Grid {
     Photon *emit(int iphot);
     Photon *emit(double _nu, double _dnu, int photons_per_source);
 
+    virtual Vector<double, 3> random_location_in_cell(int ix, int iy, int iz);
+
     virtual double next_wall_distance(Photon *P);
     virtual double outer_wall_distance(Photon *P);
     virtual double minimum_wall_distance(Photon *P);
