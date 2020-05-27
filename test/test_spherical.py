@@ -4,16 +4,13 @@ from pdspy.constants.astronomy import AU, pc, Jy
 import pdspy.modeling as modeling
 import pdspy.dust as dust
 import matplotlib.pyplot as plt
-from numpy import array, arange, pi, zeros, logspace
 import numpy
 
-from mcrt3d import MCRT, Params
-from mcrt3d.grid import CartesianGrid
+from mcrt3d import MCRT
 from mcrt3d.dust import Dust
 from mcrt3d.sources import Star
 from mcrt3d.camera import Image, Spectrum
 from mcrt3d.constants.astronomy import M_sun, R_sun, AU
-from mcrt3d.constants.physics import c
 from time import time
 
 ################################################################################
@@ -38,14 +35,15 @@ d.set_properties(lam, kabs, ksca)
 # Set up the grid.
 
 nr = 10
-nt = 10
+nt = 11
 np = 10
 
-r = numpy.arange(nr)*au/2
-t = numpy.arange(nt)/(nt-1.)*pi
-p = numpy.arange(np)/(np-1.)*2*pi
+r = numpy.arange(nr)/2
+r[0] = 0.01
+t = numpy.arange(nt)/(nt-1.)*numpy.pi
+p = numpy.arange(np)/(np-1.)*2*numpy.pi
 
-m.set_spherical_grid(r, t, p)
+m.grid.set_spherical_grid(r, t, p)
 
 # Set up the wavelength grid.
 
@@ -105,12 +103,12 @@ star.set_blackbody_spectrum(dust.nu)
 # Set up the grid.
 
 nr = 10
-nt = 10
+nt = 11
 np = 10
 
 r = numpy.arange(nr)*AU/2
-t = numpy.arange(nt)/(nt-1.)*pi
-p = numpy.arange(np)/(np-1.)*2*pi
+t = numpy.arange(nt)/(nt-1.)*numpy.pi
+p = numpy.arange(np)/(np-1.)*2*numpy.pi
 
 density = numpy.zeros((nr-1,nt-1,np-1)) + 1.0e-16
 
@@ -140,7 +138,7 @@ model.params.nphot = 100000
 model.camera.nx = 256
 model.camera.ny = 256
 model.camera.pixel_size = AU/10
-model.camera.lam = array([1.])
+model.camera.lam = numpy.array([1.])
 
 image = model.run_image(incl=0, pa=0, dpc=1.)
 
@@ -148,7 +146,7 @@ image = model.run_image(incl=0, pa=0, dpc=1.)
 
 model.params.nphot = 10000
 model.camera.pixel_size = 10*AU/100
-model.camera.lam = logspace(-1,4,200)
+model.camera.lam = numpy.logspace(-1,4,200)
 
 spectrum = model.run_spectrum(incl=0, pa=0, dpc=1.)
 
@@ -161,7 +159,8 @@ spectrum = model.run_spectrum(incl=0, pa=0, dpc=1.)
 # Plot the temperature structure.
 
 for i in range(9):
-    fig, ax = plt.subplots(nrows=1, ncols=3)
+    fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(11,3), \
+            gridspec_kw=dict(left=0.05, right=0.95, wspace=0.25))
 
     vmin = min(m.grid.temperature[0].min(), model.grid.temperature[0].min())
     vmax = min(m.grid.temperature[0].max(), model.grid.temperature[0].max())
@@ -177,11 +176,12 @@ for i in range(9):
 
     im3 = ax[2].imshow(diff, origin="lower", interpolation="nearest")
 
+    ax[0].set_title("RADMC-3D")
+    ax[1].set_title("MCRT3D")
+    ax[2].set_title("RADMC-3D - MCRT3D")
+
     fig.colorbar(im1, ax=ax[1], fraction=0.046)
     fig.colorbar(im3, ax=ax[2], fraction=0.046)
-
-    fig.subplots_adjust(left=0.1, right=0.95, wspace=0.25)
-    fig.set_size_inches((9,3))
 
     plt.show()
 
@@ -190,34 +190,40 @@ for i in range(9):
 for i in range(9):
     fig, ax = plt.subplots(nrows=1, ncols=1)
 
-    vmin = model.grid.scatt[0][:,:,i,0].min()
-    vmax = model.grid.scatt[0][:,:,i,0].max()
+    with numpy.errstate(divide="ignore", invalid="ignore"):
+        vmin = numpy.ma.masked_invalid(numpy.log10(\
+                model.grid.scatt[0][:,:,i,0])).min()
+        vmax = numpy.ma.masked_invalid(numpy.log10(\
+                model.grid.scatt[0][:,:,i,0])).max()
 
-    ax.imshow(model.grid.scatt[0][:,:,i,0], origin="lower", \
-            interpolation="nearest", vmin=vmin, vmax=vmax)
+        ax.imshow(numpy.log10(model.grid.scatt[0][:,:,i,0]), origin="lower", \
+                interpolation="nearest", vmin=vmin, vmax=vmax)
 
     plt.show()
 
 # Plot the images.
 
-fig, ax = plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True)
+fig, ax = plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True, \
+        figsize=(10,3), gridspec_kw=dict(left=0.05, right=0.95, wspace=0.25))
 
-diff = (numpy.log10(m.images["image"].image[:,:,0,0]) - \
-        numpy.log10(image.intensity[:,:,0])) / \
-        numpy.log10(m.images["image"].image[:,:,0,0]) * 100
+with numpy.errstate(divide="ignore", invalid="ignore"):
+    diff = (numpy.log10(m.images["image"].image[:,:,0,0]) - \
+            numpy.log10(image.intensity[:,:,0])) / \
+            numpy.log10(m.images["image"].image[:,:,0,0]) * 100
 
-im1 = ax[0].imshow(numpy.log10(m.images["image"].image[:,:,0,0]), \
-        origin="lower", interpolation="none")
+    im1 = ax[0].imshow(numpy.log10(m.images["image"].image[:,:,0,0]), \
+            origin="lower", interpolation="none")
 
-im2 = ax[1].imshow(numpy.log10(image.intensity[:,:,0]), origin="lower", \
-        interpolation="none")
+    im2 = ax[1].imshow(numpy.log10(image.intensity[:,:,0]), origin="lower", \
+            interpolation="none")
 
-im3 = ax[2].imshow(diff, origin="lower", interpolation="none")
+    im3 = ax[2].imshow(diff, origin="lower", interpolation="none")
+
+ax[0].set_title("RADMC-3D")
+ax[1].set_title("MCRT3D")
+ax[2].set_title("RADMC-3D - MCRT3D")
 
 fig.colorbar(im3, ax=ax[2], fraction=0.046)
-
-fig.subplots_adjust(left=0.05, right=0.95, wspace=0.25)
-fig.set_size_inches((9,3))
 
 plt.show()
 
@@ -227,5 +233,7 @@ fig, ax = plt.subplots(nrows=1, ncols=1)
 
 ax.loglog(m.spectra["SED"].wave, m.spectra["SED"].flux)
 ax.loglog(spectrum.lam, spectrum.intensity)
+
+ax.set_ylim(1.0e-23,1.0e7)
 
 plt.show()

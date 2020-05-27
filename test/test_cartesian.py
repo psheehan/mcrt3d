@@ -4,16 +4,13 @@ from pdspy.constants.astronomy import AU, pc, Jy
 import pdspy.modeling as modeling
 import pdspy.dust as dust
 import matplotlib.pyplot as plt
-from numpy import array, arange, pi, zeros, logspace
 import numpy
 
-from mcrt3d import MCRT, Params
-from mcrt3d.grid import CartesianGrid
+from mcrt3d import MCRT
 from mcrt3d.dust import Dust
 from mcrt3d.sources import Star
 from mcrt3d.camera import Image, Spectrum
 from mcrt3d.constants.astronomy import M_sun, R_sun, AU
-from mcrt3d.constants.physics import c
 from time import time
 
 ################################################################################
@@ -140,7 +137,7 @@ model.params.nphot = 100000
 model.camera.nx = 256
 model.camera.ny = 256
 model.camera.pixel_size = AU/10
-model.camera.lam = array([1.])
+model.camera.lam = numpy.array([1.])
 
 image = model.run_image(incl=0, pa=0, dpc=1.)
 
@@ -148,7 +145,7 @@ image = model.run_image(incl=0, pa=0, dpc=1.)
 
 model.params.nphot = 10000
 model.camera.pixel_size = 10*AU/100
-model.camera.lam = logspace(-1,4,200)
+model.camera.lam = numpy.logspace(-1,4,200)
 
 spectrum = model.run_spectrum(incl=0, pa=0, dpc=1.)
 
@@ -185,6 +182,22 @@ for i in range(9):
 
     fig.colorbar(im1, ax=ax[1], fraction=0.046)
     fig.colorbar(im3, ax=ax[2], fraction=0.046)
+
+    plt.show()
+
+# Plot the scattering function.
+
+for i in range(9):
+    fig, ax = plt.subplots(nrows=1, ncols=1)
+
+    with numpy.errstate(divide="ignore", invalid="ignore"):
+        vmin = numpy.ma.masked_invalid(numpy.log10(\
+                model.grid.scatt[0][:,:,i,0])).min()
+        vmax = numpy.ma.masked_invalid(numpy.log10(\
+                model.grid.scatt[0][:,:,i,0])).max()
+
+        ax.imshow(numpy.log10(model.grid.scatt[0][:,:,i,0]), origin="lower", \
+                interpolation="nearest", vmin=vmin, vmax=vmax)
 
     plt.show()
 
