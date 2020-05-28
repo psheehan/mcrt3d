@@ -16,9 +16,11 @@ double CylindricalGrid::next_wall_distance(Photon *P) {
     for (int i=P->l[0]; i <= P->l[0]+1; i++) {
         if (r == w1[i]) {
             double sr1 = (-b + fabs(b))/a;
-            if ((sr1 < s) && (sr1 > 0)) s = sr1;
+            if ((sr1 < s) && (sr1 > 0) && (not equal_zero(sr1/
+                    (P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),1.0e-6))) s = sr1;
             double sr2 = (-b - fabs(b))/a;
-            if ((sr2 < s) && (sr2 > 0)) s = sr2;
+            if ((sr2 < s) && (sr2 > 0) && (not equal_zero(sr2/
+                    (P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),1.0e-6))) s = sr2;
         }
         else {
             double c = r*r - w1[i]*w1[i];
@@ -90,13 +92,15 @@ double CylindricalGrid::outer_wall_distance(Photon *P) {
 
     // Calculate the distance to intersection with the nearest z wall.
     
-    if (P->r[2] <= w3[0]) {
-        double sz = (w3[0] - P->r[2])*P->invn[2];
-        if (sz > s) s = sz;
-    }
-    else if (P->r[2] >= w3[nw3-1]) {
-        double sz = (w3[nw3-1] - P->r[2])*P->invn[2];
-        if (sz > s) s = sz;
+    if (P->n[2] != 0) {
+        if (P->r[2] <= w3[0]) {
+            double sz = (w3[0] - P->r[2])*P->invn[2];
+            if (sz > s) s = sz;
+        }
+        else if (P->r[2] >= w3[nw3-1]) {
+            double sz = (w3[nw3-1] - P->r[2])*P->invn[2];
+            if (sz > s) s = sz;
+        }
     }
 
     Vector<double, 3> newr = P->r + s*P->n;
@@ -106,9 +110,9 @@ double CylindricalGrid::outer_wall_distance(Photon *P) {
             newr[2]/au);
     if (Q->verbose) printf("%20.17f\n", newtwodr/au);
 
-    if (equal(newtwodr, w1[nw1-1], 1.0e-10)) newtwodr = w1[nw1-1];
-    if (equal(newr[2],w3[0],1.0e-10)) newr[2] = w3[0];
-    else if (equal(newr[2],w3[nw3-1],1.0e-10)) newr[2] = w3[nw3-1];
+    if (equal(newtwodr, w1[nw1-1], 1.0e-6)) newtwodr = w1[nw1-1];
+    if (equal(newr[2],w3[0],1.0e-6)) newr[2] = w3[0];
+    else if (equal(newr[2],w3[nw3-1],1.0e-6)) newr[2] = w3[nw3-1];
 
     if (Q->verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
             newr[2]/au);
@@ -180,6 +184,8 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P) {
 
     double gnx = cos(phi);
     double gny = sin(phi);
+    if (equal_zero(gnx, 1.0e-6)) gnx = 0.;
+    if (equal_zero(gny, 1.0e-6)) gny = 0.;
     
     /* Determine which cell the photon is currently in. */
 
@@ -244,6 +250,8 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P) {
 
         double gnx = -sin(phi);
         double gny = cos(phi);
+        if (equal_zero(gnx, 1.0e-6)) gnx = 0.;
+        if (equal_zero(gny, 1.0e-6)) gny = 0.;
         
         if ((phi == w2[l[1]]) && (P->n[0]*gnx+P->n[1]*gny <= 0))
             l[1] -= 1;
@@ -285,12 +293,23 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P) {
         }
     }
     
-    if ((P->r[2] == w3[l[2]]) && (P->n[2] <= 0))
+    if ((P->r[2] == w3[l[2]]) && (P->n[2] < 0))
         l[2] -= 1;
-    else if ((P->r[2] == w3[l[2]+1]) && (P->n[2] >= 0))
+    else if ((P->r[2] == w3[l[2]+1]) && (P->n[2] > 0))
         l[2] += 1;
     
     return l;
+}
+
+/* Check whether a photon is on a wall and going parallel to it. */
+
+bool CylindricalGrid::on_and_parallel_to_wall(Photon *P) {
+    if (P->r[2] == w3[P->l[2]] and P->n[2] == 0)
+        return true;
+    if (P->r[2] == w3[P->l[2]+1] and P->n[2] == 0)
+        return true;
+
+    return false;
 }
 
 /* Randomly generate a photon location within a cell. */

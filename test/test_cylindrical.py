@@ -19,6 +19,7 @@ from time import time
 #
 ################################################################################
 
+"""
 m = modeling.Model()
 
 # Read in the opacities.
@@ -79,6 +80,7 @@ m.set_camera_wavelength(numpy.logspace(-1,4,200))
 m.run_sed(name="SED", nphot=1e4, loadlambda=True, incl=0, pa=0, \
         dpc=1, code="radmc3d", camera_scatsrc_allfreq=True, \
         verbose=False)
+"""
 
 ################################################################################
 #
@@ -137,7 +139,7 @@ model.params.nphot = 100000
 model.camera.nx = 256
 model.camera.ny = 256
 model.camera.pixel_size = AU/10
-model.camera.lam = numpy.array([1000.])
+model.camera.lam = numpy.array([1.])
 
 image = model.run_image(incl=0, pa=0, dpc=1.)
 
@@ -162,26 +164,28 @@ for i in range(9):
             gridspec_kw=dict(left=0.05, right=0.95, wspace=0.25))
 
 
-    vmin = min(m.grid.temperature[0].min(), model.grid.temperature[0].min())
-    vmax = min(m.grid.temperature[0].max(), model.grid.temperature[0].max())
+    #vmin = min(m.grid.temperature[0].min(), model.grid.temperature[0].min())
+    #vmax = min(m.grid.temperature[0].max(), model.grid.temperature[0].max())
+    vmin = model.grid.temperature[0].min()
+    vmax = model.grid.temperature[0].max()
 
-    diff = (m.grid.temperature[0][:,:,i] - model.grid.temperature[0][:,:,i]) / \
-            m.grid.temperature[0][:,:,i] * 100
+    #diff = (m.grid.temperature[0][:,:,i] - model.grid.temperature[0][:,:,i]) / \
+    #        m.grid.temperature[0][:,:,i] * 100
 
-    im1 = ax[0].imshow(m.grid.temperature[0][:,:,i], origin="lower", \
-            interpolation="nearest", vmin=vmin, vmax=vmax)
+    #im1 = ax[0].imshow(m.grid.temperature[0][:,:,i], origin="lower", \
+    #        interpolation="nearest", vmin=vmin, vmax=vmax)
 
     im2 = ax[1].imshow(model.grid.temperature[0][:,:,i], origin="lower",\
             interpolation="nearest", vmin=vmin, vmax=vmax)
 
-    im3 = ax[2].imshow(diff, origin="lower", interpolation="nearest")
+    #im3 = ax[2].imshow(diff, origin="lower", interpolation="nearest")
 
-    ax[0].set_title("RADMC-3D")
+    #ax[0].set_title("RADMC-3D")
     ax[1].set_title("MCRT3D")
-    ax[2].set_title("RADMC-3D - MCRT3D")
+    #ax[2].set_title("RADMC-3D - MCRT3D")
 
-    fig.colorbar(im1, ax=ax[1], fraction=0.046)
-    fig.colorbar(im3, ax=ax[2], fraction=0.046)
+    fig.colorbar(im2, ax=ax[1], fraction=0.046)
+    #fig.colorbar(im3, ax=ax[2], fraction=0.046)
 
     plt.show()
 
@@ -208,23 +212,23 @@ fig, ax = plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True, \
 
 
 with numpy.errstate(divide="ignore", invalid="ignore"):
-    diff = (numpy.log10(m.images["image"].image[:,:,0,0]) - \
-            numpy.log10(image.intensity[:,:,0])) / \
-            numpy.log10(m.images["image"].image[:,:,0,0]) * 100
+    #diff = (numpy.log10(m.images["image"].image[:,:,0,0]) - \
+    #        numpy.log10(image.intensity[:,:,0])) / \
+    #        numpy.log10(m.images["image"].image[:,:,0,0]) * 100
 
-    im1 = ax[0].imshow(numpy.log10(m.images["image"].image[:,:,0,0]), \
-            origin="lower", interpolation="none")
+    #im1 = ax[0].imshow(numpy.log10(m.images["image"].image[:,:,0,0]), \
+    #        origin="lower", interpolation="none")
 
     im2 = ax[1].imshow(numpy.log10(image.intensity[:,:,0]), origin="lower", \
             interpolation="none")
 
-    im3 = ax[2].imshow(diff, origin="lower", interpolation="none")
+    #im3 = ax[2].imshow(diff, origin="lower", interpolation="none")
 
-ax[0].set_title("RADMC-3D")
+#ax[0].set_title("RADMC-3D")
 ax[1].set_title("MCRT3D")
-ax[2].set_title("RADMC-3D - MCRT3D")
+#ax[2].set_title("RADMC-3D - MCRT3D")
 
-fig.colorbar(im3, ax=ax[2], fraction=0.046)
+#fig.colorbar(im3, ax=ax[2], fraction=0.046)
 
 plt.show()
 
@@ -232,7 +236,7 @@ plt.show()
 
 fig, ax = plt.subplots(nrows=1, ncols=1)
 
-ax.loglog(m.spectra["SED"].wave, m.spectra["SED"].flux)
+#ax.loglog(m.spectra["SED"].wave, m.spectra["SED"].flux)
 ax.loglog(spectrum.lam, spectrum.intensity)
 
 ax.set_ylim(1.0e-23,1.0e7)
