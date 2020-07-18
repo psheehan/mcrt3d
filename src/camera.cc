@@ -187,9 +187,9 @@ Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
     R->r = image->i + x*image->ex + y*image->ey;
     R->n = image->ez;
 
-    if (equal_zero(R->n[0],1.0e-6)) R->n[0] = 0.;
-    if (equal_zero(R->n[1],1.0e-6)) R->n[1] = 0.;
-    if (equal_zero(R->n[2],1.0e-6)) R->n[2] = 0.;
+    if (equal_zero(R->n[0],EPSILON)) R->n[0] = 0.;
+    if (equal_zero(R->n[1],EPSILON)) R->n[1] = 0.;
+    if (equal_zero(R->n[2],EPSILON)) R->n[2] = 0.;
 
     R->invn[0] = 1.0/R->n[0];
     R->invn[1] = 1.0/R->n[1];

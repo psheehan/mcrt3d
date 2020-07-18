@@ -43,6 +43,10 @@ double planck_function(double nu, double T);
 
 double integrate(double *y, double *x, int nx);
 
+/* Define what amounts to a tiny value. */
+
+const double EPSILON = 1.0e-6;
+
 /* Test whether two values are equal within a given tolerance. */
 
 bool equal(double x, double y, double tol);

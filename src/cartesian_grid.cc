@@ -69,12 +69,12 @@ double CartesianGrid::outer_wall_distance(Photon *P) {
     if (Q->verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
             newr[2]/au);
 
-    if (equal(newr[0],w1[0],1.0e-6)) newr[0] = w1[0];
-    else if (equal(newr[0],w1[nw1-1],1.0e-6)) newr[0] = w1[nw1-1];
-    if (equal(newr[1],w2[0],1.0e-6)) newr[1] = w2[0];
-    else if (equal(newr[1],w2[nw2-1],1.0e-6)) newr[1] = w2[nw2-1];
-    if (equal(newr[2],w3[0],1.0e-6)) newr[2] = w3[0];
-    else if (equal(newr[2],w3[nw3-1],1.0e-6)) newr[2] = w3[nw3-1];
+    if (equal(newr[0],w1[0],EPSILON)) newr[0] = w1[0];
+    else if (equal(newr[0],w1[nw1-1],EPSILON)) newr[0] = w1[nw1-1];
+    if (equal(newr[1],w2[0],EPSILON)) newr[1] = w2[0];
+    else if (equal(newr[1],w2[nw2-1],EPSILON)) newr[1] = w2[nw2-1];
+    if (equal(newr[2],w3[0],EPSILON)) newr[2] = w3[0];
+    else if (equal(newr[2],w3[nw3-1],EPSILON)) newr[2] = w3[nw3-1];
 
     if (Q->verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
             newr[2]/au);
@@ -137,9 +137,9 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
      * should be on the wall exactly, but is not exactly on the wall. We
      * need to put the photon exactly on the wall. */
 
-    if (equal(P->r[0], w1[l[0]], 1.0e-6))
+    if (equal(P->r[0], w1[l[0]], EPSILON))
         P->r[0] = w1[l[0]];
-    else if (equal(P->r[0], w1[l[0]+1], 1.0e-6))
+    else if (equal(P->r[0], w1[l[0]+1], EPSILON))
         P->r[0] = w1[l[0]+1];
 
     /* Finally, update which cell the photon is in based on the direction it
@@ -173,9 +173,9 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
      * should be on the wall exactly, but is not exactly on the wall. We
      * need to put the photon exactly on the wall. */
 
-    if (equal(P->r[1], w2[l[1]], 1.0e-6))
+    if (equal(P->r[1], w2[l[1]], EPSILON))
         P->r[1] = w2[l[1]];
-    else if (equal(P->r[1], w2[l[1]+1], 1.0e-6))
+    else if (equal(P->r[1], w2[l[1]+1], EPSILON))
         P->r[1] = w2[l[1]+1];
 
     /* Finally, update which cell the photon is in based on the direction it
@@ -209,9 +209,9 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
      * should be on the wall exactly, but is not exactly on the wall. We
      * need to put the photon exactly on the wall. */
 
-    if (equal(P->r[2], w3[l[2]], 1.0e-6))
+    if (equal(P->r[2], w3[l[2]], EPSILON))
         P->r[2] = w3[l[2]];
-    else if (equal(P->r[2], w3[l[2]+1], 1.0e-6))
+    else if (equal(P->r[2], w3[l[2]+1], EPSILON))
         P->r[2] = w3[l[2]+1];
 
     /* Finally, update which cell the photon is in based on the direction it

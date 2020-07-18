@@ -6,6 +6,7 @@
 #include "grid.h"
 #include "misc.h"
 #include "params.h"
+#include "misc.h"
 
 struct Image {
     double r;

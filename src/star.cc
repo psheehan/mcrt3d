@@ -163,7 +163,7 @@ double Star::intercept_distance(Photon *P) {
 
     double r = P->r.norm();
 
-    if (!equal(r, radius, 1.0e-6)) {
+    if (!equal(r, radius, EPSILON)) {
         double b = P->r*P->n;
         double c = r*r - radius*radius;
         double d = b*b - c;

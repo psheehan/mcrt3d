@@ -16,10 +16,10 @@ double SphericalGrid::next_wall_distance(Photon *P) {
         if (r == w1[i]) {
             double sr1 = -b + fabs(b);
             if ((sr1 < s) && (sr1 > 0) && (not equal_zero(sr1/
-                    (P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),1.0e-6))) s = sr1;
+                    (P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),EPSILON))) s = sr1;
             double sr2 = -b - fabs(b);
             if ((sr2 < s) && (sr2 > 0) && (not equal_zero(sr2/
-                    (P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),1.0e-6))) s = sr2;
+                    (P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),EPSILON))) s = sr2;
         }
         else {
             double c = r*r - w1[i]*w1[i];
@@ -187,9 +187,9 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
     double gnx = sin(theta)*cos(phi);
     double gny = sin(theta)*sin(phi);
     double gnz = cos(theta);
-    if (equal_zero(gnx, 1.0e-6)) gnx = 0.;
-    if (equal_zero(gny, 1.0e-6)) gny = 0.;
-    if (equal_zero(gnz, 1.0e-6)) gnz = 0.;
+    if (equal_zero(gnx, EPSILON)) gnx = 0.;
+    if (equal_zero(gny, EPSILON)) gny = 0.;
+    if (equal_zero(gnz, EPSILON)) gnz = 0.;
     
     if (r >= w1[nw1-1])
         l[0] = n1-1;
@@ -212,9 +212,9 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
      * should be on the wall exactly, but is not exactly on the wall. We
      * need to put the photon exactly on the wall. */
 
-    if (equal(r,w1[l[0]],1.0e-6))
+    if (equal(r,w1[l[0]],EPSILON))
         r = w1[l[0]];
-    else if (equal(r,w1[l[0]+1],1.0e-6))
+    else if (equal(r,w1[l[0]+1],EPSILON))
         r = w1[l[0]+1];
 
     /* Finally, update which cell the photon is in based on the direction it
@@ -252,9 +252,9 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
          * should be on the wall exactly, but is not exactly on the wall. We
          * need to put the photon exactly on the wall. */
 
-        if (equal(theta,w2[l[1]],1.0e-6))
+        if (equal(theta,w2[l[1]],EPSILON))
             theta = w2[l[1]];
-        else if (equal(theta,w2[l[1]+1],1.0e-6))
+        else if (equal(theta,w2[l[1]+1],EPSILON))
             theta = w2[l[1]+1];
 
         /* Update which cell the photon is in based on the direction it
@@ -263,9 +263,9 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
         double gnx = cos(theta)*cos(phi);
         double gny = cos(theta)*sin(phi);
         double gnz = -sin(theta);
-        if (equal_zero(gnx, 1.0e-6)) gnx = 0.;
-        if (equal_zero(gny, 1.0e-6)) gny = 0.;
-        if (equal_zero(gnz, 1.0e-6)) gnz = 0.;
+        if (equal_zero(gnx, EPSILON)) gnx = 0.;
+        if (equal_zero(gny, EPSILON)) gny = 0.;
+        if (equal_zero(gnz, EPSILON)) gnz = 0.;
         
         if ((theta == w2[l[1]]) && (P->n[0]*gnx+P->n[1]*gny+P->n[2]*gnz < 0))
             l[1] -= 1;
@@ -296,9 +296,9 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
          * wall. Floating point errors may keep it from being exactly on the
          * wall, and we need to fix that. */
 
-        if (equal(phi,w3[l[2]],1.0e-6))
+        if (equal(phi,w3[l[2]],EPSILON))
             phi = w3[l[2]];
-        else if (equal(phi,w3[l[2]+1],1.0e-6))
+        else if (equal(phi,w3[l[2]+1],EPSILON))
             phi = w3[l[2]+1];
 
         /* Update which cell the photon is in depending on the 
@@ -307,9 +307,9 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
         double gnx = -sin(phi);
         double gny = cos(phi);
         double gnz = 0.0;
-        if (equal_zero(gnx, 1.0e-6)) gnx = 0.;
-        if (equal_zero(gny, 1.0e-6)) gny = 0.;
-        if (equal_zero(gnz, 1.0e-6)) gnz = 0.;
+        if (equal_zero(gnx, EPSILON)) gnx = 0.;
+        if (equal_zero(gny, EPSILON)) gny = 0.;
+        if (equal_zero(gnz, EPSILON)) gnz = 0.;
         
         if ((phi == w3[l[2]]) && (P->n[0]*gnx+P->n[1]*gny <= 0))
             l[2] -= 1;
@@ -358,9 +358,9 @@ bool SphericalGrid::in_grid(Photon *P) {
 
     /*double r = P->r.norm();
 
-    if ((r >= w1[nw1-1]) || (equal(r,w1[nw1-1],1.0e-6)))
+    if ((r >= w1[nw1-1]) || (equal(r,w1[nw1-1],EPSILON)))
         return false;
-    else if ((r <= w1[0]) || (equal(r,w1[0],1.0e-6)))
+    else if ((r <= w1[0]) || (equal(r,w1[0],EPSILON)))
         return false; */
     if ((P->l[0] >= n1) || (P->l[0] < 0))
         return false;

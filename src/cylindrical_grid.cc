@@ -17,10 +17,10 @@ double CylindricalGrid::next_wall_distance(Photon *P) {
         if (r == w1[i]) {
             double sr1 = (-b + fabs(b))/a;
             if ((sr1 < s) && (sr1 > 0) && (not equal_zero(sr1/
-                    (P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),1.0e-6))) s = sr1;
+                    (P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),EPSILON))) s = sr1;
             double sr2 = (-b - fabs(b))/a;
             if ((sr2 < s) && (sr2 > 0) && (not equal_zero(sr2/
-                    (P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),1.0e-6))) s = sr2;
+                    (P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),EPSILON))) s = sr2;
         }
         else {
             double c = r*r - w1[i]*w1[i];
@@ -110,9 +110,9 @@ double CylindricalGrid::outer_wall_distance(Photon *P) {
             newr[2]/au);
     if (Q->verbose) printf("%20.17f\n", newtwodr/au);
 
-    if (equal(newtwodr, w1[nw1-1], 1.0e-6)) newtwodr = w1[nw1-1];
-    if (equal(newr[2],w3[0],1.0e-6)) newr[2] = w3[0];
-    else if (equal(newr[2],w3[nw3-1],1.0e-6)) newr[2] = w3[nw3-1];
+    if (equal(newtwodr, w1[nw1-1], EPSILON)) newtwodr = w1[nw1-1];
+    if (equal(newr[2],w3[0],EPSILON)) newr[2] = w3[0];
+    else if (equal(newr[2],w3[nw3-1],EPSILON)) newr[2] = w3[nw3-1];
 
     if (Q->verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
             newr[2]/au);
@@ -184,8 +184,8 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P) {
 
     double gnx = cos(phi);
     double gny = sin(phi);
-    if (equal_zero(gnx, 1.0e-6)) gnx = 0.;
-    if (equal_zero(gny, 1.0e-6)) gny = 0.;
+    if (equal_zero(gnx, EPSILON)) gnx = 0.;
+    if (equal_zero(gny, EPSILON)) gny = 0.;
     
     /* Determine which cell the photon is currently in. */
 
@@ -210,16 +210,16 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P) {
      * should be on the wall exactly, but is not exactly on the wall. We
      * need to put the photon exactly on the wall. */
 
-    if (equal(r,w1[l[0]],1.0e-6))
+    if (equal(r,w1[l[0]],EPSILON))
         r = w1[l[0]];
-    else if (equal(r,w1[l[0]+1],1.0e-6))
+    else if (equal(r,w1[l[0]+1],EPSILON))
         r = w1[l[0]+1];
 
     /* Finally, update which cell the photon is in based on the direction it
      * is going. */
 
     double nr = P->n[0]*gnx + P->n[1]*gny;
-    if (equal_zero(nr, 1.0e-6)) nr = 0.0;
+    if (equal_zero(nr, EPSILON)) nr = 0.0;
     
     if ((r == w1[l[0]]) && (nr < 0))
         l[0] -= 1;
@@ -240,9 +240,9 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P) {
          * wall. Floating point errors may keep it from being exactly on the
          * wall, and we need to fix that. */
 
-        if (equal(phi,w2[l[1]],1.0e-6))
+        if (equal(phi,w2[l[1]],EPSILON))
             phi = w2[l[1]];
-        else if (equal(phi,w2[l[1]+1],1.0e-6))
+        else if (equal(phi,w2[l[1]+1],EPSILON))
             phi = w2[l[1]+1];
 
         /* Update which cell the photon is in depending on the 
@@ -250,8 +250,8 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P) {
 
         double gnx = -sin(phi);
         double gny = cos(phi);
-        if (equal_zero(gnx, 1.0e-6)) gnx = 0.;
-        if (equal_zero(gny, 1.0e-6)) gny = 0.;
+        if (equal_zero(gnx, EPSILON)) gnx = 0.;
+        if (equal_zero(gny, EPSILON)) gny = 0.;
         
         if ((phi == w2[l[1]]) && (P->n[0]*gnx+P->n[1]*gny <= 0))
             l[1] -= 1;

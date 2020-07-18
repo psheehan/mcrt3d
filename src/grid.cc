@@ -351,7 +351,7 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
 
     bool absorbed_by_source = false;
     int i = 0;
-    while ((tau > 0) && (in_grid(P))) {
+    while ((tau > EPSILON) && (in_grid(P))) {
         // Calculate the distance to the next wall.
         double s1 = next_wall_distance(P);
 
@@ -433,7 +433,7 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
 void Grid::propagate_photon_scattering(Photon *P) {
     double total_tau_abs = 0.;
 
-    //while (in_grid(P) && P->energy > 1.0e-6) {
+    //while (in_grid(P) && P->energy > EPSILON) {
     while (in_grid(P) && total_tau_abs < 30.) {
         // Determin the optical depth that the photon can travel until it's
         // next interaction.
