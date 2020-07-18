@@ -1,4 +1,5 @@
 import cython
+from libcpp import bool
 
 import numpy
 cimport numpy
@@ -11,6 +12,8 @@ cdef class GridObj:
     cdef str coordsystem
     cdef int n1, n2, n3, nw1, nw2, nw3
     cdef numpy.ndarray w1, w2, w3
+    cdef bint mirror_symmetry
+
     cdef int ny
     cdef numpy.ndarray y, f, dydf
 

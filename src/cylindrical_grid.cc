@@ -187,6 +187,19 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P) {
     if (equal_zero(gnx, EPSILON)) gnx = 0.;
     if (equal_zero(gny, EPSILON)) gny = 0.;
     
+    // Check if we are using mirror symmetry and we're in the southern
+    // hemisphere. If so, we need to flip.
+    
+    if (mirror_symmetry) {
+        if (P->r[2] < 0) {
+            P->r[2] *= -1;
+            P->n[2] *= -1;
+        }
+
+        if (equal_zero(P->r[2], EPSILON) and P->n[2] < 0)
+            P->n[2] *= -1;
+    }
+
     /* Determine which cell the photon is currently in. */
 
     if (r >= w1[nw1-1])

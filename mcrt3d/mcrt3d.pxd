@@ -94,6 +94,7 @@ cdef extern from "grid.h":
         double *w1
         double *w2
         double *w3
+        bool mirror_symmetry
 
         vector[double***] dens
         vector[double***] energy
@@ -117,7 +118,8 @@ cdef extern from "grid.h":
         double *dydf
 
         Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
-                double *_w1, double *_w2, double *_w3, double *_volume)
+                double *_w1, double *_w2, double *_w3, double *_volume, 
+                bool mirror_symmetry)
 
         void add_density(double *_dens, double *_temp, double *_mass, 
                 Dust *D)
@@ -128,18 +130,20 @@ cdef extern from "grid.h":
 cdef extern from "cartesian_grid.h":
     cppclass CartesianGrid(Grid):
         CartesianGrid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
-                double *_w1, double *_w2, double *_w3, double *_volume)
+                double *_w1, double *_w2, double *_w3, double *_volume, 
+                bool mirror_symmetry)
 
 cdef extern from "cylindrical_grid.h":
     cppclass CylindricalGrid(Grid):
         CylindricalGrid(int _n1, int _n2, int _n3, int _nw1, int _nw2, 
                 int _nw3, double *_w1, double *_w2, double *_w3, 
-                double *_volume)
+                double *_volume, bool mirror_symmetry)
 
 cdef extern from "spherical_grid.h":
     cppclass SphericalGrid(Grid):
         SphericalGrid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
-                double *_w1, double *_w2, double *_w3, double *_volume)
+                double *_w1, double *_w2, double *_w3, double *_volume, 
+                bool mirror_symmetry)
 
 cdef extern from "mcrt3d.h":
     cppclass MCRT:

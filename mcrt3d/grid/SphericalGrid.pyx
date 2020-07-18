@@ -40,8 +40,16 @@ cdef class SphericalGridObj(GridObj):
 
         self.volume = volume
 
+        if abs(numpy.cos(self.w2.max())) < 1.0e-6:
+            self.mirror_symmetry = True
+
+            self.volume *= 2
+        else:
+            self.mirror_symmetry = False
+
         self.obj = new SphericalGrid(self.n1, self.n2, self.n3, self.nw1, \
-                self.nw2, self.nw3, &w1[0], &w2[0], &w3[0], &volume[0,0,0])
+                self.nw2, self.nw3, &w1[0], &w2[0], &w3[0], &volume[0,0,0], \
+                self.mirror_symmetry)
 
         super(SphericalGridObj, self).__init__()
 

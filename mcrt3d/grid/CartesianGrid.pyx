@@ -40,7 +40,8 @@ cdef class CartesianGridObj(GridObj):
         self.volume = volume
 
         self.obj = new CartesianGrid(self.n1, self.n2, self.n3, self.nw1, \
-                self.nw2, self.nw3, &w1[0], &w2[0], &w3[0], &volume[0,0,0])
+                self.nw2, self.nw3, &w1[0], &w2[0], &w3[0], &volume[0,0,0], \
+                False)
 
         super(CartesianGridObj, self).__init__()
 

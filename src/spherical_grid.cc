@@ -182,6 +182,19 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
     double theta = P->theta;
     double phi = P->phi;
 
+    // Check if we are using mirror symmetry and we're in the southern
+    // hemisphere. If so, we need to flip.
+    
+    if (mirror_symmetry) {
+        if (theta > pi/2) {
+            theta = pi - theta;
+            P->n[2] *= -1;
+        }
+
+        if (equal_zero(cos(theta), EPSILON) and P->n[2] < 0)
+            P->n[2] *= -1;
+    }
+
     // Find the location in the radial grid.
     
     double gnx = sin(theta)*cos(phi);

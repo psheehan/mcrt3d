@@ -22,6 +22,7 @@ struct Grid {
     double *w1;
     double *w2;
     double *w3;
+    bool mirror_symmetry;
 
     std::vector<double***> dens;
     std::vector<double***> energy;
@@ -46,7 +47,8 @@ struct Grid {
     double *dydf;
 
     Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
-            double *_w1, double *_w2, double *_w3, double *_volume);
+            double *_w1, double *_w2, double *_w3, double *_volume,
+            bool _mirror_symmetry);
 
     void add_density(double *_dens, double *_temp, double *_mass, 
             Dust *D);

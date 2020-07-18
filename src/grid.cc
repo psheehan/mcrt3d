@@ -3,7 +3,8 @@
 /* Functions to set up the grid. */
 
 Grid::Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
-        double *_w1, double *_w2, double *_w3, double *_volume) {
+        double *_w1, double *_w2, double *_w3, double *_volume, 
+        bool _mirror_symmetry) {
 
     n1 = _n1;
     n2 = _n2;
@@ -14,6 +15,8 @@ Grid::Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3,
     w1 = _w1;
     w2 = _w2;
     w3 = _w3;
+
+    mirror_symmetry = _mirror_symmetry;
 
     volume = pymangle(n1, n2, n3, _volume);
 }
