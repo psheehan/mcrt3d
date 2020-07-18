@@ -443,7 +443,7 @@ void Grid::propagate_photon_scattering(Photon *P) {
         double tau = -log(1-random_number());
 
         // Move the photon to the point of it's next interaction.
-        while ((tau > 0) && (in_grid(P))) {
+        while ((tau > EPSILON) && (in_grid(P))) {
             // Calculate the distance to the next wall.
             double s1 = next_wall_distance(P);
 
