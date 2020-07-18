@@ -517,18 +517,20 @@ void Grid::propagate_photon_mrw(Photon *P) {
         }
 
         // Calculate the value of y
-        double ksi = random_number();
+        /*double ksi = random_number();
 
         int i = find_in_arr(ksi, f, ny);
 
-        double y0 = dydf[i] * (ksi - f[i]) + y[i];
+        double y0 = dydf[i] * (ksi - f[i]) + y[i];*/
 
         // Calculate the actual distance that the photon traveled through 
         // diffusion.
-        if (Q->verbose) {
+        /*if (Q->verbose) {
             printf("%i, %f\n", i, y0);
         }
-        double s = -log(y0) * (R_0/pi)*(R_0/pi) * 3 * alpha;
+        double s = -log(y0) * (R_0/pi)*(R_0/pi) * 3 * alpha;*/
+        double s = 0.5 * R_0 * R_0 * alpha; //Per RADMC-3D, this is the average
+                                            //distance.
 
         if (Q->verbose) {
             printf("%f\n", s/au);
