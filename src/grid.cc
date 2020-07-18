@@ -511,7 +511,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
 
         // Calculate the radius of the sphere that we will move the photon to
         // somewhere on.
-        double R_0 = 0.75 * dmin;
+        double R_0 = 0.99 * dmin;
         if (Q->verbose) {
             printf("%f %f\n", dmin/au, R_0/au);
         }
