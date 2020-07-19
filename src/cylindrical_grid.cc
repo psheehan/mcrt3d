@@ -93,13 +93,25 @@ double CylindricalGrid::outer_wall_distance(Photon *P) {
     // Calculate the distance to intersection with the nearest z wall.
     
     if (P->n[2] != 0) {
-        if (P->r[2] <= w3[0]) {
-            double sz = (w3[0] - P->r[2])*P->invn[2];
-            if (sz > s) s = sz;
+        if (mirror_symmetry) {
+            if (P->r[2] <= -w3[nw3-1]) {
+                double sz = (-w3[nw3-1] - P->r[2])*P->invn[2];
+                if (sz > s) s = sz;
+            }
+            else if (P->r[2] >= w3[nw3-1]) {
+                double sz = (w3[nw3-1] - P->r[2])*P->invn[2];
+                if (sz > s) s = sz;
+            }
         }
-        else if (P->r[2] >= w3[nw3-1]) {
-            double sz = (w3[nw3-1] - P->r[2])*P->invn[2];
-            if (sz > s) s = sz;
+        else {
+            if (P->r[2] <= w3[0]) {
+                double sz = (w3[0] - P->r[2])*P->invn[2];
+                if (sz > s) s = sz;
+            }
+            else if (P->r[2] >= w3[nw3-1]) {
+                double sz = (w3[nw3-1] - P->r[2])*P->invn[2];
+                if (sz > s) s = sz;
+            }
         }
     }
 
@@ -111,15 +123,31 @@ double CylindricalGrid::outer_wall_distance(Photon *P) {
     if (Q->verbose) printf("%20.17f\n", newtwodr/au);
 
     if (equal(newtwodr, w1[nw1-1], EPSILON)) newtwodr = w1[nw1-1];
-    if (equal(newr[2],w3[0],EPSILON)) newr[2] = w3[0];
-    else if (equal(newr[2],w3[nw3-1],EPSILON)) newr[2] = w3[nw3-1];
+    if (mirror_symmetry) {
+        if (equal(newr[2],w3[0],EPSILON)) newr[2] = w3[0];
+        else if (equal(newr[2],w3[nw3-1],EPSILON)) newr[2] = w3[nw3-1];
+    }
+    else {
+        if (equal(newr[2],-w3[nw3-1],EPSILON)) newr[2] = -w3[nw3-1];
+        else if (equal(newr[2],w3[nw3-1],EPSILON)) newr[2] = w3[nw3-1];
+    }
 
     if (Q->verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
             newr[2]/au);
     if (Q->verbose) printf("%20.17f\n", newtwodr/au);
 
-    if ((newr[2] < w3[0]) || (newr[2] > w3[nw3-1]) || (newtwodr > w1[nw1-1]))
-        s = HUGE_VAL;
+    if (mirror_symmetry) {
+        if ((newr[2] < -w3[nw3-1]) || (newr[2] > w3[nw3-1]) || 
+                (newtwodr > w1[nw1-1])) {
+            s = HUGE_VAL;
+        }
+    }
+    else {
+        if ((newr[2] < w3[0]) || (newr[2] > w3[nw3-1]) || 
+                (newtwodr > w1[nw1-1])) {
+            s = HUGE_VAL;
+        }
+    }
 
     return s;
 }
