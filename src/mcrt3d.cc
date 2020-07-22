@@ -1,12 +1,15 @@
 #include "mcrt3d.h"
 
-MCRT::MCRT(Grid *_G, Params *_Q) {
-    G = _G;
+//MCRT::MCRT(Grid *_G, Params *_Q) {
+MCRT::MCRT() {
+    //G = _G;
 
-    Q = _Q;
-    G->Q = _Q;
+    //Q = _Q;
+    //G->Q = _Q;
 
-    C = new Camera(G, Q);
+    //C = new Camera(G, Q);
+
+    Q = new Params();
 }
 
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
@@ -136,4 +139,13 @@ void MCRT::run_spectrum(Spectrum *S) {
     //G->deallocate_scattering_array();
     freepymangle(G->scatt[0]);
     G->scatt.clear();
+}
+
+PYBIND11_MODULE(mcrt3d, m) {
+    py::class_<MCRT>(m, "MCRT")
+        .def(py::init<>())
+        .def("thermal_mc", &MCRT::thermal_mc, 
+                "Calculate the temperature throughout the grid.")
+        .def("run_image", &MCRT::run_image, "Generate an image.")
+        .def("run_spectrum", &MCRT::run_spectrum, "Generate a spectrum.");
 }

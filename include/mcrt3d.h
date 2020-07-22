@@ -1,3 +1,6 @@
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+
 #include <stdio.h>
 #include <cmath>
 #include "params.h"
@@ -11,12 +14,15 @@
 //#include "timer.c"
 #include "camera.h"
 
+namespace py = pybind11;
+
 struct MCRT {
     Grid *G;
     Params *Q;
     Camera *C;
 
-    MCRT(Grid *G, Params *Q);
+    //MCRT(Grid *G, Params *Q);
+    MCRT();
 
     void thermal_mc();
     void scattering_mc();
