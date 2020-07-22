@@ -1,15 +1,25 @@
 #include "mcrt3d.h"
 
-//MCRT::MCRT(Grid *_G, Params *_Q) {
 MCRT::MCRT() {
-    //G = _G;
-
-    //Q = _Q;
-    //G->Q = _Q;
-
-    //C = new Camera(G, Q);
-
     Q = new Params();
+}
+
+void MCRT::set_cartesian_grid(py::array_t<double> x, py::array_t<double> y,
+        py::array_t<double> z) {
+    G = new CartesianGrid(x, y, z);
+    C = new Camera(G, Q);
+}
+
+void MCRT::set_cylindrical_grid(py::array_t<double> r, py::array_t<double> phi,
+        py::array_t<double> z) {
+    G = new CylindricalGrid(r, phi, z);
+    C = new Camera(G, Q);
+}
+
+void MCRT::set_spherical_grid(py::array_t<double> r, 
+        py::array_t<double> theta, py::array_t<double> phi) {
+    G = new SphericalGrid(r, theta, phi);
+    C = new Camera(G, Q);
 }
 
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
@@ -142,8 +152,33 @@ void MCRT::run_spectrum(Spectrum *S) {
 }
 
 PYBIND11_MODULE(mcrt3d, m) {
+    py::class_<Grid>(m, "Grid")
+        .def_readonly("volume", &Grid::_volume);
+
+    py::class_<CartesianGrid, Grid>(m, "CartesianGrid")
+        .def_readonly("x", &CartesianGrid::x)
+        .def_readonly("y", &CartesianGrid::y)
+        .def_readonly("z", &CartesianGrid::z);
+
+    py::class_<CylindricalGrid, Grid>(m, "CylindricalGrid")
+        .def_readonly("r", &CylindricalGrid::r)
+        .def_readonly("phi", &CylindricalGrid::phi)
+        .def_readonly("z", &CylindricalGrid::z);
+
+    py::class_<SphericalGrid, Grid>(m, "SphericalGrid")
+        .def_readonly("r", &SphericalGrid::r)
+        .def_readonly("theta", &SphericalGrid::theta)
+        .def_readonly("phi", &SphericalGrid::phi);
+
     py::class_<MCRT>(m, "MCRT")
         .def(py::init<>())
+        .def_readonly("grid", &MCRT::G)
+        .def("set_cartesian_grid", &MCRT::set_cartesian_grid,
+                "Setup a grid in cartesian coordinates.")
+        .def("set_cylindrical_grid", &MCRT::set_cylindrical_grid,
+                "Setup a grid in cylindrical coordinates.")
+        .def("set_spherical_grid", &MCRT::set_spherical_grid,
+                "Setup a grid in spherical coordinates.")
         .def("thermal_mc", &MCRT::thermal_mc, 
                 "Calculate the temperature throughout the grid.")
         .def("run_image", &MCRT::run_image, "Generate an image.")

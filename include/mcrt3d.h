@@ -24,6 +24,13 @@ struct MCRT {
     //MCRT(Grid *G, Params *Q);
     MCRT();
 
+    void set_cartesian_grid(py::array_t<double> x, py::array_t<double> y,
+            py::array_t<double> z);
+    void set_cylindrical_grid(py::array_t<double> r, py::array_t<double> phi,
+            py::array_t<double> z);
+    void set_spherical_grid(py::array_t<double> r, py::array_t<double> theta,
+            py::array_t<double> phi);
+
     void thermal_mc();
     void scattering_mc();
     void mc_iteration();

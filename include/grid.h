@@ -1,6 +1,9 @@
 #ifndef GRID_H
 #define GRID_H
 
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+
 #include <cmath>
 #include <vector>
 #include "pymangle.h"
@@ -11,6 +14,8 @@
 #include "photon.h"
 #include "misc.h"
 #include "params.h"
+
+namespace py = pybind11;
 
 struct Grid {
     int n1;
@@ -23,6 +28,11 @@ struct Grid {
     double *w2;
     double *w3;
     bool mirror_symmetry;
+
+    py::array_t<double> _w1;
+    py::array_t<double> _w2;
+    py::array_t<double> _w3;
+    py::array_t<double> _volume;
 
     std::vector<double***> dens;
     std::vector<double***> energy;
@@ -45,6 +55,9 @@ struct Grid {
     double *y;
     double *f;
     double *dydf;
+
+    Grid(py::array_t<double> w1, py::array_t<double> w2, 
+            py::array_t<double> w3);
 
     Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
             double *_w1, double *_w2, double *_w3, double *_volume,

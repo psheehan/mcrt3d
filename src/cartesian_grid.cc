@@ -1,5 +1,46 @@
 #include "cartesian_grid.h"
 
+CartesianGrid::CartesianGrid(py::array_t<double> _x, py::array_t<double> _y,
+            py::array_t<double> _z) : Grid(_x, _y, _z) {
+
+    // Set up the x, y, and z arrays.
+
+    x = py::array_t<double>(n1);
+    y = py::array_t<double>(n2);
+    z = py::array_t<double>(n3);
+
+    // Load the array buffers to get the proper setup info.
+
+    auto x_buf = x.request(); auto y_buf = y.request(); 
+    auto z_buf = z.request();
+
+    // Now get the correct values.
+
+    double *__x = (double *) x_buf.ptr;
+    for (int i = 0; i < n1; i++) __x[i] = 0.5 * (w1[i+1] + w1[i]);
+
+    double *__y = (double *) y_buf.ptr;
+    for (int i = 0; i < n2; i++) __y[i] = 0.5 * (w2[i+1] + w2[i]);
+
+    double *__z = (double *) z_buf.ptr;
+    for (int i = 0; i < n3; i++) __z[i] = 0.5 * (w3[i+1] + w3[i]);
+    
+    // Set up the volume of each cell.
+
+    auto _volume_buf = _volume.request();
+    double *__volume = (double *) _volume_buf.ptr;
+
+    for (int i = 0; i < n1; i++)
+        for (int j = 0; j < n2; j++)
+            for (int k = 0; k < n3; k++)
+                __volume[i*n2*n3 + j*n3 + k] = (w1[i+1] - w1[i]) * 
+                    (w2[j+1] - w2[j]) * (w3[k+1] - w3[k]);
+
+    // Finally, set up the mirror symmetry.
+
+     mirror_symmetry = false;
+}
+
 /* Calculate the distance between the photon and the nearest wall. */
 
 double CartesianGrid::next_wall_distance(Photon *P) {

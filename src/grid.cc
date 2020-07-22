@@ -1,5 +1,39 @@
 #include "grid.h"
 
+// Initialize the grid from numpy arrays directly.
+
+Grid::Grid(py::array_t<double> __w1, py::array_t<double> __w2,
+            py::array_t<double> __w3) {
+
+    _w1 = __w1; _w2 = __w2; _w3 = __w3;
+
+    // Load the array buffers to get the proper setup info.
+
+    auto _w1_buf = _w1.request(); auto _w2_buf = _w2.request(); 
+    auto _w3_buf = _w3.request();
+
+    if (_w1_buf.ndim != 1 || _w2_buf.ndim != 1 || _w3_buf.ndim != 1)
+        throw std::runtime_error("Number of dimensions must be one");
+
+    // Now get the correct format.
+    
+    nw1 = _w1_buf.shape[0], nw2 = _w2_buf.shape[0], nw3 = _w3_buf.shape[0];
+    n1 = _w1_buf.shape[0]-1, n2 = _w2_buf.shape[0]-1, n3 = _w3_buf.shape[0]-1;
+    w1 = (double *) _w1_buf.ptr; 
+    w2 = (double *) _w2_buf.ptr; 
+    w3 = (double *) _w3_buf.ptr;
+
+    // Set up the volume of each cell.
+
+    _volume = py::array_t<double>(n1*n2*n3);
+    _volume.resize({n1, n2, n3});
+
+    auto _volume_buf = _volume.request();
+    double *__volume = (double *) _volume_buf.ptr;
+
+    volume = pymangle(n1, n2, n3, __volume);
+}
+
 /* Functions to set up the grid. */
 
 Grid::Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
