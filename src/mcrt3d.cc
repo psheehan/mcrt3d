@@ -153,7 +153,11 @@ void MCRT::run_spectrum(Spectrum *S) {
 
 PYBIND11_MODULE(mcrt3d, m) {
     py::class_<Grid>(m, "Grid")
-        .def_readonly("volume", &Grid::_volume);
+        .def_readonly("volume", &Grid::_volume)
+        .def_readonly("density", &Grid::_dens)
+        .def_readonly("temperature", &Grid::_temp)
+        .def("add_density", &Grid::add_density, 
+                "Add a density layer to the Grid.");
 
     py::class_<CartesianGrid, Grid>(m, "CartesianGrid")
         .def_readonly("x", &CartesianGrid::x)

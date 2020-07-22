@@ -55,11 +55,30 @@ Grid::Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3,
     volume = pymangle(n1, n2, n3, _volume);
 }
 
-void Grid::add_density(double *_dens, double *_temp, double *_mass, 
-        Dust *D) {
-    double ***__dens = pymangle(n1, n2, n3, _dens);
-    double ***__temp = pymangle(n1, n2, n3, _temp);
-    double ***__mass = pymangle(n1, n2, n3, _mass);
+//void Grid::add_density(double *_dens, double *_temp, double *_mass, 
+//        Dust *D) {
+void Grid::add_density(py::array_t<double> ___dens) {
+
+    // Deal with the Python code.
+
+    auto _dens_buf = ___dens.request();
+
+    _dens.append(___dens);
+
+    // Create temperature array.
+
+    py::array_t<double> ___temp = py::array_t<double>(n1*n2*n3);
+    ___temp.resize({n1, n2, n3});
+
+    _temp.append(___temp);
+
+    auto _temp_buf = ___temp.request();
+
+    // Now send to C++ useful things.
+
+    double ***__dens = pymangle(n1, n2, n3, (double *) _dens_buf.ptr);
+    double ***__temp = pymangle(n1, n2, n3, (double *) _temp_buf.ptr);
+    double ***__mass = create3DArrValue(n1, n2, n3, 0);
     double ***__energy = create3DArrValue(n1, n2, n3, 0);
 
     dens.push_back(__dens);
@@ -67,8 +86,19 @@ void Grid::add_density(double *_dens, double *_temp, double *_mass,
     mass.push_back(__mass);
     energy.push_back(__energy);
 
-    dust.push_back(D);
-    nspecies++;
+    // Initialize their values.
+
+    for (int i = 0; i < n1; i++) {
+        for (int j = 0; j < n2; j++) {
+            for (int k = 0; k < n3; k++) {
+                __temp[i][j][k] = 0.1;
+                __mass[i][j][k] = __dens[i][j][k] * volume[i][j][k];
+            }
+        }
+    }
+
+    //dust.push_back(D);
+    //nspecies++;
 }
 
 void Grid::add_source(Source *S) {

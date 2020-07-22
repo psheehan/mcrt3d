@@ -34,6 +34,9 @@ struct Grid {
     py::array_t<double> _w3;
     py::array_t<double> _volume;
 
+    py::list _dens;
+    py::list _temp;
+
     std::vector<double***> dens;
     std::vector<double***> energy;
     std::vector<double***> temp;
@@ -63,8 +66,10 @@ struct Grid {
             double *_w1, double *_w2, double *_w3, double *_volume,
             bool _mirror_symmetry);
 
-    void add_density(double *_dens, double *_temp, double *_mass, 
-            Dust *D);
+    //void add_density(double *_dens, double *_temp, double *_mass, 
+    //        Dust *D);
+    void add_density(py::array_t<double>);
+
     void add_source(Source *S);
     void set_mrw_tables(double *y, double *f, double *dydf, int ny);
     void add_scattering_array(double *_scatt, int nnu);
