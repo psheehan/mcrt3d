@@ -201,6 +201,12 @@ double SphericalGrid::minimum_wall_distance(Photon *P) {
     return s;
 }
 
+/* Calculate the size of the grid. */
+
+double SphericalGrid::grid_size() {
+    return 2*w1[nw1-1];
+}
+
 /* Determine which cell the photon is in. */
 
 Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {

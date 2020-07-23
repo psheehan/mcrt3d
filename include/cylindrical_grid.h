@@ -25,6 +25,7 @@ struct CylindricalGrid : public Grid {
     double next_wall_distance(Photon *P);
     double outer_wall_distance(Photon *P);
     double minimum_wall_distance(Photon *P);
+    double grid_size();
     Vector<int, 3> photon_loc(Photon *P);
     Vector<double, 3> random_location_in_cell(int ix, int iy, int iz);
     bool in_grid(Photon *P);

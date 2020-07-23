@@ -6,6 +6,7 @@
 
 #include <cmath>
 #include <vector>
+#include <algorithm>
 #include "pymangle.h"
 #include "vector.h"
 #include "dust.h"
@@ -93,6 +94,7 @@ struct Grid {
     virtual double next_wall_distance(Photon *P);
     virtual double outer_wall_distance(Photon *P);
     virtual double minimum_wall_distance(Photon *P);
+    virtual double grid_size();
 
     void propagate_photon_full(Photon *P);
     void propagate_photon(Photon *P, double tau, bool absorb);

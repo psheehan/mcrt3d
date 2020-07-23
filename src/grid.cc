@@ -780,6 +780,12 @@ double Grid::minimum_wall_distance(Photon *P) {
     return 0.0;
 }
 
+/* Calculate the size of the grid. */
+
+double Grid::grid_size() {
+    return 0.0;
+}
+
 /* Determine which cell the photon is in. */
 
 Vector<int, 3> Grid::photon_loc(Photon *P) {

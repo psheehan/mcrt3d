@@ -231,6 +231,15 @@ double CylindricalGrid::minimum_wall_distance(Photon *P) {
     return s;
 }
 
+/* Calculate the size of the grid. */
+
+double CylindricalGrid::grid_size() {
+    double rw1_max = w1[nw1-1];
+    double rw3_max = std::max(abs(w3[0]), abs(w3[nw3-1]));
+
+    return 2*sqrt(rw1_max*rw1_max + rw3_max*rw3_max);
+}
+
 /* Determine which cell the photon is in. */
 
 Vector<int, 3> CylindricalGrid::photon_loc(Photon *P) {

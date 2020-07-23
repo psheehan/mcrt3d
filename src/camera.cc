@@ -177,7 +177,7 @@ Spectrum *Camera::make_spectrum(py::array_t<double> lam, double incl,
     int nx = 100;
     int ny = 100;
 
-    double pixel_size = 0.1; //TODO: Set this properly!
+    double pixel_size = G->grid_size()*1.1/(dpc*pc);
 
     // Set up and create an image.
 
