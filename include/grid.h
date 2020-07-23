@@ -11,6 +11,7 @@
 #include "dust.h"
 #include "isotropic_dust.h"
 #include "source.h"
+#include "star.h"
 #include "photon.h"
 #include "misc.h"
 #include "params.h"
@@ -47,6 +48,7 @@ struct Grid {
 
     int nspecies;
     std::vector<Dust*> dust;
+    py::list _dust;
 
     int nsources;
     std::vector<Source*> sources;
@@ -68,9 +70,12 @@ struct Grid {
 
     //void add_density(double *_dens, double *_temp, double *_mass, 
     //        Dust *D);
-    void add_density(py::array_t<double>);
+    void add_density(py::array_t<double>, Dust *d);
 
-    void add_source(Source *S);
+    //void add_source(Source *S);
+    void add_star(double x, double y, double z, double _mass, double _radius, 
+            double _temperature);
+
     void set_mrw_tables(double *y, double *f, double *dydf, int ny);
     void add_scattering_array(double *_scatt, int nnu);
     void initialize_scattering_array();

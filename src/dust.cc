@@ -2,6 +2,50 @@
 
 /* Functions to set up the dust. */
 
+Dust::Dust(py::array_t<double> __lam, py::array_t<double> __kabs,
+            py::array_t<double> __ksca) {
+
+    _lam = __lam; _kabs = __kabs; _ksca = __ksca;
+
+    // Load the array buffers to get the proper setup info.
+
+    auto _lam_buf = __lam.request(); auto _kabs_buf = __kabs.request();
+    auto _ksca_buf = __ksca.request();
+
+    if (_lam_buf.ndim != 1 || _kabs_buf.ndim != 1 || _ksca_buf.ndim != 1)
+        throw std::runtime_error("Number of dimensions must be one");
+
+    // Now get the correct format.
+
+    nlam = _lam_buf.shape[0];
+    lam = (double *) _lam_buf.ptr;
+    kabs = (double *) _kabs_buf.ptr;
+    ksca = (double *) _ksca_buf.ptr;
+
+    // Set up the volume of each cell.
+
+    _nu = py::array_t<double>(nlam);
+    _kext = py::array_t<double>(nlam);
+    _albedo = py::array_t<double>(nlam);
+
+    auto _nu_buf = _nu.request(); nu = (double *) _nu_buf.ptr;
+    auto _kext_buf = _kext.request(); kext = (double *) _kext_buf.ptr;
+    auto _albedo_buf = _albedo.request(); albedo = (double *) _albedo_buf.ptr;
+
+    // Finally, calculate their values.
+
+    for (int i = 0; i < nlam; i++) {
+        nu[i] = c_l / lam[i]; 
+        kext[i] = kabs[i] + ksca[i];
+        albedo[i] = ksca[i] / kext[i];
+    }
+
+    // Catch if nu is not increasing.
+
+    if (nu[1] - nu[0] <= 0.)
+        throw std::runtime_error("nu must be monotonically increasing.");
+}
+
 Dust::Dust(int _nlam, double *_nu, double *_lam, double *_kabs, 
         double *_ksca, double *_kext, double *_albedo) {
     

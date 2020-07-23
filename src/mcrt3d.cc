@@ -152,12 +152,31 @@ void MCRT::run_spectrum(Spectrum *S) {
 }
 
 PYBIND11_MODULE(mcrt3d, m) {
+    py::class_<Dust>(m, "Dust")
+        .def(py::init<py::array_t<double>, py::array_t<double>, 
+                py::array_t<double>>())
+        .def_readonly("lam", &Dust::_lam)
+        .def_readonly("nu", &Dust::_nu)
+        .def_readonly("kabs", &Dust::_kabs)
+        .def_readonly("ksca", &Dust::_ksca)
+        .def_readonly("kext", &Dust::_kext)
+        .def_readonly("albedo", &Dust::_albedo);
+
+    py::class_<IsotropicDust, Dust>(m, "IsotropicDust")
+        .def(py::init<py::array_t<double>, py::array_t<double>, 
+                py::array_t<double>>());
+
     py::class_<Grid>(m, "Grid")
         .def_readonly("volume", &Grid::_volume)
         .def_readonly("density", &Grid::_dens)
         .def_readonly("temperature", &Grid::_temp)
+        .def_readonly("dust", &Grid::_dust)
         .def("add_density", &Grid::add_density, 
-                "Add a density layer to the Grid.");
+                "Add a density layer to the Grid.")
+        .def("add_star", &Grid::add_star, "Add a star to the Grid.", 
+                py::arg("x")=0., py::arg("y")=0., py::arg("z")=0., 
+                py::arg("mass")=1.989e33, py::arg("radius")=69.634e9, 
+                py::arg("temperature")=4000.);
 
     py::class_<CartesianGrid, Grid>(m, "CartesianGrid")
         .def_readonly("x", &CartesianGrid::x)

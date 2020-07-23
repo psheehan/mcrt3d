@@ -1,11 +1,16 @@
 #ifndef DUST_H
 #define DUST_H
 
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+
 #include <stdlib.h>
 #include <cmath>
 #include "pymangle.h"
 #include "misc.h"
 #include "photon.h"
+
+namespace py = pybind11;
 
 struct Dust {
     int nlam;
@@ -18,6 +23,13 @@ struct Dust {
     double *dkextdnu;
     double *dalbedodnu;
 
+    py::array_t<double> _nu;
+    py::array_t<double> _lam;
+    py::array_t<double> _kabs;
+    py::array_t<double> _ksca;
+    py::array_t<double> _kext;
+    py::array_t<double> _albedo;
+
     int ntemp;
     double *temp;
     double *planck_opacity;
@@ -28,6 +40,9 @@ struct Dust {
     double **random_nu_CPD_bw;
     double **drandom_nu_CPD_dT;
     double **drandom_nu_CPD_bw_dT;
+
+    Dust(py::array_t<double> lam, py::array_t<double> kabs, 
+            py::array_t<double> ksca);
 
     Dust(int _nlam, double *_nu, double *_lam, double *_kabs, double *_ksca, 
             double *_kext, double *_albedo);

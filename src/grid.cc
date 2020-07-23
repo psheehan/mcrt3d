@@ -57,7 +57,7 @@ Grid::Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3,
 
 //void Grid::add_density(double *_dens, double *_temp, double *_mass, 
 //        Dust *D) {
-void Grid::add_density(py::array_t<double> ___dens) {
+void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
 
     // Deal with the Python code.
 
@@ -97,11 +97,20 @@ void Grid::add_density(py::array_t<double> ___dens) {
         }
     }
 
-    //dust.push_back(D);
-    //nspecies++;
+    // Add the dust to the list of dust classes.
+
+    dust.push_back(D);
+    _dust.append(D);
+    nspecies++;
 }
 
-void Grid::add_source(Source *S) {
+//void Grid::add_source(Source *S) {
+void Grid::add_star(double x, double y, double z, double _mass, double _radius, 
+            double _temperature) {
+    Star *S = new Star(x, y, z, _mass, _radius, _temperature);
+
+    //TODO: calculate the lookup tables somehow!
+    
     sources.push_back(S);
     nsources++;
 }

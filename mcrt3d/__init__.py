@@ -7,3 +7,4 @@
 #from . import camera
 
 from .mcrt3d import MCRT
+from .mcrt3d import IsotropicDust
