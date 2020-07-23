@@ -2,6 +2,10 @@
 #define PARAMS_H
 
 struct Params {
+    // Constructor class.
+
+    Params ();
+
     // General purpose parameters.
     int nphot;
     bool bw;

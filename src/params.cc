@@ -1,5 +1,14 @@
 #include "params.h"
 
+Params::Params() {
+    nphot = 1000000;
+    bw = true;
+    verbose = false;
+    use_mrw = false;
+    mrw_gamma = 4;
+    scattering = false;
+}
+
 void Params::set_nphot(int _nphot) {
     nphot = _nphot;
 }
