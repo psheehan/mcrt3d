@@ -1,6 +1,9 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+
 #include "vector.h"
 #include "photon.h"
 #include "grid.h"
@@ -8,10 +11,18 @@
 #include "params.h"
 #include "misc.h"
 
+namespace py = pybind11;
+
 struct Image {
     double r;
     double incl;
     double pa;
+
+    py::array_t<double> _x;
+    py::array_t<double> _y;
+    py::array_t<double> _intensity;
+    py::array_t<double> _lam;
+    py::array_t<double> _nu;
 
     double *x;
     double *y;
@@ -19,6 +30,7 @@ struct Image {
     Vector<double, 3> ex;
     Vector<double, 3> ey;
     Vector<double, 3> ez;
+    double *lam;
     double *nu;
     double ***intensity;
     double pixel_size;
@@ -26,12 +38,8 @@ struct Image {
     int ny;
     int nnu;
 
-    Image(double r, double incl, double pa, double *_x, double *_y, 
-            double *_intensity, int _nx, int _ny, double *_nu, 
-            double _pixel_size, int _nnu);
-    Image(double r, double incl, double pa, double *_x, double *_y, 
-            double ***_intensity, int _nx, int _ny, double *_nu, 
-            double _pixel_size, int _nnu);
+    Image(int nx, int ny, double pixel_size, py::array_t<double> lam, 
+            double incl, double pa, double dpc);
 };
 
 struct Spectrum {
@@ -39,17 +47,22 @@ struct Spectrum {
     double incl;
     double pa;
 
+    py::array_t<double> _intensity;
+    py::array_t<double> _lam;
+    py::array_t<double> _nu;
+
     Vector<double, 3> i;
     Vector<double, 3> ex;
     Vector<double, 3> ey;
     Vector<double, 3> ez;
+    double *lam;
     double *nu;
     double *intensity;
     double pixel_size;
     int nnu;
 
-    Spectrum(double r, double incl, double pa, double *_intensity, double *_nu, 
-            double _pixel_size, int _nnu);
+    Spectrum(py::array_t<double> lam, double incl, double pa,
+        double dpc);
 };
 
 struct Camera {
@@ -59,8 +72,11 @@ struct Camera {
 
     Camera(Grid *_G, Params *_Q);
 
-    void make_image(Image *I);
-    void make_spectrum(Spectrum *S);
+    Image* make_image(int nx, int ny, double pixel_size, 
+            py::array_t<double> lam, double incl, double pa, double dpc);
+    Spectrum* make_spectrum(py::array_t<double> lam, double incl, 
+            double pa, double dpc);
+
     Ray* emit_ray(double x, double y, double pixel_size, double nu);
     double raytrace_pixel(double x, double y, double pixel_size, double nu, 
             int count);

@@ -122,15 +122,32 @@ void Grid::set_mrw_tables(double *_y, double *_f, double *_dydf, int _ny) {
     ny = _ny;
 }
 
-void Grid::add_scattering_array(double *_scatt, int nnu) {
+/*void Grid::add_scattering_array(double *_scatt, int nnu) {
     double ****__scatt = pymangle(n1, n2, n3, nnu, _scatt);
 
     scatt.push_back(__scatt);
-}
+}*/
 
 void Grid::initialize_scattering_array() {
-    for (int idust = 0; idust<nspecies; idust++)
-        scatt.push_back(create4DArrValue(n1, n2, n3, Q->nnu, 0.));
+    // Create a 4D scattering array for each of the dust components.
+
+    for (int idust = 0; idust<nspecies; idust++) {
+        // Create temperature array in Numpy.
+
+        py::array_t<double> ___scatt = py::array_t<double>(n1*n2*n3*Q->nnu);
+        ___scatt.resize({n1, n2, n3, Q->nnu});
+
+        _scatt.append(___scatt);
+
+        // Get the buffer and create an array useful for C++.
+
+        auto _scatt_buf = ___scatt.request();
+
+        scatt.push_back(pymangle(n1, n2, n3, Q->nnu, 
+                    (double *) _scatt_buf.ptr));
+
+        set4DArrValue(scatt[idust], 0., n1, n2, n3, Q->nnu);
+    }
 }
 
 void Grid::deallocate_scattering_array() {

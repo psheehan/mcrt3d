@@ -37,6 +37,7 @@ struct Grid {
 
     py::list _dens;
     py::list _temp;
+    py::list _scatt;
 
     std::vector<double***> dens;
     std::vector<double***> energy;
@@ -77,7 +78,7 @@ struct Grid {
             double _temperature);
 
     void set_mrw_tables(double *y, double *f, double *dydf, int ny);
-    void add_scattering_array(double *_scatt, int nnu);
+    //void add_scattering_array(double *_scatt, int nnu);
     void initialize_scattering_array();
     void deallocate_scattering_array();
     void initialize_luminosity_array();

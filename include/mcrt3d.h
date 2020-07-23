@@ -21,6 +21,9 @@ struct MCRT {
     Params *Q;
     Camera *C;
 
+    py::list images;
+    py::list spectra;
+
     //MCRT(Grid *G, Params *Q);
     MCRT();
 
@@ -31,9 +34,14 @@ struct MCRT {
     void set_spherical_grid(py::array_t<double> r, py::array_t<double> theta,
             py::array_t<double> phi);
 
-    void thermal_mc();
-    void scattering_mc();
+    void thermal_mc(int nphot, bool bw, bool use_mrw, int mrw_gamma,
+            bool verbose);
+    void scattering_mc(int nphot, bool verbose);
+
     void mc_iteration();
-    void run_image(Image *I);
-    void run_spectrum(Spectrum *S);
+
+    void run_image(int nx, int ny, double pixel_size, py::array_t<double> lam, 
+            int nphot, double incl, double pa, double dpc);
+    void run_spectrum(py::array_t<double> lam, int nphot, double incl, 
+            double pa, double dpc);
 };

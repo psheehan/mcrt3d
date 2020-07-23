@@ -25,7 +25,18 @@ void MCRT::set_spherical_grid(py::array_t<double> r,
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
  * grid. */
 
-void MCRT::thermal_mc() {
+void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, int mrw_gamma, 
+        bool verbose) {
+    // Make sure parameters are set properly.
+
+    Q->nphot = nphot; 
+    Q->bw = bw; 
+    Q->use_mrw = use_mrw; 
+    Q->mrw_gamma = mrw_gamma;
+    Q->verbose = verbose;
+    Q->scattering = false;
+
+    // Do the thermal calculation.
     if (Q->bw)
         mc_iteration();
     else {
@@ -66,13 +77,19 @@ void MCRT::thermal_mc() {
     }
 }
 
-void MCRT::scattering_mc() {
+void MCRT::scattering_mc(int nphot, bool verbose) {
+    // Make sure parameters are set properly.
+
+    Q->nphot = nphot; 
+    Q->use_mrw = false; 
+    Q->verbose = verbose;
+
     // Make sure we've turned the scattering simulation option on.
     bool old_scattering = Q->scattering;
     Q->scattering = true;
 
     // Set the Grid's scattering array.
-    //G->initialize_scattering_array();
+    G->initialize_scattering_array();
 
     // Run the simulation for every frequency bin.
     for (int inu=0; inu<Q->nnu; inu++) {
@@ -117,38 +134,65 @@ void MCRT::mc_iteration() {
     }
 }
 
-void MCRT::run_image(Image *I) {
+void MCRT::run_image(int nx, int ny, double pixel_size, 
+        py::array_t<double> __lam, int nphot, double incl, double pa, 
+        double dpc) {
+
     // Set some parameters that are going to be needed.
-    Q->scattering_nu = I->nu;
-    Q->nnu = I->nnu;
+    auto _lam_buf = __lam.request();
+    if (_lam_buf.ndim != 1)
+        throw std::runtime_error("Number of dimensions must be one");
+    double *lam = (double *) _lam_buf.ptr;
+
+    Q->nnu = _lam_buf.shape[0];
+    Q->scattering_nu = new double[Q->nnu];
+
+    for (int i = 0; i < Q->nnu; i++)
+        Q->scattering_nu[i] = c_l / lam[i];
 
     // Run a scattering simulation.
-    scattering_mc();
+    scattering_mc(Q->nphot, Q->verbose);
 
     // Now, run the image through the camera.
-    C->make_image(I);
+    Image *I = C->make_image(nx, ny, pixel_size, __lam, incl, pa, dpc);
+
+    images.append(I);
 
     // Clean up the appropriate grid parameters.
     //G->deallocate_scattering_array();
     freepymangle(G->scatt[0]);
     G->scatt.clear();
+    delete Q->scattering_nu;
 }
 
-void MCRT::run_spectrum(Spectrum *S) {
+void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl, 
+            double pa, double dpc) {
     // Set some parameters that are going to be needed.
-    Q->scattering_nu = S->nu;
-    Q->nnu = S->nnu;
+
+    auto _lam_buf = __lam.request();
+    if (_lam_buf.ndim != 1)
+        throw std::runtime_error("Number of dimensions must be one");
+    double *lam = (double *) _lam_buf.ptr;
+
+    Q-> nnu = _lam_buf.shape[0];
+    Q->scattering_nu = new double[Q->nnu];
+
+    for (int i = 0; i < Q->nnu; i++)
+        Q->scattering_nu[i] = c_l / lam[i];
 
     // Run a scattering simulation.
-    scattering_mc();
+    scattering_mc(Q->nphot, Q->verbose);
 
     // Now, run the image through the camera.
-    C->make_spectrum(S);
+    Spectrum *S = C->make_spectrum(__lam, incl, pa, dpc);
+
+    spectra.append(S);
 
     // Clean up the appropriate grid parameters.
     //G->deallocate_scattering_array();
     freepymangle(G->scatt[0]);
     G->scatt.clear();
+    delete Q->scattering_nu;
 }
 
 PYBIND11_MODULE(mcrt3d, m) {
@@ -171,6 +215,7 @@ PYBIND11_MODULE(mcrt3d, m) {
         .def_readonly("density", &Grid::_dens)
         .def_readonly("temperature", &Grid::_temp)
         .def_readonly("dust", &Grid::_dust)
+        .def_readonly("scatt", &Grid::_scatt)
         .def("add_density", &Grid::add_density, 
                 "Add a density layer to the Grid.")
         .def("add_star", &Grid::add_star, "Add a star to the Grid.", 
@@ -203,7 +248,10 @@ PYBIND11_MODULE(mcrt3d, m) {
         .def("set_spherical_grid", &MCRT::set_spherical_grid,
                 "Setup a grid in spherical coordinates.")
         .def("thermal_mc", &MCRT::thermal_mc, 
-                "Calculate the temperature throughout the grid.")
+                "Calculate the temperature throughout the grid.",
+                py::arg("nphot")=1000000, py::arg("bw")=true, 
+                py::arg("use_mrw")=false, py::arg("mrw_gamma")=4, 
+                py::arg("verbose")=false)
         .def("run_image", &MCRT::run_image, "Generate an image.")
         .def("run_spectrum", &MCRT::run_spectrum, "Generate a spectrum.");
 }

@@ -241,6 +241,15 @@ void set4DArrValue(std::vector<double***> arr, double value, int nx, int ny,
                     arr[i][j][k][l] = value;
 }
 
+void set4DArrValue(double**** arr, double value, int nx, int ny, int nz, 
+        int nq) {
+    for (int i=0; i<nx; i++)
+        for (int j=0; j<ny; j++)
+            for (int k=0; k<nz; k++)
+                for (int l=0; l<nq; l++)
+                    arr[i][j][k][l] = value;
+}
+
 /* Set one 4-dimensional array equal to another 4-dimensional array, element
  * by element. */
 

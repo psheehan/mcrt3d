@@ -1,10 +1,59 @@
 #include "camera.h"
 
-Image::Image(double _r, double _incl, double _pa, double *_x, double *_y, 
-            double *_intensity, int _nx, int _ny, double *_nu, 
-            double _pixel_size, int _nnu) {
+Image::Image(int _nx, int _ny, double _pixel_size, py::array_t<double> __lam,
+            double _incl, double _pa, double _dpc) {
+    // Start by setting up the appropriate Python arrays.
 
-    r = _r;
+    _x = py::array_t<double>(nx);
+    _y = py::array_t<double>(ny);
+    _lam = __lam;
+
+    auto _x_buf = _x.request(); auto _y_buf = _y.request(); 
+    auto _lam_buf = _lam.request();
+
+    if (_lam_buf.ndim != 1)
+        throw std::runtime_error("Number of dimensions must be one");
+
+    // Now get the correct format.
+    
+    x = (double *) _x_buf.ptr; 
+    y = (double *) _y_buf.ptr; 
+    lam = (double *) _lam_buf.ptr;
+
+    nnu = _lam_buf.shape[0];
+
+    // Set up the x and y values properly.
+
+    pixel_size = _pixel_size;
+
+    for (int i = 0; i < nx; i++)
+        x[i] = (i - nx/2)*pixel_size*_dpc*pc;
+    for (int i = 0; i < ny; i++)
+        y[i] = (i - ny/2)*pixel_size*_dpc*pc;
+
+    // Set up the frequency array.
+
+    _nu = py::array_t<double>(nnu);
+    auto _nu_buf = _nu.request();
+
+    nu = (double *) _nu_buf.ptr;
+
+    for (int i = 0; i < nnu; i++)
+        nu[i] = c_l / lam[i];
+
+    // Set up the volume of each cell.
+
+    _intensity = py::array_t<double>(nx*ny*nnu);
+    _intensity.resize({nx, ny, nnu});
+
+    auto _intensity_buf = _intensity.request();
+    intensity = pymangle(nx, ny, nnu, (double *) _intensity_buf.ptr);
+
+    set3DArrValue(intensity, 0., nx, ny, nnu);
+    
+    // Set viewing angle parameters.
+
+    r = _dpc*pc;
     incl = _incl;
     pa = _pa;
 
@@ -25,23 +74,47 @@ Image::Image(double _r, double _incl, double _pa, double *_x, double *_y,
     ez[0] = -sin(incl)*cos(phi);
     ez[1] = -sin(incl)*sin(phi);
     ez[2] = -cos(incl);
-
-    x = _x;
-    y = _y;
-    intensity = pymangle(_nx, _ny, _nnu, _intensity);
-    nx = _nx;
-    ny = _ny;
-    nu = _nu;
-    nnu = _nnu;
-
-    pixel_size = _pixel_size;
 }
 
-Image::Image(double _r, double _incl, double _pa, double *_x, double *_y, 
-            double ***_intensity, int _nx, int _ny, double *_nu, 
-            double _pixel_size, int _nnu) {
+Spectrum::Spectrum(py::array_t<double> __lam, double _incl, double _pa, 
+        double _dpc) {
+    // Start by setting up the appropriate Python arrays.
 
-    r = _r;
+    _lam = __lam;
+    auto _lam_buf = _lam.request();
+
+    if (_lam_buf.ndim != 1)
+        throw std::runtime_error("Number of dimensions must be one");
+
+    // Now get the correct format.
+    
+    lam = (double *) _lam_buf.ptr;
+
+    nnu = _lam_buf.shape[0];
+
+    // Set up the frequency array.
+
+    _nu = py::array_t<double>(nnu);
+    auto _nu_buf = _nu.request();
+
+    nu = (double *) _nu_buf.ptr;
+
+    for (int i = 0; i < nnu; i++)
+        nu[i] = c_l / lam[i];
+
+    // Set up the volume of each cell.
+
+    _intensity = py::array_t<double>(nnu);
+
+    auto _intensity_buf = _intensity.request();
+    intensity = (double *) _intensity_buf.ptr;
+
+    for (int i = 0; i < nnu; i++)
+        intensity[i] = 0;
+    
+    // Set viewing angle parameters.
+
+    r = _dpc*pc;
     incl = _incl;
     pa = _pa;
 
@@ -61,49 +134,6 @@ Image::Image(double _r, double _incl, double _pa, double *_x, double *_y,
 
     ez[0] = -sin(incl)*cos(phi);
     ez[1] = -sin(incl)*sin(phi);
-    ez[2] = -cos(incl);
-
-    x = _x;
-    y = _y;
-    intensity = _intensity;
-    nx = _nx;
-    ny = _ny;
-    nu = _nu;
-    nnu = _nnu;
-
-    pixel_size = _pixel_size;
-}
-
-Spectrum::Spectrum(double _r, double _incl, double _pa, double *_intensity, 
-        double *_nu, double _pixel_size, int _nnu) {
-
-    r = _r;
-    incl = _incl;
-    pa = _pa;
-
-    double phi = -pi/2 - pa;
-
-    i[0] = r*sin(incl)*cos(phi);
-    i[1] = r*sin(incl)*sin(phi);
-    i[2] = r*cos(incl);
-
-    ex[0] = -sin(phi);
-    ex[1] = cos(phi);
-    ex[2] = 0.0;
-
-    ey[0] = -cos(incl)*cos(phi);
-    ey[1] = -cos(incl)*sin(phi);
-    ey[2] = sin(incl);
-
-    ez[0] = -sin(incl)*cos(phi);
-    ez[1] = -sin(incl)*sin(phi);
-    ez[2] = -cos(incl);
-
-    intensity = _intensity;
-    nu = _nu;
-    nnu = _nnu;
-
-    pixel_size = _pixel_size;
 }
 
 Camera::Camera(Grid *_G, Params *_Q) {
@@ -111,8 +141,14 @@ Camera::Camera(Grid *_G, Params *_Q) {
     Q = _Q;
 }
 
-void Camera::make_image(Image *I) {
-    image = I;
+Image *Camera::make_image(int nx, int ny, double pixel_size, 
+        py::array_t<double> lam, double incl, double pa, double dpc) {
+
+    // Set up the image.
+
+    Image *image = new Image(nx, ny, pixel_size, lam, incl, pa, dpc);
+
+    // Now go through and raytrace.
 
     for (int i=0; i<image->nnu; i++)
     {
@@ -125,32 +161,31 @@ void Camera::make_image(Image *I) {
             }
     }
 
+    // Also raytrace the sources.
+
     raytrace_sources(image);
+
+    // And return.
+
+    return image;
 }
 
-void Camera::make_spectrum(Spectrum *S) {
+Spectrum *Camera::make_spectrum(py::array_t<double> lam, double incl,
+        double pa, double dpc) {
     // Set up parameters for the image.
+
     int nx = 100;
     int ny = 100;
 
-    double *x = new double[nx];
-    double *y = new double[ny];
-
-    for (int i=0; i<nx; i++)
-        x[i] = (i - nx/2)*S->pixel_size;
-    for (int i=0; i<ny; i++)
-        y[i] = (i - ny/2)*S->pixel_size;
-    
-    double ***intensity = create3DArrValue(nx, ny, S->nnu, 0.);
+    double pixel_size = 0.1; //TODO: Set this properly!
 
     // Set up and create an image.
-    Image *image = new Image(S->r, S->incl, S->pa, x, y, intensity,  
-            nx, ny, S->nu, S->pixel_size, S->nnu);
 
-    // Run the image.
-    make_image(image);
+    Image *image = make_image(nx, ny, pixel_size, lam, incl, pa, dpc);
 
     // Sum the image intensity.
+    Spectrum *S = new Spectrum(lam, incl, pa, dpc);
+
     for (int i=0; i<image->nnu; i++)
         for (int j=0; j<image->nx; j++)
             for (int k=0; k<image->ny; k++) {
@@ -158,9 +193,11 @@ void Camera::make_spectrum(Spectrum *S) {
             }
 
     // Delete the parts of the image we no longer need.
-    delete[] x;
-    delete[] y;
-    delete[] image;
+    delete image;
+
+    // And return the spectrum.
+
+    return S;
 }
 
 Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {

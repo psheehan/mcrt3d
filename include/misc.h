@@ -107,6 +107,9 @@ double ****create4DArrValue(int nx, int ny, int nz, int nq, double value);
 void set4DArrValue(std::vector<double***> arr, double value, int nx, int ny, 
         int nz, int nq);
 
+void set4DArrValue(double**** arr, double value, int nx, int ny, 
+        int nz, int nq);
+
 /* Set one 4-dimensional array equal to another 4-dimensional array, element
  * by element. */
 
