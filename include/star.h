@@ -1,6 +1,9 @@
 #ifndef STAR_H
 #define STAR_H
 
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+
 #include <stdlib.h>
 #include "vector.h"
 #include "dust.h"
@@ -8,6 +11,8 @@
 #include "misc.h"
 #include "params.h"
 #include "source.h"
+
+namespace py = pybind11;
 
 struct Star : public Source {
     double mass;
@@ -20,8 +25,7 @@ struct Star : public Source {
 
     ~Star();
 
-    void set_blackbody_spectrum(int _nnu, double *_nu, double *_Bnu, 
-            double _luminosity, double *_random_nu_CPD);
+    void set_blackbody_spectrum(py::array_t<double> nu);
 
     double *random_nu_CPD;
 

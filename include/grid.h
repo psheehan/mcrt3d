@@ -54,6 +54,7 @@ struct Grid {
 
     int nsources;
     std::vector<Source*> sources;
+    py::list _sources;
     double total_lum;
 
     Params *Q;

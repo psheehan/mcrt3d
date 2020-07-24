@@ -11,20 +11,54 @@ Star::Star(double x, double y, double z, double _mass, double _radius, \
     mass = _mass;
     radius = _radius;
     temperature = _temperature;
+
+    spectrum_set = false;
 }
 
 Star::~Star() {
-    //delete[] random_nu_CPD;
+    if (spectrum_set)
+        delete[] random_nu_CPD;
 }
 
-void Star::set_blackbody_spectrum(int _nnu, double *_nu, double *_Bnu, 
-        double _luminosity, double *_random_nu_CPD) {
+void Star::set_blackbody_spectrum(py::array_t<double> __lam) {
 
-    nnu = _nnu;
-    nu = _nu;
-    Bnu = _Bnu;
-    luminosity = _luminosity;
-    random_nu_CPD = _random_nu_CPD;
+    // Load the array buffers to get the proper setup info.
+
+    _lam = __lam;
+    auto _lam_buf = __lam.request();
+
+    if (_lam_buf.ndim != 1)
+        throw std::runtime_error("Number of dimensions must be one");
+
+    lam = (double *) _lam_buf.ptr;
+    nnu = _lam_buf.shape[0];
+
+    // Set up the frequency array.
+
+    _nu = py::array_t<double>(nnu); auto _nu_buf = _nu.request();
+    nu = (double *) _nu_buf.ptr;
+
+    for (int i = 0; i < nnu; i++)
+        nu[i] = c_l / lam[i];
+
+    // And set up the spectrum.
+
+    _flux = py::array_t<double>(nnu); auto _flux_buf = _flux.request();
+    Bnu = (double *) _flux_buf.ptr;
+
+    for (int i = 0; i < nnu; i++)
+        Bnu[i] = planck_function(nu[i], temperature);
+
+    luminosity = 4*pi*radius*radius*sigma*temperature*temperature*temperature*
+            temperature;
+
+    // Calculate the lookup array for the cumulative spectrum.
+
+    random_nu_CPD = cumulative_integrate(Bnu, nu, nnu);
+
+    // Indicate that the spectrum was calculated.
+
+    spectrum_set = true;
 }
 
 /* Emit a photon from the source. */

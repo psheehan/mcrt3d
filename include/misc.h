@@ -43,6 +43,8 @@ double planck_function(double nu, double T);
 
 double integrate(double *y, double *x, int nx);
 
+double* cumulative_integrate(double *y, double *x, int nx);
+
 /* Define what amounts to a tiny value. */
 
 const double EPSILON = 1.0e-6;

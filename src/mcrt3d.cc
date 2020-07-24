@@ -211,12 +211,23 @@ PYBIND11_MODULE(mcrt3d, m) {
         .def(py::init<py::array_t<double>, py::array_t<double>, 
                 py::array_t<double>>());
 
+    py::class_<Source>(m, "Source")
+        .def_readonly("lam", &Source::_lam)
+        .def_readonly("nu", &Source::_nu)
+        .def_readonly("flux", &Source::_flux);
+
+    py::class_<Star, Source>(m, "Star")
+        .def(py::init<double, double, double, double, double, double>())
+        .def("set_blackbody_spectrum", &Star::set_blackbody_spectrum, 
+                "Set the spectrum of the star to be a blackbody.");
+
     py::class_<Grid>(m, "Grid")
         .def_readonly("volume", &Grid::_volume)
         .def_readonly("density", &Grid::_dens)
         .def_readonly("temperature", &Grid::_temp)
         .def_readonly("dust", &Grid::_dust)
         .def_readonly("scatt", &Grid::_scatt)
+        .def_readonly("sources", &Grid::_sources)
         .def("add_density", &Grid::add_density, 
                 "Add a density layer to the Grid.")
         .def("add_star", &Grid::add_star, "Add a star to the Grid.", 

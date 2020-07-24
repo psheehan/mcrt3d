@@ -37,6 +37,24 @@ double integrate(double *y, double *x, int nx) {
     return sum;
 };
 
+/* Cumulatively integrate. */
+
+double* cumulative_integrate(double *y, double *x, int nx) {
+    double sum = 0;
+    double* cum_sum = new double[nx];
+
+    cum_sum[0] = sum;
+    for (int i = 1; i < nx; i++) {
+        sum += 0.5*(y[i]+y[i-1])*(x[i]-x[i-1]);
+        cum_sum[i] = sum;
+    }
+
+    for (int i = 0; i < nx; i++)
+        cum_sum[i] /= sum;
+
+    return cum_sum;
+}
+
 /* Test whether two values are equal within a given tolerance. */
 
 bool equal(double x, double y, double tol) {

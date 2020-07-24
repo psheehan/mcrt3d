@@ -142,6 +142,7 @@ void Grid::add_star(double x, double y, double z, double _mass, double _radius,
     //TODO: calculate the lookup tables somehow!
     
     sources.push_back(S);
+    _sources.append(S);
     nsources++;
 }
 
