@@ -1,5 +1,9 @@
 #include "source.h"
 
+Source::~Source() {
+    //delete[] nu; delete[] Bnu;
+}
+
 /* Emit a photon from the source. */
 
 Photon *Source::emit(int nphot) {

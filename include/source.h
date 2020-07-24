@@ -14,6 +14,8 @@ struct Source {
     double *Bnu;
     int nnu;
 
+    virtual ~Source();
+
     virtual Photon *emit(int nphot);
     virtual Photon *emit(double _nu, double _dnu, int nphot);
     virtual Ray *emit_ray(double _nu, double _dnu, double _pixelsize, \

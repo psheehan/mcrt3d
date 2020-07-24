@@ -4,6 +4,10 @@ MCRT::MCRT() {
     Q = new Params();
 }
 
+MCRT::~MCRT() {
+    delete G; delete C; delete Q;
+}
+
 void MCRT::set_cartesian_grid(py::array_t<double> x, py::array_t<double> y,
         py::array_t<double> z) {
     G = new CartesianGrid(x, y, z);
@@ -70,10 +74,8 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, int mrw_gamma,
             printf("\n");
         }
 
-        for (int i=0; i<G->nspecies; i++) {
-            delete told[i];
-            delete treallyold[i];
-        }
+        delete4DArr(told, G->nspecies, G->n1, G->n2, G->n3);
+        delete4DArr(treallyold, G->nspecies, G->n1, G->n2, G->n3);
     }
 }
 
@@ -128,7 +130,6 @@ void MCRT::mc_iteration() {
         else
             G->propagate_photon_full(P);
 
-        P->clean();
         delete P;
         if (Q->verbose) printf("Photon has escaped the grid.\n\n");
     }
@@ -159,10 +160,10 @@ void MCRT::run_image(int nx, int ny, double pixel_size,
     images.append(I);
 
     // Clean up the appropriate grid parameters.
-    //G->deallocate_scattering_array();
-    freepymangle(G->scatt[0]);
-    G->scatt.clear();
-    delete Q->scattering_nu;
+    G->deallocate_scattering_array();
+
+    Q->nnu = 0;
+    delete[] Q->scattering_nu;
 }
 
 void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl, 
@@ -189,10 +190,10 @@ void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl,
     spectra.append(S);
 
     // Clean up the appropriate grid parameters.
-    //G->deallocate_scattering_array();
-    freepymangle(G->scatt[0]);
-    G->scatt.clear();
-    delete Q->scattering_nu;
+    G->deallocate_scattering_array();
+
+    Q->nnu = 0;
+    delete[] Q->scattering_nu;
 }
 
 PYBIND11_MODULE(mcrt3d, m) {

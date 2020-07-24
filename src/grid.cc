@@ -32,6 +32,10 @@ Grid::Grid(py::array_t<double> __w1, py::array_t<double> __w2,
     double *__volume = (double *) _volume_buf.ptr;
 
     volume = pymangle(n1, n2, n3, __volume);
+
+    // Make sure the number of species and sources are set correctly.
+
+    nspecies = 0; nsources = 0;
 }
 
 /* Functions to set up the grid. */
@@ -53,6 +57,32 @@ Grid::Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3,
     mirror_symmetry = _mirror_symmetry;
 
     volume = pymangle(n1, n2, n3, _volume);
+}
+
+Grid::~Grid() {
+    // Free the physical parameters;
+
+    freepymangle(volume);
+
+    for (int i = 0; i < nspecies; i++) {
+        freepymangle(dens[i]);
+        freepymangle(temp[i]);
+        delete3DArr(mass[i], n1, n2, n3);
+        delete3DArr(energy[i], n1, n2, n3);
+    }
+    dens.clear(); temp.clear(); mass.clear(); energy.clear(); dust.clear();
+
+    // Make sure the scattering array is deallocated.
+
+    if (scatt.size() > 0)
+        deallocate_scattering_array();
+
+    // Clear the sources.
+    
+    for (int i = 0; i < nsources; i++) {
+        delete sources[i];
+    }
+    sources.clear();
 }
 
 //void Grid::add_density(double *_dens, double *_temp, double *_mass, 
@@ -151,18 +181,9 @@ void Grid::initialize_scattering_array() {
 }
 
 void Grid::deallocate_scattering_array() {
-    for (int idust = 0; idust<nspecies; idust++) {
-        for (int ix = 0; ix<n1; ix++) {
-            for (int iy = 0; iy<n2; iy++) {
-                for (int iz = 0; iz<n3; iz++) {
-                    delete scatt[idust][ix][iy][iz];
-                }
-                delete scatt[idust][ix][iy];
-            }
-            delete scatt[idust][ix];
-        }
-        scatt.erase(scatt.begin());
-    }
+    for (int idust = 0; idust < (int) scatt.size(); idust++)
+        freepymangle(scatt[idust]);
+    scatt.clear();
 }
 
 void Grid::initialize_luminosity_array() {
@@ -213,14 +234,9 @@ void Grid::initialize_luminosity_array(double nu) {
 
 void Grid::deallocate_luminosity_array() {
     for (int idust = 0; idust<nspecies; idust++) {
-        for (int ix = 0; ix<n1; ix++) {
-            for (int iy = 0; iy<n2; iy++) {
-                delete luminosity[idust][ix][iy];
-            }
-            delete luminosity[idust][ix];
-        }
-        luminosity.erase(luminosity.begin());
+        delete3DArr(luminosity[idust], n1, n2, n3);
     }
+    luminosity.clear();
 }
 
 /* Emit a photon from the grid. */

@@ -76,6 +76,10 @@ Image::Image(int _nx, int _ny, double _pixel_size, py::array_t<double> __lam,
     ez[2] = -cos(incl);
 }
 
+Image::~Image() {
+    freepymangle(intensity);
+}
+
 Spectrum::Spectrum(py::array_t<double> __lam, double _incl, double _pa, 
         double _dpc) {
     // Start by setting up the appropriate Python arrays.
@@ -306,8 +310,11 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu) {
 
         return intensity;
     }
-    else
+    else {
+        delete R; // Make sure the Ray instance is cleaned up.
+
         return 0.0;
+    }
 }
 
 void Camera::raytrace_sources(Image *I) {
@@ -351,6 +358,9 @@ void Camera::raytrace_sources(Image *I) {
 
                 // Finally, add the energy into the appropriate cell.
                 image->intensity[ix][iy][inu] += R->intensity;
+
+                // And clean up the Ray.
+                delete R;
             }
         }
     }

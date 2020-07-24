@@ -58,6 +58,9 @@ Dust::Dust(int _nlam, double *_nu, double *_lam, double *_kabs,
     albedo = _albedo;
 }
 
+//Dust::~Dust() {
+//}
+
 void Dust::set_lookup_tables(int _ntemp, double *_temp, 
         double *_planck_opacity, double *_rosseland_extinction, 
         double *_dplanck_opacity_dT, double *_drosseland_extinction_dT,

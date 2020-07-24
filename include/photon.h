@@ -14,13 +14,13 @@ struct Photon {
 
     double rad, phi, theta;
 
+    /* Clean up the photon to remove any pointers. */
+
+    ~Photon();
+
     /* Move the photon a distance s along its direction vector. */
 
     void move(double s);
-
-    /* Clean up the photon to remove any pointers. */
-
-    void clean();
 };
 
 struct Ray : public Photon {

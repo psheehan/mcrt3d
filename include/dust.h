@@ -46,6 +46,8 @@ struct Dust {
 
     Dust(int _nlam, double *_nu, double *_lam, double *_kabs, double *_ksca, 
             double *_kext, double *_albedo);
+
+    //~Dust();
         
     void set_lookup_tables(int _ntemp, double *_temp, 
             double *_planck_opacity, double *_rosseland_extinction, 

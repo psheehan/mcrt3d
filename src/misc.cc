@@ -172,6 +172,17 @@ double ***create3DArrValue(int nx, int ny, int nz, int value) {
     return arr;
 };
 
+/* Delete a 3-dimensional array. */
+
+void delete3DArr(double ***arr, int nx, int ny, int nz) {
+    for (int i=0; i<nx; i++) {
+        for (int j=0; j<ny; j++)
+            delete[] arr[i][j];
+        delete[] arr[i];
+    }
+    delete[] arr;
+};
+
 /* Set the value of a 3-dimensional array to a constant value. */
 
 void set3DArrValue(double ***arr, double value, int nx, int ny, int nz) {
@@ -194,16 +205,6 @@ void equate3DArrs(double ***arr1, double ***arr2, int nx, int ny, int nz) {
 /* Create an empty 4-dimensional array. */
 
 std::vector<double***> create4DArr(int nx, int ny, int nz, int nq) {
-    /*double ****arr = new double***[nx];
-    for (int i=0; i<nx; i++) {
-        arr[i] = new double**[ny];
-        for (int j=0; j<ny; j++) {
-            arr[i][j] = new double*[nz];
-            for (int k=0; k<nz; k++)
-                arr[i][j][k] = new double[nq];
-        }
-    }*/
-
     std::vector<double***> arr;
     for (int i=0; i<nx; i++)
         arr.push_back(create3DArr(ny, nz, nq));
@@ -211,9 +212,15 @@ std::vector<double***> create4DArr(int nx, int ny, int nz, int nq) {
     return arr;
 };
 
+void delete4DArr(std::vector<double***> arr, int nx, int ny, int nz, int nq) {
+    for (int i = 0; i < nx; i++)
+        delete3DArr(arr[i], ny, nz, nq);
+    arr.clear();
+}
+
 /* Create a 3-dimensional array filled with a particular value. */
 
-double ****create4DArrValue(int nx, int ny, int nz, int nq, double value) {
+/*double ****create4DArrValue(int nx, int ny, int nz, int nq, double value) {
     double ****arr = new double***[nx];
     for (int i=0; i<nx; i++) {
         arr[i] = new double**[ny];
@@ -228,7 +235,7 @@ double ****create4DArrValue(int nx, int ny, int nz, int nq, double value) {
     }
 
     return arr;
-};
+};*/
 
 /* Set the value of a 4-dimensional array to a constant value. */
 
@@ -322,10 +329,8 @@ bool converged(std::vector<double***> newArr, std::vector<double***> oldArr,
 
     bool conv = ((Q < Qthresh) && (Del < Delthresh));
 
-    for (int i=0; i<n1; i++) {
-        delete R[i];
-        delete Rold[i];
-    }
+    delete4DArr(R, n1, n2, n3, n4);
+    delete4DArr(Rold, n1, n2, n3, n4);
 
     return conv;
 }

@@ -18,6 +18,8 @@ struct Star : public Source {
     Star(double x, double y, double z, double _mass, double _radius, 
             double _temperature);
 
+    ~Star();
+
     void set_blackbody_spectrum(int _nnu, double *_nu, double *_Bnu, 
             double _luminosity, double *_random_nu_CPD);
 

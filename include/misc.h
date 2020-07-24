@@ -85,6 +85,8 @@ double ***create3DArr(int nx, int ny, int nz);
 
 double ***create3DArrValue(int nx, int ny, int nz, int value);
 
+void delete3DArr(double ***arr, int nx, int ny, int nz);
+
 /* Set the value of a 3-dimensional array to a constant value. */
 
 void set3DArrValue(double ***arr, double value, int nx, int ny, int nz);
@@ -98,9 +100,11 @@ void equate3DArrs(double ***arr1, double ***arr2, int nx, int ny, int nz);
 
 std::vector<double***> create4DArr(int nx, int ny, int nz, int nq);
 
+void delete4DArr(std::vector<double***> arr, int nx, int ny, int nz, int nq);
+
 /* Create a 3-dimensional array filled with a particular value. */
 
-double ****create4DArrValue(int nx, int ny, int nz, int nq, double value);
+//double ****create4DArrValue(int nx, int ny, int nz, int nq, double value);
 
 /* Set the value of a 4-dimensional array to a constant value. */
 

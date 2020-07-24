@@ -26,6 +26,7 @@ struct MCRT {
 
     //MCRT(Grid *G, Params *Q);
     MCRT();
+    ~MCRT();
 
     void set_cartesian_grid(py::array_t<double> x, py::array_t<double> y,
             py::array_t<double> z);

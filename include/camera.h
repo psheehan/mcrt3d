@@ -40,6 +40,8 @@ struct Image {
 
     Image(int nx, int ny, double pixel_size, py::array_t<double> lam, 
             double incl, double pa, double dpc);
+
+    ~Image();
 };
 
 struct Spectrum {

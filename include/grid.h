@@ -70,6 +70,8 @@ struct Grid {
             double *_w1, double *_w2, double *_w3, double *_volume,
             bool _mirror_symmetry);
 
+    ~Grid();
+
     //void add_density(double *_dens, double *_temp, double *_mass, 
     //        Dust *D);
     void add_density(py::array_t<double>, Dust *d);
