@@ -41,7 +41,7 @@ struct MCRT {
 
     void mc_iteration();
 
-    void run_image(int nx, int ny, double pixel_size, py::array_t<double> lam, 
+    void run_image(py::array_t<double> lam, int nx, int ny, double pixel_size, 
             int nphot, double incl, double pa, double dpc);
     void run_spectrum(py::array_t<double> lam, int nphot, double incl, 
             double pa, double dpc);

@@ -141,9 +141,8 @@ void MCRT::mc_iteration() {
     }
 }
 
-void MCRT::run_image(int nx, int ny, double pixel_size, 
-        py::array_t<double> __lam, int nphot, double incl, double pa, 
-        double dpc) {
+void MCRT::run_image(py::array_t<double> __lam, int nx, int ny, 
+        double pixel_size, int nphot, double incl, double pa, double dpc) {
 
     // Set some parameters that are going to be needed.
     auto _lam_buf = __lam.request();
@@ -155,10 +154,10 @@ void MCRT::run_image(int nx, int ny, double pixel_size,
     Q->scattering_nu = new double[Q->nnu];
 
     for (int i = 0; i < Q->nnu; i++)
-        Q->scattering_nu[i] = c_l / lam[i];
+        Q->scattering_nu[i] = c_l / (lam[i]*1.0e-4);
 
     // Run a scattering simulation.
-    scattering_mc(Q->nphot, Q->verbose);
+    scattering_mc(nphot, false);
 
     // Now, run the image through the camera.
     Image *I = C->make_image(nx, ny, pixel_size, __lam, incl, pa, dpc);
@@ -185,10 +184,10 @@ void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl,
     Q->scattering_nu = new double[Q->nnu];
 
     for (int i = 0; i < Q->nnu; i++)
-        Q->scattering_nu[i] = c_l / lam[i];
+        Q->scattering_nu[i] = c_l / (lam[i]*1.0e-4);
 
     // Run a scattering simulation.
-    scattering_mc(Q->nphot, Q->verbose);
+    scattering_mc(nphot, false);
 
     // Now, run the image through the camera.
     Spectrum *S = C->make_spectrum(__lam, incl, pa, dpc);
@@ -256,9 +255,23 @@ PYBIND11_MODULE(mcrt3d, m) {
         .def_readonly("theta", &SphericalGrid::theta)
         .def_readonly("phi", &SphericalGrid::phi);
 
+    py::class_<Image>(m, "Image")
+        .def_readonly("x", &Image::_x)
+        .def_readonly("y", &Image::_x)
+        .def_readonly("intensity", &Image::_intensity)
+        .def_readonly("nu", &Image::_nu)
+        .def_readonly("lam", &Image::_lam);
+
+    py::class_<Spectrum>(m, "Spectrum")
+        .def_readonly("intensity", &Spectrum::_intensity)
+        .def_readonly("nu", &Spectrum::_nu)
+        .def_readonly("lam", &Spectrum::_lam);
+
     py::class_<MCRT>(m, "MCRT")
         .def(py::init<>())
         .def_readonly("grid", &MCRT::G)
+        .def_readonly("images", &MCRT::images)
+        .def_readonly("spectra", &MCRT::spectra)
         .def("set_cartesian_grid", &MCRT::set_cartesian_grid,
                 "Setup a grid in cartesian coordinates.")
         .def("set_cylindrical_grid", &MCRT::set_cylindrical_grid,
@@ -270,6 +283,11 @@ PYBIND11_MODULE(mcrt3d, m) {
                 py::arg("nphot")=1000000, py::arg("bw")=true, 
                 py::arg("use_mrw")=false, py::arg("mrw_gamma")=4, 
                 py::arg("verbose")=false)
-        .def("run_image", &MCRT::run_image, "Generate an image.")
-        .def("run_spectrum", &MCRT::run_spectrum, "Generate a spectrum.");
+        .def("run_image", &MCRT::run_image, "Generate an image.", 
+                py::arg("lam"), py::arg("nx")=256, py::arg("ny")=256, 
+                py::arg("pixel_size")=0.1, py::arg("nphot")=100000, 
+                py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1.)
+        .def("run_spectrum", &MCRT::run_spectrum, "Generate a spectrum.", 
+                py::arg("lam"), py::arg("nphot")=10000, py::arg("incl")=0,
+                py::arg("pa")=0, py::arg("dpc")=1.);
 }

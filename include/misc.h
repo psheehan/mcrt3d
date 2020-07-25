@@ -28,6 +28,8 @@ const double c_l = 2.99792458e10;
 const double h = 6.6260755e-27;
 const double k = 1.380658e-16;
 const double sigma = 5.67051e-5;
+const double arcsec = 4.8481e-6;
+const double Jy = 1.0e-23;
 
 /* Get a random number between 0 and 1. */
 

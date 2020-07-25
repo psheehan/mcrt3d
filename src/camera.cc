@@ -4,6 +4,7 @@ Image::Image(int _nx, int _ny, double _pixel_size, py::array_t<double> __lam,
             double _incl, double _pa, double _dpc) {
     // Start by setting up the appropriate Python arrays.
 
+    nx = _nx; ny = _ny;
     _x = py::array_t<double>(nx);
     _y = py::array_t<double>(ny);
     _lam = __lam;
@@ -24,12 +25,12 @@ Image::Image(int _nx, int _ny, double _pixel_size, py::array_t<double> __lam,
 
     // Set up the x and y values properly.
 
-    pixel_size = _pixel_size;
+    pixel_size = _pixel_size * arcsec * _dpc*pc;
 
     for (int i = 0; i < nx; i++)
-        x[i] = (i - nx/2)*pixel_size*_dpc*pc;
+        x[i] = (i - nx/2)*pixel_size;
     for (int i = 0; i < ny; i++)
-        y[i] = (i - ny/2)*pixel_size*_dpc*pc;
+        y[i] = (i - ny/2)*pixel_size;
 
     // Set up the frequency array.
 
@@ -39,7 +40,7 @@ Image::Image(int _nx, int _ny, double _pixel_size, py::array_t<double> __lam,
     nu = (double *) _nu_buf.ptr;
 
     for (int i = 0; i < nnu; i++)
-        nu[i] = c_l / lam[i];
+        nu[i] = c_l / (lam[i]*1.0e-4);
 
     // Set up the volume of each cell.
 
@@ -54,8 +55,8 @@ Image::Image(int _nx, int _ny, double _pixel_size, py::array_t<double> __lam,
     // Set viewing angle parameters.
 
     r = _dpc*pc;
-    incl = _incl;
-    pa = _pa;
+    incl = _incl * pi/180.;
+    pa = _pa * pi/180.;
 
     double phi = -pi/2 - pa;
 
@@ -104,7 +105,7 @@ Spectrum::Spectrum(py::array_t<double> __lam, double _incl, double _pa,
     nu = (double *) _nu_buf.ptr;
 
     for (int i = 0; i < nnu; i++)
-        nu[i] = c_l / lam[i];
+        nu[i] = c_l / (lam[i]*1.0e-4);
 
     // Set up the volume of each cell.
 
@@ -119,8 +120,8 @@ Spectrum::Spectrum(py::array_t<double> __lam, double _incl, double _pa,
     // Set viewing angle parameters.
 
     r = _dpc*pc;
-    incl = _incl;
-    pa = _pa;
+    incl = _incl * pi/180.;
+    pa = _pa * pi/180.;
 
     double phi = -pi/2 - pa;
 
@@ -150,7 +151,8 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
 
     // Set up the image.
 
-    Image *image = new Image(nx, ny, pixel_size, lam, incl, pa, dpc);
+    Image *I = new Image(nx, ny, pixel_size, lam, incl, pa, dpc);
+    image = I;
 
     // Now go through and raytrace.
 
@@ -161,7 +163,9 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
             for (int k=0; k<image->ny; k++) {
                 if (Q->verbose) printf("%d   %d\n", j, k);
                 image->intensity[j][k][i] = raytrace_pixel(image->x[j], 
-                        image->y[k], image->pixel_size, image->nu[i], 0);
+                        image->y[k], image->pixel_size, image->nu[i], 0) * 
+                        image->pixel_size * image->pixel_size / 
+                        (image->r * image->r)/ Jy;
             }
     }
 
@@ -171,7 +175,7 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
 
     // And return.
 
-    return image;
+    return I;
 }
 
 Spectrum *Camera::make_spectrum(py::array_t<double> lam, double incl,
@@ -181,7 +185,7 @@ Spectrum *Camera::make_spectrum(py::array_t<double> lam, double incl,
     int nx = 100;
     int ny = 100;
 
-    double pixel_size = G->grid_size()*1.1/(dpc*pc);
+    double pixel_size = G->grid_size()*1.1/(dpc*pc)/nx/arcsec;
 
     // Set up and create an image.
 
