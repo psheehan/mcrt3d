@@ -26,6 +26,17 @@ CylindricalGrid::CylindricalGrid(py::array_t<double> _r,
     double *__z = (double *) z_buf.ptr;
     for (int i = 0; i < n3; i++) __z[i] = 0.5 * (w3[i+1] + w3[i]);
     
+    // Check for mirror symmetry.
+
+    int volume_scale = 1;
+    if (equal_zero(w3[0], EPSILON))
+    {
+        mirror_symmetry = true;
+        volume_scale = 2;
+    }
+    else
+        mirror_symmetry = false;
+
     // Set up the volume of each cell.
 
     auto _volume_buf = _volume.request();
@@ -34,12 +45,8 @@ CylindricalGrid::CylindricalGrid(py::array_t<double> _r,
     for (int i = 0; i < n1; i++)
         for (int j = 0; j < n2; j++)
             for (int k = 0; k < n3; k++)
-                __volume[i*n2*n3 + j*n3 + k] = (w1[i+1] - w1[i]) * 
-                    (w2[j+1] - w2[j]) * (w3[k+1] - w3[k]);
-
-    // Finally, set up the mirror symmetry.
-
-     mirror_symmetry = false;
+                __volume[i*n2*n3 + j*n3 + k] = (w1[i+1]*w1[i+1] - w1[i]*w1[i]) *
+                    (w2[j+1] - w2[j]) * (w3[k+1] - w3[k])/2 * volume_scale;
 }
 
 /* Calculate the distance between the photon and the nearest wall. */

@@ -1,16 +1,13 @@
 #!/usr/bin/env python3
 
-from pdspy.constants.astronomy import AU, pc, Jy
+from pdspy.constants.astronomy import AU, pc, Jy, M_sun, R_sun
 import pdspy.modeling as modeling
 import pdspy.dust as dust
 import matplotlib.pyplot as plt
 import numpy
 
 from mcrt3d import MCRT
-from mcrt3d.dust import Dust
-from mcrt3d.sources import Star
-from mcrt3d.camera import Image, Spectrum
-from mcrt3d.constants.astronomy import M_sun, R_sun, AU
+from mcrt3d import IsotropicDust
 from time import time
 
 ################################################################################
@@ -91,15 +88,6 @@ m.run_sed(name="SED", nphot=1e4, loadlambda=True, incl=0, pa=0, \
 
 model = MCRT()
 
-# Set up the dust.
-
-dust = Dust(filename="../examples/dustkappa_yso.inp", radmc3d=True)
-
-# Set up the star.
-
-star = Star(0.0,0.0,0.0,M_sun,R_sun,4000.0)
-star.set_blackbody_spectrum(dust.nu)
-
 # Set up the grid.
 
 nr = 10
@@ -110,45 +98,44 @@ r = numpy.arange(nr)*AU/2
 t = numpy.arange(nt)/(nt-1.)*numpy.pi
 p = numpy.arange(np)/(np-1.)*2*numpy.pi
 
+model.set_spherical_grid(r,t,p)
+
+# Set up the dust.
+
+data = numpy.loadtxt('../examples/dustkappa_yso.inp', skiprows=2)
+
+lam = data[::-1,0].copy() * 1.0e-4
+kabs = data[::-1,1].copy()
+ksca = data[::-1,2].copy()
+
+d = IsotropicDust(lam, kabs, ksca)
+
+# Set up the density.
+
 density = numpy.zeros((nr-1,nt-1,np-1)) + 1.0e-16
 
-model.set_spherical_grid(r,t,p)
-model.grid.add_density(density, dust)
-model.grid.add_source(star)
+model.grid.add_density(density, d)
 
-# Set the parameters for the run.
+# Set up the star.
 
-model.params.nphot = 1000000
-model.params.bw = True
-model.params.scattering = False
-model.params.verbose = False
-model.params.use_mrw = False
-model.params.mrw_gamma = 2
+model.grid.add_star(mass=M_sun, radius=R_sun, temperature=4000.)
+model.grid.sources[-1].set_blackbody_spectrum(lam)
 
 # Run the thermal simulation.
 
 t1 = time()
-model.run_thermal_mc()
+model.thermal_mc(nphot=1000000, bw=True, use_mrw=False, mrw_gamma=2, \
+        verbose=False)
 t2 = time()
 print(t2-t1)
 
 # Run the images.
 
-model.params.nphot = 100000
-model.camera.nx = 256
-model.camera.ny = 256
-model.camera.pixel_size = AU/10
-model.camera.lam = numpy.array([1.])
-
-image = model.run_image(incl=0, pa=0, dpc=1.)
+model.run_image(numpy.array([1.]), 256, 256, 0.1, 100000, incl=0., pa=0, dpc=1.)
 
 # Run the spectra.
 
-model.params.nphot = 10000
-model.camera.pixel_size = 10*AU/100
-model.camera.lam = numpy.logspace(-1,4,200)
-
-spectrum = model.run_spectrum(incl=0, pa=0, dpc=1.)
+model.run_spectrum(numpy.logspace(-1,4,200), 10000, incl=0, pa=0, dpc=1.)
 
 ################################################################################
 #
@@ -185,6 +172,7 @@ for i in range(9):
 
     plt.show()
 
+"""
 # Plot the scattering function.
 
 for i in range(9):
@@ -200,6 +188,7 @@ for i in range(9):
                 interpolation="nearest", vmin=vmin, vmax=vmax)
 
     plt.show()
+"""
 
 # Plot the images.
 
@@ -208,14 +197,14 @@ fig, ax = plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True, \
 
 with numpy.errstate(divide="ignore", invalid="ignore"):
     diff = (numpy.log10(m.images["image"].image[:,:,0,0]) - \
-            numpy.log10(image.intensity[:,:,0])) / \
+            numpy.log10(model.images[0].intensity[:,:,0])) / \
             numpy.log10(m.images["image"].image[:,:,0,0]) * 100
 
     im1 = ax[0].imshow(numpy.log10(m.images["image"].image[:,:,0,0]), \
             origin="lower", interpolation="none")
 
-    im2 = ax[1].imshow(numpy.log10(image.intensity[:,:,0]), origin="lower", \
-            interpolation="none")
+    im2 = ax[1].imshow(numpy.log10(model.images[0].intensity[:,:,0]), \
+            origin="lower", interpolation="none")
 
     im3 = ax[2].imshow(diff, origin="lower", interpolation="none")
 
@@ -232,7 +221,7 @@ plt.show()
 fig, ax = plt.subplots(nrows=1, ncols=1)
 
 ax.loglog(m.spectra["SED"].wave, m.spectra["SED"].flux)
-ax.loglog(spectrum.lam, spectrum.intensity)
+ax.loglog(model.spectra[0].lam, model.spectra[0].intensity)
 
 ax.set_ylim(1.0e-23,1.0e7)
 
