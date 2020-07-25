@@ -23,7 +23,22 @@ double random_number() {
 /* Calculate the blackbody function for a given frequency and temperature. */
 
 double planck_function(double nu, double T) {
-    return 2.0*h*nu*nu*nu/(c_l*c_l)*1.0/(exp(h*nu/(k*T))-1.0);
+    double value = 2.0*h*nu*nu*nu/(c_l*c_l)*1.0/(exp(h*nu/(k*T))-1.0);
+
+    if (std::isnan(value))
+        return 0;
+    else
+        return value;
+};
+
+double planck_function_derivative(double nu, double T) {
+    double value = (-2.0*h*nu*nu*nu*nu)/(c_l*c_l*k*T*T) / 
+        (exp(h*nu/(k*T))-1.0) / (1. - exp(-h*nu/(k*T)));
+
+    if (isnan(value))
+        return 0;
+    else
+        return value;
 };
 
 /* Integrate an array y over array x using the trapezoidal method. */
@@ -39,7 +54,7 @@ double integrate(double *y, double *x, int nx) {
 
 /* Cumulatively integrate. */
 
-double* cumulative_integrate(double *y, double *x, int nx) {
+double *cumulative_integrate(double *y, double *x, int nx) {
     double sum = 0;
     double* cum_sum = new double[nx];
 
@@ -53,6 +68,27 @@ double* cumulative_integrate(double *y, double *x, int nx) {
         cum_sum[i] /= sum;
 
     return cum_sum;
+}
+
+/* Take the derivative of an array. */
+
+double *derivative(double *y, double *x, int nx) {
+    double *result = new double[nx-1];
+
+    for (int i = 0; i < nx-1; i++)
+        result[i] = (y[i+1] - y[i]) / (x[i+1] - x[i]);
+
+    return result;
+}
+
+double **derivative2D_ax0(double **y, double *x, int nx, int ny) {
+    double **result = create2DArr(nx-1, ny);
+
+    for (int i = 0; i < nx-1; i++)
+        for (int j = 0; j < ny; j++)
+            result[i][j] = (y[i+1][j] - y[i][j]) / (x[i+1] - x[i]);
+
+    return result;
 }
 
 /* Test whether two values are equal within a given tolerance. */
@@ -160,6 +196,12 @@ double **create2DArr(int nx, int ny) {
 
     return arr;
 };
+
+void delete2DArr(double **arr, int nx, int ny) {
+    for (int i = 0; i < nx; i++)
+        delete[] arr[i];
+    delete[] arr;
+}
 
 /* Create an empty 3-dimensional array. */
 

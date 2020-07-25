@@ -47,14 +47,9 @@ struct Dust {
     Dust(int _nlam, double *_nu, double *_lam, double *_kabs, double *_ksca, 
             double *_kext, double *_albedo);
 
-    //~Dust();
+    ~Dust();
         
-    void set_lookup_tables(int _ntemp, double *_temp, 
-            double *_planck_opacity, double *_rosseland_extinction, 
-            double *_dplanck_opacity_dT, double *_drosseland_extinction_dT,
-            double *_dkextdnu, double *dalbedodnu, double *_random_nu_CPD, 
-            double *_random_nu_CPD_bw, double *_drandom_nu_CPD_dT, 
-            double *_drandom_nu_CPD_bw_dT);
+    void set_lookup_tables();
 
     virtual void scatter(Photon *P);
     void absorb(Photon *P, double T, bool bw);

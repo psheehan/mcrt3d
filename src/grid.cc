@@ -487,7 +487,6 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
             }
         }
 
-
         // Continuously absorb the photon's energy, if the end result of the
         // current trajectory is absorption.
         if (absorb) {

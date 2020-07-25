@@ -39,11 +39,17 @@ double random_number();
 
 double planck_function(double nu, double T);
 
+double planck_function_derivative(double nu, double T);
+
 /* Integrate an array y over array x using the trapezoidal method. */
 
 double integrate(double *y, double *x, int nx);
 
 double* cumulative_integrate(double *y, double *x, int nx);
+
+double* derivative(double *y, double *x, int nx);
+
+double **derivative2D_ax0(double **y, double *x, int nx, int ny);
 
 /* Define what amounts to a tiny value. */
 
@@ -78,6 +84,8 @@ void bubbleSort(double arr [], int size);
 /* Create an empty 2-dimensional array. */
 
 double **create2DArr(int nx, int ny);
+
+void delete2DArr(double **arr, int nx, int ny);
 
 /* Create an empty 3-dimensional array. */
 

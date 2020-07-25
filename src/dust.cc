@@ -44,6 +44,9 @@ Dust::Dust(py::array_t<double> __lam, py::array_t<double> __kabs,
 
     if (nu[1] - nu[0] <= 0.)
         throw std::runtime_error("nu must be monotonically increasing.");
+
+    // Finally, make the lookup tables;
+    set_lookup_tables();
 }
 
 Dust::Dust(int _nlam, double *_nu, double *_lam, double *_kabs, 
@@ -58,29 +61,85 @@ Dust::Dust(int _nlam, double *_nu, double *_lam, double *_kabs,
     albedo = _albedo;
 }
 
-//Dust::~Dust() {
-//}
+Dust::~Dust() {
+    delete[] temp; delete[] dkextdnu; delete[] dalbedodnu;
+    delete[] planck_opacity; delete[] dplanck_opacity_dT;
+    delete[] rosseland_extinction; delete[] drosseland_extinction_dT;
+    delete2DArr(random_nu_CPD, ntemp, nlam);
+    delete2DArr(drandom_nu_CPD_dT, ntemp-1, nlam);
+    delete2DArr(random_nu_CPD_bw, ntemp, nlam);
+    delete2DArr(drandom_nu_CPD_bw_dT, ntemp-1, nlam);
+}
 
-void Dust::set_lookup_tables(int _ntemp, double *_temp, 
-        double *_planck_opacity, double *_rosseland_extinction, 
-        double *_dplanck_opacity_dT, double *_drosseland_extinction_dT,
-        double *_dkextdnu, double *_dalbedodnu, double *_random_nu_CPD, 
-        double *_random_nu_CPD_bw, double *_drandom_nu_CPD_dT, 
-        double *_drandom_nu_CPD_bw_dT) {
+void Dust::set_lookup_tables() {
+    // Create the temperature array;
+    ntemp = 100;
+    temp = new double[ntemp];
 
-    ntemp = _ntemp;
-    temp = _temp;
-    planck_opacity = _planck_opacity;
-    dplanck_opacity_dT = _dplanck_opacity_dT;
-    rosseland_extinction = _rosseland_extinction;
-    drosseland_extinction_dT = _drosseland_extinction_dT;
-    dkextdnu = _dkextdnu;
-    dalbedodnu = _dalbedodnu;
+    for (int i = 0; i < ntemp; i++)
+        temp[i] = pow(10.,-1.+i*6./(ntemp-1));
 
-    random_nu_CPD = pymangle(ntemp, nlam, _random_nu_CPD);
-    random_nu_CPD_bw = pymangle(ntemp, nlam, _random_nu_CPD_bw);
-    drandom_nu_CPD_dT = pymangle(ntemp-1, nlam, _drandom_nu_CPD_dT);
-    drandom_nu_CPD_bw_dT = pymangle(ntemp-1, nlam, _drandom_nu_CPD_bw_dT);
+    // Calculate the derivatives of kext and albedo.
+    dkextdnu = derivative(kext, nu, nlam);
+    dalbedodnu = derivative(albedo, nu, nlam);
+
+    // Calculate the Planck Mean Opacity and its derivative.
+    double **tmp_planck = create2DArr(ntemp, nlam);
+    for (int i = 0; i < ntemp; i++)
+        for (int j = 0; j < nlam; j++)
+            tmp_planck[i][j] = planck_function(nu[j], temp[i]) * kabs[j];
+
+    planck_opacity = new double[ntemp];
+    for (int i = 0; i < ntemp; i++)
+        planck_opacity[i] = pi / (sigma * pow(temp[i],4.)) * 
+                integrate(tmp_planck[i], nu, nlam);
+
+    dplanck_opacity_dT = derivative(planck_opacity, temp, ntemp);
+
+    delete2DArr(tmp_planck, ntemp, nlam);
+
+    // Calculate the Planck Mean Opacity and its derivative.
+    double **tmp_ross = create2DArr(ntemp, nlam);
+    for (int i = 0; i < ntemp; i++)
+        for (int j = 0; j < nlam; j++)
+            tmp_ross[i][j] = planck_function(nu[j], temp[i]) / kext[j];
+
+    rosseland_extinction = new double[ntemp];
+    for (int i = 0; i < ntemp; i++)
+        rosseland_extinction[i] = (sigma * pow(temp[i],4. / pi)) / 
+                integrate(tmp_ross[i], nu, nlam);
+
+    drosseland_extinction_dT = derivative(rosseland_extinction, temp, ntemp);
+
+    delete2DArr(tmp_ross, ntemp, nlam);
+
+    // Create the cumulative probability density functions for generating a
+    // random nu value, for regular.
+    double **tmp = create2DArr(ntemp, nlam);
+    for (int i = 0; i < ntemp; i++)
+        for (int j = 0; j < nlam; j++)
+            tmp[i][j] = kabs[j] * planck_function(nu[j], temp[i]);
+
+    random_nu_CPD = new double*[ntemp];
+    for (int i = 0; i < ntemp; i++)
+        random_nu_CPD[i] = cumulative_integrate(tmp[i], nu, nlam);
+
+    drandom_nu_CPD_dT = derivative2D_ax0(random_nu_CPD, temp, ntemp, nlam);
+
+    // Create the cumulative probability density functions for generating a
+    // random nu value, for bw.
+    for (int i = 0; i < ntemp; i++)
+        for (int j = 0; j < nlam; j++)
+            tmp[i][j] = kabs[j] * planck_function_derivative(nu[j], temp[i]);
+
+    random_nu_CPD_bw = new double*[ntemp];
+    for (int i = 0; i < ntemp; i++)
+        random_nu_CPD_bw[i] = cumulative_integrate(tmp[i], nu, nlam);
+
+    drandom_nu_CPD_bw_dT = derivative2D_ax0(random_nu_CPD_bw, temp, ntemp, 
+            nlam);
+
+    delete2DArr(tmp, ntemp, nlam);
 }
 
 /* Scatter a photon isotropically off of dust. */

@@ -11,18 +11,24 @@ MCRT::~MCRT() {
 void MCRT::set_cartesian_grid(py::array_t<double> x, py::array_t<double> y,
         py::array_t<double> z) {
     G = new CartesianGrid(x, y, z);
+    G->Q = Q;
+
     C = new Camera(G, Q);
 }
 
 void MCRT::set_cylindrical_grid(py::array_t<double> r, py::array_t<double> phi,
         py::array_t<double> z) {
     G = new CylindricalGrid(r, phi, z);
+    G->Q = Q;
+
     C = new Camera(G, Q);
 }
 
 void MCRT::set_spherical_grid(py::array_t<double> r, 
         py::array_t<double> theta, py::array_t<double> phi) {
     G = new SphericalGrid(r, theta, phi);
+    G->Q = Q;
+
     C = new Camera(G, Q);
 }
 
