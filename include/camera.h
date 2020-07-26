@@ -90,9 +90,9 @@ struct Camera {
     Image* make_image(int nx, int ny, double pixel_size, 
             py::array_t<double> lam, double incl, double pa, double dpc);
 
-    /*UnstructuredImage* make_unstructured_image(int nx, int ny, 
+    UnstructuredImage* make_unstructured_image(int nx, int ny, 
             double pixel_size, py::array_t<double> lam, double incl, 
-            double pa, double dpc);*/
+            double pa, double dpc);
 
     Spectrum* make_spectrum(py::array_t<double> lam, double incl, 
             double pa, double dpc);
@@ -102,9 +102,12 @@ struct Camera {
     Ray* emit_ray(double x, double y, double pixel_size, double nu);
     double raytrace_pixel(double x, double y, double pixel_size, double nu, 
             int count);
-    double raytrace(double x, double y, double pixel_size, double nu);
+    void raytrace_pixel(UnstructuredImage *image, int ix, double pixel_size); 
+    double raytrace(double x, double y, double pixel_size, double nu, 
+            bool unstructured);
 
     void raytrace_sources(Image *I);
+    void raytrace_sources(UnstructuredImage *I);
 };
 
 #endif

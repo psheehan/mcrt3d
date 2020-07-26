@@ -180,6 +180,37 @@ Ray *Star::emit_ray(double _nu, double _dnu, double _pixelsize, \
     return R;
 };
 
+Ray *Star::emit_ray(double _nu, double _dnu, Vector<double, 3> _n, int nphot) {
+    Ray *R = new Ray();
+
+    double theta = pi*random_number();
+    double phi = 2*pi*random_number();
+
+    R->r[0] = radius*sin(theta)*cos(phi);
+    R->r[1] = radius*sin(theta)*sin(phi);
+    R->r[2] = radius*cos(theta);
+
+    R->n = -_n;
+
+    R->invn[0] = 1.0/R->n[0];
+    R->invn[1] = 1.0/R->n[1];
+    R->invn[2] = 1.0/R->n[2];
+    R->l[0] = -1;
+    R->l[1] = -1;
+    R->l[2] = -1;
+
+    R->nu = _nu;
+
+    // Now get the total energy of the photon.
+    R->intensity = flux(_nu) * pi*radius*radius / nphot;
+
+    R->tau = 0.0;
+    R->pixel_size = 0.0;
+    R->pixel_too_large = false;
+
+    return R;
+};
+
 /* Get a random frequency drawn from the spectrum of the source. */
 
 double Star::random_nu() {

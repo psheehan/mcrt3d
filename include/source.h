@@ -32,6 +32,8 @@ struct Source {
     virtual Photon *emit(double _nu, double _dnu, int nphot);
     virtual Ray *emit_ray(double _nu, double _dnu, double _pixelsize, \
             Vector<double, 3> _n, int nphot);
+    virtual Ray *emit_ray(double _nu, double _dnu, Vector<double, 3> _n, 
+            int nphot);
     virtual double intercept_distance(Photon *P);
     virtual double random_nu();
     virtual double flux(double freq);

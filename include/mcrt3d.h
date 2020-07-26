@@ -43,6 +43,8 @@ struct MCRT {
 
     void run_image(py::array_t<double> lam, int nx, int ny, double pixel_size, 
             int nphot, double incl, double pa, double dpc);
+    void run_unstructured_image(py::array_t<double> lam, int nx, int ny, 
+            double pixel_size, int nphot, double incl, double pa, double dpc);
     void run_spectrum(py::array_t<double> lam, int nphot, double incl, 
             double pa, double dpc);
 };

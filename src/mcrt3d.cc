@@ -171,6 +171,37 @@ void MCRT::run_image(py::array_t<double> __lam, int nx, int ny,
     delete[] Q->scattering_nu;
 }
 
+void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny, 
+        double pixel_size, int nphot, double incl, double pa, double dpc) {
+
+    // Set some parameters that are going to be needed.
+    auto _lam_buf = __lam.request();
+    if (_lam_buf.ndim != 1)
+        throw std::runtime_error("Number of dimensions must be one");
+    double *lam = (double *) _lam_buf.ptr;
+
+    Q->nnu = _lam_buf.shape[0];
+    Q->scattering_nu = new double[Q->nnu];
+
+    for (int i = 0; i < Q->nnu; i++)
+        Q->scattering_nu[i] = c_l / (lam[i]*1.0e-4);
+
+    // Run a scattering simulation.
+    scattering_mc(nphot, false);
+
+    // Now, run the image through the camera.
+    UnstructuredImage *I = C->make_unstructured_image(nx, ny, pixel_size, 
+            __lam, incl, pa, dpc);
+
+    images.append(I);
+
+    // Clean up the appropriate grid parameters.
+    G->deallocate_scattering_array();
+
+    Q->nnu = 0;
+    delete[] Q->scattering_nu;
+}
+
 void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl, 
             double pa, double dpc) {
     // Set some parameters that are going to be needed.
@@ -262,6 +293,13 @@ PYBIND11_MODULE(mcrt3d, m) {
         .def_readonly("nu", &Image::_nu)
         .def_readonly("lam", &Image::_lam);
 
+    py::class_<UnstructuredImage>(m, "UnstructuredImage")
+        .def_readonly("x", &UnstructuredImage::_x)
+        .def_readonly("y", &UnstructuredImage::_y)
+        .def_readonly("intensity", &UnstructuredImage::_intensity)
+        .def_readonly("nu", &UnstructuredImage::_nu)
+        .def_readonly("lam", &UnstructuredImage::_lam);
+
     py::class_<Spectrum>(m, "Spectrum")
         .def_readonly("intensity", &Spectrum::_intensity)
         .def_readonly("nu", &Spectrum::_nu)
@@ -286,6 +324,11 @@ PYBIND11_MODULE(mcrt3d, m) {
         .def("run_image", &MCRT::run_image, "Generate an image.", 
                 py::arg("lam"), py::arg("nx")=256, py::arg("ny")=256, 
                 py::arg("pixel_size")=0.1, py::arg("nphot")=100000, 
+                py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1.)
+        .def("run_unstructured_image", &MCRT::run_unstructured_image, 
+                "Generate an unstructured image.", 
+                py::arg("lam"), py::arg("nx")=25, py::arg("ny")=25, 
+                py::arg("pixel_size")=1.0, py::arg("nphot")=100000, 
                 py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1.)
         .def("run_spectrum", &MCRT::run_spectrum, "Generate a spectrum.", 
                 py::arg("lam"), py::arg("nphot")=10000, py::arg("incl")=0,

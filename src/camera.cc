@@ -80,8 +80,11 @@ UnstructuredImage::UnstructuredImage(int _nx, int _ny, double _pixel_size,
 
     for (int i = 0; i < nx; i++) {
         for (int j = 0; j < ny; j++) {
-            x.push_back((i - nx/2)*pixel_size);
-            y.push_back((j - ny/2)*pixel_size);
+            x.push_back((i - nx/2)*pixel_size + (random_number()-0.5)*
+                    pixel_size/4.);
+            y.push_back((j - ny/2)*pixel_size + (random_number()-0.5)*
+                    pixel_size/4.);
+            intensity.push_back(std::vector<double>());
         }
     }
 
@@ -196,8 +199,9 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
     return image;
 }
 
-/*Image *Camera::make_unstructured_image(int nx, int ny, double pixel_size, 
-        py::array_t<double> lam, double incl, double pa, double dpc) {
+UnstructuredImage *Camera::make_unstructured_image(int nx, int ny, 
+        double pixel_size, py::array_t<double> lam, double incl, double pa, 
+        double dpc) {
 
     // Set the camera orientation.
     set_orientation(incl, pa, dpc);
@@ -209,23 +213,40 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
 
     // Now go through and raytrace.
 
-    for (int i=0; i<image->nnu; i++)
-    {
-        Q->inu = i;
-        for (int j=0; j < nx*ny; j++) {
-            raytrace_pixel(image, image->x[j], image->y[j], image->pixel_size, 
-                    image->nu[i], 0);
-        }
-    }
+    for (int j=0; j < nx*ny; j++)
+        raytrace_pixel(image, j, image->pixel_size);
 
     // Also raytrace the sources.
 
-    raytrace_sources(image);
+    //raytrace_sources(image);
+
+    // Now that thats done, create an intensity Python array to populate.
+    //
+    image->_x = py::array_t<double>(image->x.size());
+    image->_y = py::array_t<double>(image->y.size());
+    image->_intensity = py::array_t<double>(image->x.size()*image->nnu);
+    image->_intensity.resize({(int)image->x.size(), image->nnu});
+
+    auto _x_buf = image->_x.request();
+    auto _y_buf = image->_y.request();
+    auto _intensity_buf = image->_intensity.request();
+
+    double *_x_arr = (double *) _x_buf.ptr;
+    double *_y_arr = (double *) _y_buf.ptr;
+    double *_intensity_arr = (double *) _intensity_buf.ptr;
+
+    for (int i = 0; i < image->x.size(); i++) {
+        _x_arr[i] = image->x[i];
+        _y_arr[i] = image->y[i];
+
+        for (int j = 0; j < image->nnu; j++)
+            _intensity_arr[i*image->nnu + j] = image->intensity[i][j];
+    }
 
     // And return.
 
     return image;
-}*/
+}
 
 Spectrum *Camera::make_spectrum(py::array_t<double> lam, double incl,
         double pa, double dpc) {
@@ -302,7 +323,7 @@ Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
 double Camera::raytrace_pixel(double x, double y, double pixel_size, 
         double nu, int count) {
     //printf("%d\n", count);
-    double intensity = raytrace(x, y, pixel_size, nu);
+    double intensity = raytrace(x, y, pixel_size, nu, false);
 
     count++;
 
@@ -322,7 +343,63 @@ double Camera::raytrace_pixel(double x, double y, double pixel_size,
         return intensity;
 }
 
-double Camera::raytrace(double x, double y, double pixel_size, double nu) {
+void Camera::raytrace_pixel(UnstructuredImage *image, int ix, 
+        double pixel_size) {
+
+    bool subpixel = false;
+
+    // Raytrace all frequencies.
+
+    for (int i=0; i<image->nnu; i++)
+    {
+        Q->inu = i;
+        double intensity = raytrace(image->x[ix], image->y[ix], pixel_size, 
+                image->nu[i], true);
+
+        if ((intensity < 0)) { 
+            image->intensity[ix].push_back(-intensity);
+            subpixel = true;
+        }
+        else
+            image->intensity[ix].push_back(intensity);
+    }
+    
+    // Split the cell into four and raytrace again.
+    if (subpixel) {
+        int nxy = image->x.size();
+
+        image->x.push_back(image->x[ix] - pixel_size/4 + (random_number()-0.5)*
+                pixel_size/8);
+        image->x.push_back(image->x[ix] - pixel_size/4 + (random_number()-0.5)*
+                pixel_size/8);
+        image->x.push_back(image->x[ix] + pixel_size/4 + (random_number()-0.5)*
+                pixel_size/8);
+        image->x.push_back(image->x[ix] + pixel_size/4 + (random_number()-0.5)*
+                pixel_size/8);
+
+        image->y.push_back(image->y[ix] - pixel_size/4 + (random_number()-0.5)*
+                pixel_size/8);
+        image->y.push_back(image->y[ix] + pixel_size/4 + (random_number()-0.5)* 
+                pixel_size/8);
+        image->y.push_back(image->y[ix] - pixel_size/4 + (random_number()-0.5)* 
+                pixel_size/8);
+        image->y.push_back(image->y[ix] + pixel_size/4 + (random_number()-0.5)* 
+                pixel_size/8);
+
+        image->intensity.push_back(std::vector<double>());
+        image->intensity.push_back(std::vector<double>());
+        image->intensity.push_back(std::vector<double>());
+        image->intensity.push_back(std::vector<double>());
+
+        raytrace_pixel(image, nxy+0, pixel_size/2);
+        raytrace_pixel(image, nxy+1, pixel_size/2);
+        raytrace_pixel(image, nxy+2, pixel_size/2);
+        raytrace_pixel(image, nxy+3, pixel_size/2);
+    }
+}
+
+double Camera::raytrace(double x, double y, double pixel_size, double nu, 
+        bool unstructured) {
     /* Emit a ray from the given location. */
     Ray *R = emit_ray(x, y, pixel_size, nu);
 
@@ -342,7 +419,7 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu) {
         /* Check whether this photon happens to fall on a wall and is traveling
          * along that wall. */
 
-        if (G->on_and_parallel_to_wall(R)) {
+        if (G->on_and_parallel_to_wall(R) and not unstructured) {
             return -1.0;
         }
 
@@ -356,8 +433,10 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu) {
         /* Check whether the run was successful or if we need to sub-pixel 
          * to get a good intensity measurement. */
         double intensity = R->intensity;
-        if (R->pixel_too_large)
+        if (R->pixel_too_large and not unstructured)
             intensity = -1.0;
+        if (R->pixel_too_large and unstructured)
+            intensity *= -1.0;
 
         /* Clean up the ray. */
         delete R;
@@ -411,6 +490,57 @@ void Camera::raytrace_sources(Image *image) {
 
                 // Finally, add the energy into the appropriate cell.
                 image->intensity[ix][iy][inu] += R->intensity;
+
+                // And clean up the Ray.
+                delete R;
+            }
+        }
+    }
+}
+
+void Camera::raytrace_sources(UnstructuredImage *image) {
+
+    for (int isource=0; isource < G->nsources; isource++) {
+        int nxy = image->x.size();
+
+        for (int inu=0; inu < image->nnu; inu++) {
+            double dnu = image->nu[inu+1] - image->nu[inu];
+
+            for (int iphot=0; iphot < 1; iphot++) {
+                // Emit the ray.
+                Ray *R = G->sources[isource]->emit_ray(image->nu[inu], dnu, 
+                        ez, 1);
+
+                R->l = G->photon_loc(R);
+
+                // Get the appropriate dust opacities.
+
+                double *current_kext = new double[G->nspecies];
+                double *current_albedo = new double[G->nspecies];
+
+                for (int j=0; j<G->nspecies; j++) {
+                    current_kext[j] = G->dust[j]->opacity(R->nu);
+                    current_albedo[j] = G->dust[j]->albdo(R->nu);
+                }
+
+                R->current_kext = current_kext;
+                R->current_albedo = current_albedo;
+
+                // Now propagate the ray.
+                G->propagate_ray_from_source(R);
+
+                // Now bin the photon into the right cell.
+                if (inu == 0) {
+                    double ximage = R->r * ey;
+                    double yimage = R->r * ex;
+
+                    image->x.push_back(ximage);
+                    image->y.push_back(yimage);
+                    image->intensity.push_back(std::vector<double>());
+                }
+
+                // Finally, add the energy into the appropriate cell.
+                image->intensity[nxy+iphot].push_back(R->intensity);
 
                 // And clean up the Ray.
                 delete R;
