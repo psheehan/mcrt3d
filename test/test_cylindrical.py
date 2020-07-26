@@ -4,6 +4,7 @@ from pdspy.constants.astronomy import AU, pc, Jy, M_sun, R_sun
 import pdspy.modeling as modeling
 import pdspy.dust as dust
 import matplotlib.pyplot as plt
+import matplotlib.tri as tri
 import numpy
 
 from mcrt3d import MCRT, IsotropicDust
@@ -133,6 +134,9 @@ print(t2-t1)
 
 model.run_image(numpy.array([1.]), 256, 256, 0.1, 100000, incl=0., pa=0, dpc=1.)
 
+model.run_unstructured_image(numpy.array([1300.]), 10, 10, 2.5, 100000, \
+        incl=0., pa=0., dpc=1.)
+
 # Run the spectra.
 
 model.run_spectrum(numpy.logspace(-1,4,200), 10000, incl=0, pa=0, dpc=1.)
@@ -217,6 +221,22 @@ ax[1].set_title("MCRT3D")
 #ax[2].set_title("RADMC-3D - MCRT3D")
 
 #fig.colorbar(im3, ax=ax[2], fraction=0.046)
+
+plt.show()
+
+# Plot the unstructured image.
+
+triang = tri.Triangulation(model.images[1].x/AU, model.images[1].y/AU)
+
+plt.tripcolor(triang, model.images[1].intensity[:,0], "ko-")
+plt.triplot(triang, "k.-", linewidth=0.1, markersize=0.1)
+
+plt.axes().set_aspect("equal")
+
+plt.xlabel("x", fontsize=14)
+plt.ylabel("y", fontsize=14)
+
+plt.axes().tick_params(labelsize=14)
 
 plt.show()
 
