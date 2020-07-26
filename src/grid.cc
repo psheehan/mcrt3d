@@ -698,7 +698,7 @@ void Grid::propagate_ray(Ray *R) {
         if (volume[R->l[0]][R->l[1]][R->l[2]] < 
                 pi*R->pixel_size*R->pixel_size*R->pixel_size/6.) {
             R->pixel_too_large = true;
-            break;
+            //break;
         }
 
         double s = next_wall_distance(R);

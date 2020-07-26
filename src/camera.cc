@@ -1,7 +1,6 @@
 #include "camera.h"
 
-Image::Image(int _nx, int _ny, double _pixel_size, py::array_t<double> __lam,
-            double _incl, double _pa, double _dpc) {
+Image::Image(int _nx, int _ny, double _pixel_size, py::array_t<double> __lam) {
     // Start by setting up the appropriate Python arrays.
 
     nx = _nx; ny = _ny;
@@ -25,7 +24,7 @@ Image::Image(int _nx, int _ny, double _pixel_size, py::array_t<double> __lam,
 
     // Set up the x and y values properly.
 
-    pixel_size = _pixel_size * arcsec * _dpc*pc;
+    pixel_size = _pixel_size;
 
     for (int i = 0; i < nx; i++)
         x[i] = (i - nx/2)*pixel_size;
@@ -51,38 +50,53 @@ Image::Image(int _nx, int _ny, double _pixel_size, py::array_t<double> __lam,
     intensity = pymangle(nx, ny, nnu, (double *) _intensity_buf.ptr);
 
     set3DArrValue(intensity, 0., nx, ny, nnu);
-    
-    // Set viewing angle parameters.
-
-    r = _dpc*pc;
-    incl = _incl * pi/180.;
-    pa = _pa * pi/180.;
-
-    double phi = -pi/2 - pa;
-
-    i[0] = r*sin(incl)*cos(phi);
-    i[1] = r*sin(incl)*sin(phi);
-    i[2] = r*cos(incl);
-
-    ex[0] = -sin(phi);
-    ex[1] = cos(phi);
-    ex[2] = 0.0;
-
-    ey[0] = -cos(incl)*cos(phi);
-    ey[1] = -cos(incl)*sin(phi);
-    ey[2] = sin(incl);
-
-    ez[0] = -sin(incl)*cos(phi);
-    ez[1] = -sin(incl)*sin(phi);
-    ez[2] = -cos(incl);
 }
 
 Image::~Image() {
     freepymangle(intensity);
 }
 
-Spectrum::Spectrum(py::array_t<double> __lam, double _incl, double _pa, 
-        double _dpc) {
+UnstructuredImage::UnstructuredImage(int _nx, int _ny, double _pixel_size, 
+        py::array_t<double> __lam) {
+    // Start by setting up the appropriate Python arrays.
+
+    nx = _nx; ny = _ny;
+    _lam = __lam;
+
+    auto _lam_buf = _lam.request();
+
+    if (_lam_buf.ndim != 1)
+        throw std::runtime_error("Number of dimensions must be one");
+
+    // Now get the correct format.
+    
+    lam = (double *) _lam_buf.ptr;
+
+    nnu = _lam_buf.shape[0];
+
+    // Set up the x and y values properly.
+
+    pixel_size = _pixel_size;
+
+    for (int i = 0; i < nx; i++) {
+        for (int j = 0; j < ny; j++) {
+            x.push_back((i - nx/2)*pixel_size);
+            y.push_back((j - ny/2)*pixel_size);
+        }
+    }
+
+    // Set up the frequency array.
+
+    _nu = py::array_t<double>(nnu);
+    auto _nu_buf = _nu.request();
+
+    nu = (double *) _nu_buf.ptr;
+
+    for (int i = 0; i < nnu; i++)
+        nu[i] = c_l / (lam[i]*1.0e-4);
+}
+
+Spectrum::Spectrum(py::array_t<double> __lam) {
     // Start by setting up the appropriate Python arrays.
 
     _lam = __lam;
@@ -116,7 +130,14 @@ Spectrum::Spectrum(py::array_t<double> __lam, double _incl, double _pa,
 
     for (int i = 0; i < nnu; i++)
         intensity[i] = 0;
-    
+}
+
+Camera::Camera(Grid *_G, Params *_Q) {
+    G = _G;
+    Q = _Q;
+}
+
+void Camera::set_orientation(double _incl, double _pa, double _dpc) {
     // Set viewing angle parameters.
 
     r = _dpc*pc;
@@ -139,20 +160,18 @@ Spectrum::Spectrum(py::array_t<double> __lam, double _incl, double _pa,
 
     ez[0] = -sin(incl)*cos(phi);
     ez[1] = -sin(incl)*sin(phi);
-}
-
-Camera::Camera(Grid *_G, Params *_Q) {
-    G = _G;
-    Q = _Q;
+    ez[2] = -cos(incl);
 }
 
 Image *Camera::make_image(int nx, int ny, double pixel_size, 
         py::array_t<double> lam, double incl, double pa, double dpc) {
 
+    // Set the camera orientation.
+    set_orientation(incl, pa, dpc);
+
     // Set up the image.
 
-    Image *I = new Image(nx, ny, pixel_size, lam, incl, pa, dpc);
-    image = I;
+    Image *image = new Image(nx, ny, pixel_size*arcsec*dpc*pc, lam);
 
     // Now go through and raytrace.
 
@@ -164,8 +183,7 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
                 if (Q->verbose) printf("%d   %d\n", j, k);
                 image->intensity[j][k][i] = raytrace_pixel(image->x[j], 
                         image->y[k], image->pixel_size, image->nu[i], 0) * 
-                        image->pixel_size * image->pixel_size / 
-                        (image->r * image->r)/ Jy;
+                        image->pixel_size * image->pixel_size / (r * r)/ Jy;
             }
     }
 
@@ -175,24 +193,56 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
 
     // And return.
 
-    return I;
+    return image;
 }
+
+/*Image *Camera::make_unstructured_image(int nx, int ny, double pixel_size, 
+        py::array_t<double> lam, double incl, double pa, double dpc) {
+
+    // Set the camera orientation.
+    set_orientation(incl, pa, dpc);
+
+    // Set up the image.
+
+    UnstructuredImage *image = new UnstructuredImage(nx, ny, pixel_size*arcsec*
+            dpc*pc, lam);
+
+    // Now go through and raytrace.
+
+    for (int i=0; i<image->nnu; i++)
+    {
+        Q->inu = i;
+        for (int j=0; j < nx*ny; j++) {
+            raytrace_pixel(image, image->x[j], image->y[j], image->pixel_size, 
+                    image->nu[i], 0);
+        }
+    }
+
+    // Also raytrace the sources.
+
+    raytrace_sources(image);
+
+    // And return.
+
+    return image;
+}*/
 
 Spectrum *Camera::make_spectrum(py::array_t<double> lam, double incl,
         double pa, double dpc) {
+
     // Set up parameters for the image.
 
     int nx = 100;
     int ny = 100;
 
-    double pixel_size = G->grid_size()*1.1/(dpc*pc)/nx/arcsec;
+    double pixel_size = G->grid_size()*1.1/(dpc*pc)/arcsec/nx;
 
     // Set up and create an image.
 
     Image *image = make_image(nx, ny, pixel_size, lam, incl, pa, dpc);
 
     // Sum the image intensity.
-    Spectrum *S = new Spectrum(lam, incl, pa, dpc);
+    Spectrum *S = new Spectrum(lam);
 
     for (int i=0; i<image->nnu; i++)
         for (int j=0; j<image->nx; j++)
@@ -229,8 +279,8 @@ Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
     R->current_kext = current_kext;
     R->current_albedo = current_albedo;
 
-    R->r = image->i + x*image->ex + y*image->ey;
-    R->n = image->ez;
+    R->r = i + x*ex + y*ey;
+    R->n = ez;
 
     if (equal_zero(R->n[0],EPSILON)) R->n[0] = 0.;
     if (equal_zero(R->n[1],EPSILON)) R->n[1] = 0.;
@@ -321,8 +371,7 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu) {
     }
 }
 
-void Camera::raytrace_sources(Image *I) {
-    Image *image = I;
+void Camera::raytrace_sources(Image *image) {
 
     for (int isource=0; isource < G->nsources; isource++) {
         for (int inu=0; inu < image->nnu; inu++) {
@@ -331,7 +380,7 @@ void Camera::raytrace_sources(Image *I) {
             for (int iphot=0; iphot < 1000; iphot++) {
                 // Emit the ray.
                 Ray *R = G->sources[isource]->emit_ray(image->nu[inu], dnu, 
-                        image->pixel_size, image->ez, 1000);
+                        image->pixel_size, ez, 1000);
 
                 R->l = G->photon_loc(R);
 
@@ -352,8 +401,8 @@ void Camera::raytrace_sources(Image *I) {
                 G->propagate_ray_from_source(R);
 
                 // Now bin the photon into the right cell.
-                double ximage = R->r * image->ey;
-                double yimage = R->r * image->ex;
+                double ximage = R->r * ey;
+                double yimage = R->r * ex;
 
                 int ix = int(image->nx * (ximage + image->x[image->nx-1]) / 
                         (2*image->x[image->nx-1]) + 0.5);
