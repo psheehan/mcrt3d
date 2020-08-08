@@ -91,7 +91,7 @@ void Dust::set_lookup_tables() {
 
     planck_opacity = new double[ntemp];
     for (int i = 0; i < ntemp; i++)
-        planck_opacity[i] = pi / (sigma * pow(temp[i],4.)) * 
+        planck_opacity[i] = pi / (sigma * pow(temp[i],4)) * 
                 integrate(tmp_planck[i], nu, nlam);
 
     dplanck_opacity_dT = derivative(planck_opacity, temp, ntemp);
@@ -106,7 +106,7 @@ void Dust::set_lookup_tables() {
 
     rosseland_extinction = new double[ntemp];
     for (int i = 0; i < ntemp; i++)
-        rosseland_extinction[i] = (sigma * pow(temp[i],4. / pi)) / 
+        rosseland_extinction[i] = (sigma * pow(temp[i],4) / pi) / 
                 integrate(tmp_ross[i], nu, nlam);
 
     drosseland_extinction_dT = derivative(rosseland_extinction, temp, ntemp);
