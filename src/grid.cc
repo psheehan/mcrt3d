@@ -652,6 +652,12 @@ void Grid::propagate_photon_mrw(Photon *P) {
                         temp[idust][P->l[0]][P->l[1]][P->l[2]]) *
                 dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
+        // If we're doing a Bjorkman & Wood simulation, update the cell to
+        // find its new temperature.
+        if (Q->bw) {
+            update_grid(P->l);
+        }
+
         // Move the photon to the edge of the sphere.
         P->move(R_0);
 
