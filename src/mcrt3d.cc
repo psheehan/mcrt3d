@@ -35,7 +35,7 @@ void MCRT::set_spherical_grid(py::array_t<double> r,
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
  * grid. */
 
-void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, int mrw_gamma, 
+void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma, 
         bool verbose) {
     // Make sure parameters are set properly.
 
@@ -117,10 +117,13 @@ void MCRT::scattering_mc(int nphot, bool verbose) {
 }
 
 void MCRT::mc_iteration() {
+    double event_average = 0;
+
     for (int i=0; i<Q->nphot; i++) {
         if (fmod(i+1,Q->nphot/10) == 0) printf("%i\n",i+1);
 
         Photon *P = G->emit(i);
+        P->event_count = 0;
 
         if (Q->verbose) {
             printf("Emitting photon # %i\n", i);
@@ -136,9 +139,14 @@ void MCRT::mc_iteration() {
         else
             G->propagate_photon_full(P);
 
+        event_average += P->event_count;
+
         delete P;
         if (Q->verbose) printf("Photon has escaped the grid.\n\n");
     }
+
+    printf("Average number of abs/scat events per photon package = %f \n", 
+            event_average / Q->nphot);
 }
 
 void MCRT::run_image(py::array_t<double> __lam, int nx, int ny, 

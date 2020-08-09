@@ -418,6 +418,7 @@ void Grid::propagate_photon_full(Photon *P) {
         // If the photon is still in the grid when it reaches it's 
         // destination...
         if (in_grid(P)) {
+            P->event_count += 1;
             // If the next interaction is absorption...
             if (absorb_photon) {
                 absorb(P, idust);

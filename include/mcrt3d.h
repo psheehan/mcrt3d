@@ -35,7 +35,7 @@ struct MCRT {
     void set_spherical_grid(py::array_t<double> r, py::array_t<double> theta,
             py::array_t<double> phi);
 
-    void thermal_mc(int nphot, bool bw, bool use_mrw, int mrw_gamma,
+    void thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
             bool verbose);
     void scattering_mc(int nphot, bool verbose);
 

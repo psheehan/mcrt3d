@@ -12,6 +12,8 @@ struct Photon {
     double *current_kext, *current_albedo;
     Vector<int, 3> l;
 
+    double event_count;
+
     double rad, phi, theta;
 
     /* Clean up the photon to remove any pointers. */
