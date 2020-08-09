@@ -100,18 +100,23 @@ void Dust::set_lookup_tables() {
 
     // Calculate the Planck Mean Opacity and its derivative.
     double **tmp_ross = create2DArr(ntemp, nlam);
-    for (int i = 0; i < ntemp; i++)
-        for (int j = 0; j < nlam; j++)
-            tmp_ross[i][j] = planck_function(nu[j], temp[i]) / kext[j];
+    double **tmp_ross_num = create2DArr(ntemp, nlam);
+    for (int i = 0; i < ntemp; i++) {
+        for (int j = 0; j < nlam; j++) {
+            tmp_ross[i][j] = planck_function_derivative(nu[j], temp[i]) / kext[j];
+            tmp_ross_num[i][j] = planck_function_derivative(nu[j], temp[i]);
+        }
+    }
 
     rosseland_extinction = new double[ntemp];
     for (int i = 0; i < ntemp; i++)
-        rosseland_extinction[i] = (sigma * pow(temp[i],4) / pi) / 
+        rosseland_extinction[i] = integrate(tmp_ross_num[i], nu, nlam) / 
                 integrate(tmp_ross[i], nu, nlam);
 
     drosseland_extinction_dT = derivative(rosseland_extinction, temp, ntemp);
 
     delete2DArr(tmp_ross, ntemp, nlam);
+    delete2DArr(tmp_ross_num, ntemp, nlam);
 
     // Create the cumulative probability density functions for generating a
     // random nu value, for regular.
