@@ -478,12 +478,14 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
         if (s2 < s) s = s2;
 
         // Calculate how far the photon can go before running into a source.
+        int isource_intercept;
         for (int isource=0; isource<nsources; isource++) {
             double s3 = sources[isource]->intercept_distance(P);
 
             if (s3 < s) {
                 s = s3;
                 absorbed_by_source = true;
+                isource_intercept = isource;
             }
         }
 
