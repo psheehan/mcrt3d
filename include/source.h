@@ -37,6 +37,8 @@ struct Source {
     virtual double intercept_distance(Photon *P);
     virtual double random_nu();
     virtual double flux(double freq);
+
+    virtual void reemit(Photon *P);
 };
 
 #endif

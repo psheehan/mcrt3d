@@ -524,9 +524,8 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
         // If the distance to the star is the shortest distance, kill the 
         // photon.
         if (absorbed_by_source) {
-            P->l[0] = nw1;
-            P->l[1] = nw2;
-            P->l[2] = nw3;
+            sources[isource_intercept]->reemit(P);
+            P->l = photon_loc(P);
         }
 
         // Kill the photon if it bounces around too many times...

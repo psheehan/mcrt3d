@@ -34,3 +34,6 @@ double Source::flux(double freq) {
 double Source::random_nu() {
     return 0;
 }
+
+void Source::reemit(Photon *P) {
+}

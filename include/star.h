@@ -37,6 +37,8 @@ struct Star : public Source {
     double intercept_distance(Photon *P);
     double random_nu();
     double flux(double freq);
+
+    void reemit(Photon *P);
 };
 
 #endif

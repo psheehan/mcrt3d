@@ -257,3 +257,39 @@ double Star::flux(double freq) {
 
     return flux;
 };
+
+void Star::reemit(Photon *P) {
+    double theta = pi*random_number();
+    double phi = 2*pi*random_number();
+
+    P->r[0] = radius*sin(theta)*cos(phi);
+    P->r[1] = radius*sin(theta)*sin(phi);
+    P->r[2] = radius*cos(theta);
+
+    Vector<double, 3> r_hat, theta_hat, phi_hat;
+
+    r_hat[0] = sin(theta)*cos(phi);
+    r_hat[1] = sin(theta)*sin(phi);
+    r_hat[2] = cos(theta);
+    theta_hat[0] = cos(theta)*cos(phi);
+    theta_hat[1] = cos(theta)*sin(phi);
+    theta_hat[2] = -sin(theta);
+    phi_hat[0] = -sin(phi);
+    phi_hat[1] = cos(phi);
+    phi_hat[2] = 0;
+
+    double cost = random_number();
+    double sint = sqrt(1-pow(cost,2));
+    phi = 2*pi*random_number();
+
+    P->n = cost*r_hat + sint*cos(phi)*phi_hat + sint*sin(phi)*theta_hat;
+
+    P->invn[0] = 1.0/P->n[0];
+    P->invn[1] = 1.0/P->n[1];
+    P->invn[2] = 1.0/P->n[2];
+    P->l[0] = -1;
+    P->l[1] = -1;
+    P->l[2] = -1;
+
+    P->nu = random_nu();
+};
