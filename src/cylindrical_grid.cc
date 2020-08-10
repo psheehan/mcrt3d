@@ -238,6 +238,23 @@ double CylindricalGrid::minimum_wall_distance(Photon *P) {
     return s;
 }
 
+/* Calculate the smallest distance across the cell. */
+
+double CylindricalGrid::smallest_wall_size(Photon *P) {
+
+    double s = fabs(w1[P->l[0]+1] - w1[P->l[0]]);
+    
+    if (nw2 != 2) {
+        double sp = fabs(w1[P->l[0]]*(w2[P->l[0]+1] - w2[P->l[0]]));
+        if (sp < s) s = sp;
+    }
+    
+    double sz = fabs(w3[P->l[0]+1] - w3[P->l[0]]);
+    if (sz < s) s = sz;
+    
+    return s;
+}
+
 /* Calculate the size of the grid. */
 
 double CylindricalGrid::grid_size() {
