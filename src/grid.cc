@@ -464,7 +464,7 @@ void Grid::propagate_photon_full(Photon *P) {
                     propagate_photon_mrw(P);
 
                     // Update the temperature after absorbing all that energy.
-                    update_grid(P->l);
+                    if (Q->bw) update_grid(P->l);
 
                     // Absorb the photon
                     int idust = 0;
@@ -667,12 +667,27 @@ void Grid::random_dir_mrw(Photon *P) {
 /* Propagate a photon using the MRW method for high optical depths. */
 
 void Grid::propagate_photon_mrw(Photon *P) {
+    // Calculate the Rosseland mean opacity.
     double alpha = 0.0;
     for (int idust = 0; idust<nspecies; idust++)
         alpha += dust[idust]->rosseland_mean_extinction(
                 temp[idust][P->l[0]][P->l[1]][P->l[2]]) * 
                 dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
+    // Calculate the energy threshold at which to stop and re-calculate the
+    // Rosseland mean opacity.
+    double energy_threshold = 0.;
+    for (int idust = 0; idust<nspecies; idust++) {
+        if (temp[idust][P->l[0]][P->l[1]][P->l[2]] > 3.) {
+            energy_threshold += energy[idust][P->l[0]][P->l[1]][P->l[2]];
+        } else {
+            energy_threshold = HUGE_VAL;
+            break;
+        }
+    }
+    energy_threshold *= (1. + 0.3);
+
+    // Start walking the photon.
     while (true) {
         double dmin = minimum_wall_distance(P);
 
@@ -740,6 +755,13 @@ void Grid::propagate_photon_mrw(Photon *P) {
                 break;
             }
         }
+
+        double energy_tot = 0.;
+        for (int idust=0; idust<nspecies; idust++)
+            energy_tot += energy[idust][P->l[0]][P->l[1]][P->l[2]];
+
+        if (energy_tot > energy_threshold)
+            break;
     }
 }
 
