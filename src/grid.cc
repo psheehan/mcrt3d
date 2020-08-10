@@ -450,8 +450,52 @@ void Grid::propagate_photon_full(Photon *P) {
             // Need to do the in_grid check again because the absorption
             // or scattering may have been on the outermost wall, putting
             // it outside of the grid.
-            if ((Q->use_mrw) && (in_grid(P)))
-                propagate_photon_mrw(P);
+            if (Q->use_mrw && in_grid(P)) {
+                double alpha = 0.0;
+                for (int idust = 0; idust<nspecies; idust++)
+                    alpha += dust[idust]->rosseland_mean_extinction(
+                            temp[idust][P->l[0]][P->l[1]][P->l[2]]) * 
+                            dens[idust][P->l[0]][P->l[1]][P->l[2]];
+
+                double dmin = smallest_wall_size(P);
+
+                if (alpha * dmin > 20) {
+                    // Propagate the photon.
+                    propagate_photon_mrw(P);
+
+                    // Update the temperature after absorbing all that energy.
+                    update_grid(P->l);
+
+                    // Absorb the photon
+                    int idust = 0;
+                    if (nspecies == 1) {
+                        idust = 0;
+                    }
+                    else {
+                        double ksca_tot = 0;
+                        double *ksca_cum = new double[nspecies];
+                        double kext_tot = 0;
+                        for (int i=0; i<nspecies; i++) {
+                            ksca_tot += P->current_albedo[i]*P->current_kext[i]*
+                                dens[i][P->l[0]][P->l[1]][P->l[2]];
+                            ksca_cum[i] = ksca_tot;
+                            kext_tot += P->current_kext[i]*
+                                dens[i][P->l[0]][P->l[1]][P->l[2]];
+                        }
+
+                        double rand = random_number();
+                        for (int i=0; i<nspecies; i++) {
+                            if (rand < ksca_cum[i] / kext_tot) {
+                                idust = i;
+                                break;
+                            }
+                        }
+                        delete[] ksca_cum;
+                    }
+
+                    absorb(P, idust);
+                }
+            }
         }
     }
 }
@@ -604,96 +648,98 @@ void Grid::propagate_photon_scattering(Photon *P) {
     }
 }
 
+/* Get a random direction for the photon. */
+
+void Grid::random_dir_mrw(Photon *P) {
+    // Adjust the photon's direction if we are doing MRW.
+    double cost = -1+2*random_number();
+    double sint = sqrt(1-pow(cost,2));
+    double phi = 2*pi*random_number();
+
+    P->n[0] = sint*cos(phi);
+    P->n[1] = sint*sin(phi);
+    P->n[2] = cost;
+    P->invn[0] = 1.0/P->n[0];
+    P->invn[1] = 1.0/P->n[1];
+    P->invn[2] = 1.0/P->n[2];
+}
+
 /* Propagate a photon using the MRW method for high optical depths. */
 
 void Grid::propagate_photon_mrw(Photon *P) {
-    double dmin = minimum_wall_distance(P);
-
     double alpha = 0.0;
     for (int idust = 0; idust<nspecies; idust++)
         alpha += dust[idust]->rosseland_mean_extinction(
                 temp[idust][P->l[0]][P->l[1]][P->l[2]]) * 
                 dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
-    if (alpha * dmin > Q->mrw_gamma) {
-        if (Q->verbose) {
-            printf("Doing MRW step...\n");
-        }
+    while (true) {
+        double dmin = minimum_wall_distance(P);
 
-        // Calculate the radius of the sphere that we will move the photon to
-        // somewhere on.
-        double R_0 = 0.99 * dmin;
-        if (Q->verbose) {
-            printf("%f %f\n", dmin/au, R_0/au);
-        }
+        if (alpha * dmin > Q->mrw_gamma) {
+            if (Q->verbose) {
+                printf("Doing MRW step...\n");
+            }
 
-        // Calculate the value of y
-        /*double ksi = random_number();
+            // Calculate the radius of the sphere that we will move the photon 
+            // to somewhere on.
+            double R_0 = 0.99 * dmin;
+            if (Q->verbose) {
+                printf("%f %f\n", dmin/au, R_0/au);
+            }
 
-        int i = find_in_arr(ksi, f, ny);
+            // Calculate the actual distance that the photon traveled through 
+            // diffusion.
+            double s = 0.5 * R_0 * R_0 * alpha; //Per RADMC-3D, this is the 
+                                                //average distance.
 
-        double y0 = dydf[i] * (ksi - f[i]) + y[i];*/
-
-        // Calculate the actual distance that the photon traveled through 
-        // diffusion.
-        /*if (Q->verbose) {
-            printf("%i, %f\n", i, y0);
-        }
-        double s = -log(y0) * (R_0/pi)*(R_0/pi) * 3 * alpha;*/
-        double s = 0.5 * R_0 * R_0 * alpha; //Per RADMC-3D, this is the average
-                                            //distance.
-
-        if (Q->verbose) {
-            printf("%f\n", s/au);
-        }
-        // Add the energy absorbed into the grid.
-        for (int idust=0; idust<nspecies; idust++)
-            energy[idust][P->l[0]][P->l[1]][P->l[2]] += P->energy*
-                s*dust[idust]->planck_mean_opacity(
+            if (Q->verbose) {
+                printf("%f\n", s/au);
+            }
+            // Add the energy absorbed into the grid.
+            for (int idust=0; idust<nspecies; idust++)
+                energy[idust][P->l[0]][P->l[1]][P->l[2]] += P->energy*
+                        s*dust[idust]->planck_mean_opacity(
                         temp[idust][P->l[0]][P->l[1]][P->l[2]]) *
-                dens[idust][P->l[0]][P->l[1]][P->l[2]];
+                        dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
-        // If we're doing a Bjorkman & Wood simulation, update the cell to
-        // find its new temperature.
-        if (Q->bw) {
-            update_grid(P->l);
-        }
+            // Move the photon to the edge of the sphere.
+            random_dir_mrw(P);
 
-        // Move the photon to the edge of the sphere.
-        P->move(R_0);
+            P->move(R_0);
 
-        // Absorb the photon
-        int idust = 0;
-        if (nspecies == 1) {
-            idust = 0;
-        }
-        else {
-            double ksca_tot = 0;
-            double *ksca_cum = new double[nspecies];
-            double kext_tot = 0;
-            for (int i=0; i<nspecies; i++) {
-                ksca_tot += P->current_albedo[i]*P->current_kext[i]*
-                    dens[i][P->l[0]][P->l[1]][P->l[2]];
-                ksca_cum[i] = ksca_tot;
-                kext_tot += P->current_kext[i]*
-                    dens[i][P->l[0]][P->l[1]][P->l[2]];
+        } else {
+            double tau = -log(1-random_number());
+
+            // Calculate the distance to the next wall.
+            double s1 = next_wall_distance(P);
+
+            // Calculate how far the photon can go with the current tau.
+            double s2 = tau/alpha;
+
+            // Determine whether to move to the next wall or to the end of tau.
+            double s = s1;
+            if (s2 < s) s = s2;
+
+            // Continuously absorb the photon's energy, if the end result of the
+            // current trajectory is absorption.
+            for (int idust=0; idust<nspecies; idust++)
+                energy[idust][P->l[0]][P->l[1]][P->l[2]] += P->energy*
+                        s*dust[idust]->planck_mean_opacity(
+                        temp[idust][P->l[0]][P->l[1]][P->l[2]]) * 
+                        dens[idust][P->l[0]][P->l[1]][P->l[2]];
+
+            // Move the photon to it's new position.
+            P->move(s);
+
+            // "Absorb" to get a new direction.
+            random_dir_mrw(P);
+
+            // If the photon moved to the next cell, update it's location.
+            if (s1 < s2) {
+                break;
             }
-
-            double rand = random_number();
-            for (int i=0; i<nspecies; i++) {
-                if (rand < ksca_cum[i] / kext_tot) {
-                    idust = i;
-                    break;
-                }
-            }
-            delete[] ksca_cum;
         }
-
-        absorb(P, idust);
-
-        // Try running another MRW step until the condition for MRW is no 
-        // longer satisfied.
-        propagate_photon_mrw(P);
     }
 }
 
@@ -801,6 +847,12 @@ double Grid::outer_wall_distance(Photon *P) {
 /* Calculate the smallest absolute distance to the nearest wall. */
 
 double Grid::minimum_wall_distance(Photon *P) {
+    return 0.0;
+}
+
+/* Calculate the smallest distance across the cell. */
+
+double Grid::smallest_wall_size(Photon *P) {
     return 0.0;
 }
 

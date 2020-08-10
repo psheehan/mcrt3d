@@ -97,6 +97,7 @@ struct Grid {
     virtual double next_wall_distance(Photon *P);
     virtual double outer_wall_distance(Photon *P);
     virtual double minimum_wall_distance(Photon *P);
+    virtual double smallest_wall_size(Photon *P);
     virtual double grid_size();
 
     void propagate_photon_full(Photon *P);
@@ -108,6 +109,8 @@ struct Grid {
 
     void absorb(Photon *P, int idust);
     void scatter(Photon *P, int idust);
+
+    void random_dir_mrw(Photon *P);
 
     virtual Vector<int, 3> photon_loc(Photon *P);
     virtual bool in_grid(Photon *P);

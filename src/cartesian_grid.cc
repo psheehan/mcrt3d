@@ -150,6 +150,21 @@ double CartesianGrid::minimum_wall_distance(Photon *P) {
     return s;
 }
 
+/* Calculate the smallest distance across the cell. */
+
+double CartesianGrid::smallest_wall_size(Photon *P) {
+
+    double s = fabs(w1[P->l[0]+1] - w1[P->l[0]]);
+    
+    double sy = fabs(w2[P->l[0]+1] - w2[P->l[0]]);
+    if (sy < s) s = sy;
+    
+    double sz = fabs(w3[P->l[0]+1] - w3[P->l[0]]);
+    if (sz < s) s = sz;
+    
+    return s;
+}
+
 /* Calculate the size of the grid. */
 
 double CartesianGrid::grid_size() {
