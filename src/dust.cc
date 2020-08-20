@@ -73,7 +73,7 @@ Dust::~Dust() {
 
 void Dust::set_lookup_tables() {
     // Create the temperature array;
-    ntemp = 100;
+    ntemp = 1000;
     temp = new double[ntemp];
 
     for (int i = 0; i < ntemp; i++)
