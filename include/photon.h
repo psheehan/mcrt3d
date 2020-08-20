@@ -13,6 +13,7 @@ struct Photon {
     Vector<int, 3> l;
 
     double event_count;
+    double same_cell_count;
 
     double rad, phi, theta;
 

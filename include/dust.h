@@ -53,6 +53,7 @@ struct Dust {
 
     virtual void scatter(Photon *P);
     void absorb(Photon *P, double T, bool bw);
+    void absorb_mrw(Photon *P, double T, bool bw);
 
     double random_nu(double T, bool bw);
     double opacity(double freq);

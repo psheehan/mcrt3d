@@ -47,6 +47,7 @@ struct Grid {
     std::vector<double***> luminosity;
     std::vector<double****> scatt;
     double ***volume;
+    double ***uses_mrw;
 
     int nspecies;
     std::vector<Dust*> dust;
@@ -108,6 +109,7 @@ struct Grid {
     void propagate_ray_from_source(Ray *R);
 
     void absorb(Photon *P, int idust);
+    void absorb_mrw(Photon *P, int idust);
     void scatter(Photon *P, int idust);
 
     void random_dir_mrw(Photon *P);

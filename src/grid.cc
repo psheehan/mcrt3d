@@ -356,6 +356,22 @@ void Grid::absorb(Photon *P, int idust) {
     P->l = photon_loc(P);
 }
 
+void Grid::absorb_mrw(Photon *P, int idust) {
+    dust[idust]->absorb_mrw(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw);
+
+    // Update the photon's arrays of kext and albedo since P->nu has changed
+    // upon absorption.
+    for (int i=0; i<nspecies; i++) {
+        P->current_kext[i] = dust[i]->opacity(P->nu);
+        P->current_albedo[i] = dust[i]->albdo(P->nu);
+    }
+
+    // Check the photon's location again because there's a small chance that 
+    // the photon was absorbed on a wall, and if it was we may need to update
+    // which cell it is in if the direction has changed.
+    P->l = photon_loc(P);
+}
+
 /* Linker function to the dust scatter function. */
 
 void Grid::scatter(Photon *P, int idust) {
@@ -370,6 +386,8 @@ void Grid::scatter(Photon *P, int idust) {
 /* Propagate a photon through the grid until it escapes. */
 
 void Grid::propagate_photon_full(Photon *P) {
+    P->same_cell_count = 0;
+
     while (in_grid(P)) {
         // Determin the optical depth that the photon can travel until it's
         // next interaction.
@@ -450,7 +468,8 @@ void Grid::propagate_photon_full(Photon *P) {
             // Need to do the in_grid check again because the absorption
             // or scattering may have been on the outermost wall, putting
             // it outside of the grid.
-            if (Q->use_mrw && in_grid(P)) {
+            if (Q->use_mrw && in_grid(P) && ((P->same_cell_count > 400) || 
+                        (uses_mrw[P->l[0]][P->l[1]][P->l[2]] > 0))) {
                 double alpha = 0.0;
                 for (int idust = 0; idust<nspecies; idust++)
                     alpha += dust[idust]->rosseland_mean_extinction(
@@ -460,6 +479,8 @@ void Grid::propagate_photon_full(Photon *P) {
                 double dmin = smallest_wall_size(P);
 
                 if (alpha * dmin > 20) {
+                    uses_mrw[P->l[0]][P->l[1]][P->l[2]] = 1.0;
+
                     // Propagate the photon.
                     propagate_photon_mrw(P);
 
@@ -493,7 +514,7 @@ void Grid::propagate_photon_full(Photon *P) {
                         delete[] ksca_cum;
                     }
 
-                    absorb(P, idust);
+                    absorb_mrw(P, idust);
                 }
             }
         }
@@ -520,7 +541,11 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
 
         // Determine whether to move to the next wall or to the end of tau.
         double s = s1;
-        if (s2 < s) s = s2;
+        if (s2 < s) {
+            s = s2;
+            P->same_cell_count++;
+        } else
+            P->same_cell_count = 0;
 
         // Calculate how far the photon can go before running into a source.
         int isource_intercept;
@@ -747,13 +772,13 @@ void Grid::propagate_photon_mrw(Photon *P) {
             // Move the photon to it's new position.
             P->move(s);
 
-            // "Absorb" to get a new direction.
-            random_dir_mrw(P);
-
             // If the photon moved to the next cell, update it's location.
             if (s1 < s2) {
+                P->same_cell_count = 0;
                 break;
-            }
+            } else
+                // "Absorb" to get a new direction.
+                random_dir_mrw(P);
         }
 
         double energy_tot = 0.;

@@ -169,6 +169,10 @@ void Dust::absorb(Photon *P, double T, bool bw) {
     P->nu = random_nu(T,bw);
 }
 
+void Dust::absorb_mrw(Photon *P, double T, bool bw) {
+    P->nu = random_nu(T,bw);
+}
+
 /* Calculate a random frequency for a photon. */
 
 double Dust::random_nu(double T, bool bw) {
