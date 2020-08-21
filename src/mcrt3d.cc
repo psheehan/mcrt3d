@@ -46,8 +46,6 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
     Q->verbose = verbose;
     Q->scattering = false;
 
-    if (Q->use_mrw) G->uses_mrw = create3DArrValue(G->n1, G->n2, G->n3, -1);
-
     // Do the thermal calculation.
     if (Q->bw)
         mc_iteration();
@@ -85,8 +83,6 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
         delete4DArr(told, G->nspecies, G->n1, G->n2, G->n3);
         delete4DArr(treallyold, G->nspecies, G->n1, G->n2, G->n3);
     }
-
-    if (Q->use_mrw) delete3DArr(G->uses_mrw, G->n1, G->n2, G->n3);
 }
 
 void MCRT::scattering_mc(int nphot, bool verbose) {

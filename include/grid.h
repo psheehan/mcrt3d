@@ -44,6 +44,8 @@ struct Grid {
     std::vector<double***> energy;
     std::vector<double***> temp;
     std::vector<double***> mass;
+    std::vector<double***> rosseland_mean_extinction;
+    std::vector<double***> planck_mean_opacity;
     std::vector<double***> luminosity;
     std::vector<double****> scatt;
     double ***volume;

@@ -36,6 +36,10 @@ Grid::Grid(py::array_t<double> __w1, py::array_t<double> __w2,
     // Make sure the number of species and sources are set correctly.
 
     nspecies = 0; nsources = 0;
+
+    // Initialize the uses_mrw array.
+
+    uses_mrw = create3DArrValue(n1, n2, n3, -1);
 }
 
 /* Functions to set up the grid. */
@@ -69,8 +73,14 @@ Grid::~Grid() {
         freepymangle(temp[i]);
         delete3DArr(mass[i], n1, n2, n3);
         delete3DArr(energy[i], n1, n2, n3);
+        delete3DArr(rosseland_mean_extinction[i], n1, n2, n3);
+        delete3DArr(planck_mean_opacity[i], n1, n2, n3);
     }
     dens.clear(); temp.clear(); mass.clear(); energy.clear(); dust.clear();
+
+    // Deallocate the uses_mrw array.
+
+    delete3DArr(uses_mrw, n1, n2, n3);
 
     // Make sure the scattering array is deallocated.
 
@@ -110,11 +120,15 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
     double ***__temp = pymangle(n1, n2, n3, (double *) _temp_buf.ptr);
     double ***__mass = create3DArrValue(n1, n2, n3, 0);
     double ***__energy = create3DArrValue(n1, n2, n3, 0);
+    double ***__rosseland_mean_extinction = create3DArrValue(n1, n2, n3, 0);
+    double ***__planck_mean_opacity = create3DArrValue(n1, n2, n3, 0);
 
     dens.push_back(__dens);
     temp.push_back(__temp);
     mass.push_back(__mass);
     energy.push_back(__energy);
+    rosseland_mean_extinction.push_back(__rosseland_mean_extinction);
+    planck_mean_opacity.push_back(__planck_mean_opacity);
 
     // Initialize their values.
 
@@ -123,6 +137,10 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
             for (int k = 0; k < n3; k++) {
                 __temp[i][j][k] = 0.1;
                 __mass[i][j][k] = __dens[i][j][k] * volume[i][j][k];
+                __rosseland_mean_extinction[i][j][k] = 
+                    D->rosseland_mean_extinction(__temp[i][j][k]);
+                __planck_mean_opacity[i][j][k] = D->planck_mean_opacity(
+                        __temp[i][j][k]);
             }
         }
     }
@@ -472,9 +490,8 @@ void Grid::propagate_photon_full(Photon *P) {
                         (uses_mrw[P->l[0]][P->l[1]][P->l[2]] > 0))) {
                 double alpha = 0.0;
                 for (int idust = 0; idust<nspecies; idust++)
-                    alpha += dust[idust]->rosseland_mean_extinction(
-                            temp[idust][P->l[0]][P->l[1]][P->l[2]]) * 
-                            dens[idust][P->l[0]][P->l[1]][P->l[2]];
+                    alpha += rosseland_mean_extinction[idust][P->l[0]][P->l[1]]
+                            [P->l[2]] * dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
                 double dmin = smallest_wall_size(P);
 
@@ -695,8 +712,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
     // Calculate the Rosseland mean opacity.
     double alpha = 0.0;
     for (int idust = 0; idust<nspecies; idust++)
-        alpha += dust[idust]->rosseland_mean_extinction(
-                temp[idust][P->l[0]][P->l[1]][P->l[2]]) * 
+        alpha += rosseland_mean_extinction[idust][P->l[0]][P->l[1]][P->l[2]] * 
                 dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
     // Calculate the energy threshold at which to stop and re-calculate the
@@ -739,8 +755,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
             // Add the energy absorbed into the grid.
             for (int idust=0; idust<nspecies; idust++)
                 energy[idust][P->l[0]][P->l[1]][P->l[2]] += P->energy*
-                        s*dust[idust]->planck_mean_opacity(
-                        temp[idust][P->l[0]][P->l[1]][P->l[2]]) *
+                        s*planck_mean_opacity[idust][P->l[0]][P->l[1]][P->l[2]]*
                         dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
             // Move the photon to the edge of the sphere.
@@ -765,8 +780,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
             // current trajectory is absorption.
             for (int idust=0; idust<nspecies; idust++)
                 energy[idust][P->l[0]][P->l[1]][P->l[2]] += P->energy*
-                        s*dust[idust]->planck_mean_opacity(
-                        temp[idust][P->l[0]][P->l[1]][P->l[2]]) * 
+                        s*planck_mean_opacity[idust][P->l[0]][P->l[1]][P->l[2]]*
                         dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
             // Move the photon to it's new position.
@@ -955,6 +969,15 @@ void Grid::update_grid(Vector<int, 3> l) {
 
             if ((fabs(T_old-temp[idust][l[0]][l[1]][l[2]])/T_old < 1.0e-2))
                 not_converged = false;
+        }
+
+        if (Q->use_mrw) {
+            rosseland_mean_extinction[idust][l[0]][l[1]][l[2]] = 
+                    dust[idust]->rosseland_mean_extinction(
+                    temp[idust][l[0]][l[1]][l[2]]);
+            planck_mean_opacity[idust][l[0]][l[1]][l[2]] = 
+                    dust[idust]->planck_mean_opacity(
+                    temp[idust][l[0]][l[1]][l[2]]);
         }
     }
 }
