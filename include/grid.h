@@ -62,11 +62,6 @@ struct Grid {
 
     Params *Q;
 
-    int ny;
-    double *y;
-    double *f;
-    double *dydf;
-
     Grid(py::array_t<double> w1, py::array_t<double> w2, 
             py::array_t<double> w3);
 
@@ -84,7 +79,6 @@ struct Grid {
     void add_star(double x, double y, double z, double _mass, double _radius, 
             double _temperature);
 
-    void set_mrw_tables(double *y, double *f, double *dydf, int ny);
     //void add_scattering_array(double *_scatt, int nnu);
     void initialize_scattering_array();
     void deallocate_scattering_array();

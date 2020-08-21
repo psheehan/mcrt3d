@@ -164,13 +164,6 @@ void Grid::add_star(double x, double y, double z, double _mass, double _radius,
     nsources++;
 }
 
-void Grid::set_mrw_tables(double *_y, double *_f, double *_dydf, int _ny) {
-    y = _y;
-    f = _f;
-    dydf = _dydf;
-    ny = _ny;
-}
-
 /*void Grid::add_scattering_array(double *_scatt, int nnu) {
     double ****__scatt = pymangle(n1, n2, n3, nnu, _scatt);
 
