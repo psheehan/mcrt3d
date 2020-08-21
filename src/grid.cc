@@ -744,9 +744,10 @@ void Grid::propagate_photon_mrw(Photon *P) {
                         dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
             // Move the photon to the edge of the sphere.
-            random_dir_mrw(P);
-
             P->move(R_0);
+
+            // Pick a random direction to be traveling in next.
+            random_dir_mrw(P);
 
         } else {
             double tau = -log(1-random_number());
