@@ -178,17 +178,19 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
 
     // Now go through and raytrace.
 
-    for (int i=0; i<image->nnu; i++)
-    {
-        Q->inu = i;
-        for (int j=0; j<image->nx; j++)
-            for (int k=0; k<image->ny; k++) {
-                if (Q->verbose) printf("%d   %d\n", j, k);
-                image->intensity[j][k][i] = raytrace_pixel(image->x[j], 
-                        image->y[k], image->pixel_size, image->nu[i], 0) * 
-                        image->pixel_size * image->pixel_size / (r * r)/ Jy;
-            }
-    }
+    for (int j=0; j<image->nx; j++)
+        for (int k=0; k<image->ny; k++) {
+            if (Q->verbose) printf("%d   %d\n", j, k);
+
+            double *intensity = raytrace_pixel(image->x[j], image->y[k], 
+                    image->pixel_size, image->nu, image->nnu, 0);
+
+            for (int i = 0; i < image->nnu; i++)
+                image->intensity[j][k][i] = intensity[i] * 
+                    image->pixel_size * image->pixel_size / (r * r)/ Jy;
+
+            delete[] intensity;
+        }
 
     // Also raytrace the sources.
 
@@ -279,26 +281,32 @@ Spectrum *Camera::make_spectrum(py::array_t<double> lam, double incl,
     return S;
 }
 
-Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
+Ray *Camera::emit_ray(double x, double y, double pixel_size, double *nu, 
+        int nnu) {
     Ray *R = new Ray();
 
-    R->tau = 0.0;
-    R->intensity = 0.0;
+    R->nnu = nnu;
+    R->tau = new double[nnu];
+    R->intensity = new double[nnu];
+    for (int i = 0; i < nnu; i++) {
+        R->tau[i] = 0; R->intensity[i] = 0;
+    }
+
     R->pixel_size = pixel_size;
     R->pixel_too_large = false;
 
     R->nu = nu;
 
-    double *current_kext = new double[G->nspecies];
-    double *current_albedo = new double[G->nspecies];
+    R->ndust = G->nspecies;
+    R->current_kext = create2DArr(G->nspecies, nnu);
+    R->current_albedo = create2DArr(G->nspecies, nnu);
 
     for (int j=0; j<G->nspecies; j++) {
-        current_kext[j] = G->dust[j]->opacity(R->nu);
-        current_albedo[j] = G->dust[j]->albdo(R->nu);
+        for (int k = 0; k < nnu; k++) {
+            R->current_kext[j][k] = G->dust[j]->opacity(R->nu[k]);
+            R->current_albedo[j][k] = G->dust[j]->albdo(R->nu[k]);
+        }
     }
-
-    R->current_kext = current_kext;
-    R->current_albedo = current_albedo;
 
     R->r = i + x*ex + y*ey;
     R->n = ez;
@@ -320,27 +328,33 @@ Ray *Camera::emit_ray(double x, double y, double pixel_size, double nu) {
     return R;
 }
 
-double Camera::raytrace_pixel(double x, double y, double pixel_size, 
-        double nu, int count) {
+double* Camera::raytrace_pixel(double x, double y, double pixel_size, 
+        double *nu, int nnu, int count) {
     //printf("%d\n", count);
-    double intensity = raytrace(x, y, pixel_size, nu, false);
+    double *intensity = raytrace(x, y, pixel_size, nu, nnu, false);
 
     count++;
 
-    if ((intensity < 0)) { // && (count < 1)) {
-        double intensity1 = raytrace_pixel(x-pixel_size/4, y-pixel_size/4, 
-                pixel_size/2, nu, count);
-        double intensity2 = raytrace_pixel(x-pixel_size/4, y+pixel_size/4, 
-                pixel_size/2, nu, count);
-        double intensity3 = raytrace_pixel(x+pixel_size/4, y-pixel_size/4, 
-                pixel_size/2, nu, count);
-        double intensity4 = raytrace_pixel(x+pixel_size/4, y+pixel_size/4, 
-                pixel_size/2, nu, count);
+    if ((intensity[0] < 0)) { // && (count < 1)) {
+        double *intensity1 = raytrace_pixel(x-pixel_size/4, y-pixel_size/4, 
+                pixel_size/2, nu, nnu, count);
+        double *intensity2 = raytrace_pixel(x-pixel_size/4, y+pixel_size/4, 
+                pixel_size/2, nu, nnu, count);
+        double *intensity3 = raytrace_pixel(x+pixel_size/4, y-pixel_size/4, 
+                pixel_size/2, nu, nnu, count);
+        double *intensity4 = raytrace_pixel(x+pixel_size/4, y+pixel_size/4, 
+                pixel_size/2, nu, nnu, count);
 
-        return (intensity1+intensity2+intensity3+intensity4)/4;
+        for (int i = 0; i < nnu; i++) {
+            intensity[i] = (intensity1[i]+intensity2[i]+intensity3[i]+
+                    intensity4[i])/4;
+        }
+
+        delete[] intensity1; delete[] intensity2; delete[] intensity3;
+        delete[] intensity4;
     }
-    else
-        return intensity;
+
+    return intensity;
 }
 
 void Camera::raytrace_pixel(UnstructuredImage *image, int ix, 
@@ -350,19 +364,20 @@ void Camera::raytrace_pixel(UnstructuredImage *image, int ix,
 
     // Raytrace all frequencies.
 
+    double *intensity = raytrace(image->x[ix], image->y[ix], pixel_size, 
+            image->nu, image->nnu, true);
+
     for (int i=0; i<image->nnu; i++)
     {
-        Q->inu = i;
-        double intensity = raytrace(image->x[ix], image->y[ix], pixel_size, 
-                image->nu[i], true);
-
-        if ((intensity < 0)) { 
-            image->intensity[ix].push_back(-intensity);
+        if ((intensity[i] < 0)) { 
+            image->intensity[ix].push_back(-intensity[i]);
             subpixel = true;
         }
         else
-            image->intensity[ix].push_back(intensity);
+            image->intensity[ix].push_back(intensity[i]);
     }
+
+    delete[] intensity;
     
     // Split the cell into four and raytrace again.
     if (subpixel) {
@@ -398,10 +413,13 @@ void Camera::raytrace_pixel(UnstructuredImage *image, int ix,
     }
 }
 
-double Camera::raytrace(double x, double y, double pixel_size, double nu, 
-        bool unstructured) {
+double* Camera::raytrace(double x, double y, double pixel_size, double *nu, 
+        int nnu, bool unstructured) {
     /* Emit a ray from the given location. */
-    Ray *R = emit_ray(x, y, pixel_size, nu);
+    Ray *R = emit_ray(x, y, pixel_size, nu, nnu);
+
+    /* Create an intensity array for the result to go into. */
+    double *intensity = new double[nnu];
 
     /* Move the ray onto the grid boundary */
     double s = G->outer_wall_distance(R);
@@ -420,7 +438,10 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu,
          * along that wall. */
 
         if (G->on_and_parallel_to_wall(R) and not unstructured) {
-            return -1.0;
+            for (int i = 0; i < nnu; i++)
+                intensity[i] = -1.0;
+
+            return intensity;
         }
 
         /* Move the ray through the grid, calculating the intensity as 
@@ -432,11 +453,13 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu,
 
         /* Check whether the run was successful or if we need to sub-pixel 
          * to get a good intensity measurement. */
-        double intensity = R->intensity;
-        if (R->pixel_too_large and not unstructured)
-            intensity = -1.0;
-        if (R->pixel_too_large and unstructured)
-            intensity *= -1.0;
+        for (int i = 0; i < nnu; i++) {
+            intensity[i] = R->intensity[i];
+            if (R->pixel_too_large and not unstructured)
+                intensity[i] = -1.0;
+            if (R->pixel_too_large and unstructured)
+                intensity[i] *= -1.0;
+            }
 
         /* Clean up the ray. */
         delete R;
@@ -446,54 +469,55 @@ double Camera::raytrace(double x, double y, double pixel_size, double nu,
     else {
         delete R; // Make sure the Ray instance is cleaned up.
 
-        return 0.0;
+        for (int i = 0; i < nnu; i++)
+            intensity[i] = 0.0;
+
+        return intensity;
     }
 }
 
 void Camera::raytrace_sources(Image *image) {
 
     for (int isource=0; isource < G->nsources; isource++) {
-        for (int inu=0; inu < image->nnu; inu++) {
-            double dnu = image->nu[inu+1] - image->nu[inu];
+        for (int iphot=0; iphot < 1000; iphot++) {
+            // Emit the ray.
+            Ray *R = G->sources[isource]->emit_ray(image->nu, image->nnu, 
+                    image->pixel_size, ez, 1000);
 
-            for (int iphot=0; iphot < 1000; iphot++) {
-                // Emit the ray.
-                Ray *R = G->sources[isource]->emit_ray(image->nu[inu], dnu, 
-                        image->pixel_size, ez, 1000);
+            R->l = G->photon_loc(R);
 
-                R->l = G->photon_loc(R);
+            // Get the appropriate dust opacities.
 
-                // Get the appropriate dust opacities.
+            R->ndust = G->nspecies;
+            R->current_kext = create2DArr(G->nspecies, image->nnu);
+            R->current_albedo = create2DArr(G->nspecies, image->nnu);
 
-                double *current_kext = new double[G->nspecies];
-                double *current_albedo = new double[G->nspecies];
-
-                for (int j=0; j<G->nspecies; j++) {
-                    current_kext[j] = G->dust[j]->opacity(R->nu);
-                    current_albedo[j] = G->dust[j]->albdo(R->nu);
+            for (int j=0; j<G->nspecies; j++) {
+                for (int k = 0; k < image->nnu; k++) {
+                    R->current_kext[j][k] = G->dust[j]->opacity(R->nu[k]);
+                    R->current_albedo[j][k] = G->dust[j]->albdo(R->nu[k]);
                 }
-
-                R->current_kext = current_kext;
-                R->current_albedo = current_albedo;
-
-                // Now propagate the ray.
-                G->propagate_ray_from_source(R);
-
-                // Now bin the photon into the right cell.
-                double ximage = R->r * ey;
-                double yimage = R->r * ex;
-
-                int ix = int(image->nx * (ximage + image->x[image->nx-1]) / 
-                        (2*image->x[image->nx-1]) + 0.5);
-                int iy = int(image->ny * (yimage + image->y[image->ny-1]) / 
-                        (2*image->y[image->ny-1]) + 0.5);
-
-                // Finally, add the energy into the appropriate cell.
-                image->intensity[ix][iy][inu] += R->intensity;
-
-                // And clean up the Ray.
-                delete R;
             }
+
+            // Now propagate the ray.
+            G->propagate_ray_from_source(R);
+
+            // Now bin the photon into the right cell.
+            double ximage = R->r * ey;
+            double yimage = R->r * ex;
+
+            int ix = int(image->nx * (ximage + image->x[image->nx-1]) / 
+                    (2*image->x[image->nx-1]) + 0.5);
+            int iy = int(image->ny * (yimage + image->y[image->ny-1]) / 
+                    (2*image->y[image->ny-1]) + 0.5);
+
+            // Finally, add the energy into the appropriate cell.
+            for (int inu=0; inu < image->nnu; inu++) {
+                image->intensity[ix][iy][inu] += R->intensity[inu];
+            }
+
+            // And clean up the Ray.
+            delete R;
         }
     }
 }
@@ -503,48 +527,44 @@ void Camera::raytrace_sources(UnstructuredImage *image) {
     for (int isource=0; isource < G->nsources; isource++) {
         int nxy = image->x.size();
 
-        for (int inu=0; inu < image->nnu; inu++) {
-            double dnu = image->nu[inu+1] - image->nu[inu];
+        for (int iphot=0; iphot < 1; iphot++) {
+            // Emit the ray.
+            Ray *R = G->sources[isource]->emit_ray(image->nu, image->nnu, 
+                    ez, 1);
 
-            for (int iphot=0; iphot < 1; iphot++) {
-                // Emit the ray.
-                Ray *R = G->sources[isource]->emit_ray(image->nu[inu], dnu, 
-                        ez, 1);
+            R->l = G->photon_loc(R);
 
-                R->l = G->photon_loc(R);
+            // Get the appropriate dust opacities.
 
-                // Get the appropriate dust opacities.
+            R->ndust = G->nspecies;
+            R->current_kext = create2DArr(G->nspecies, image->nnu);
+            R->current_albedo = create2DArr(G->nspecies, image->nnu);
 
-                double *current_kext = new double[G->nspecies];
-                double *current_albedo = new double[G->nspecies];
-
-                for (int j=0; j<G->nspecies; j++) {
-                    current_kext[j] = G->dust[j]->opacity(R->nu);
-                    current_albedo[j] = G->dust[j]->albdo(R->nu);
+            for (int j=0; j<G->nspecies; j++) {
+                for (int k = 0; k < image->nnu; k++) {
+                    R->current_kext[j][k] = G->dust[j]->opacity(R->nu[k]);
+                    R->current_albedo[j][k] = G->dust[j]->albdo(R->nu[k]);
                 }
-
-                R->current_kext = current_kext;
-                R->current_albedo = current_albedo;
-
-                // Now propagate the ray.
-                G->propagate_ray_from_source(R);
-
-                // Now bin the photon into the right cell.
-                if (inu == 0) {
-                    double ximage = R->r * ey;
-                    double yimage = R->r * ex;
-
-                    image->x.push_back(ximage);
-                    image->y.push_back(yimage);
-                    image->intensity.push_back(std::vector<double>());
-                }
-
-                // Finally, add the energy into the appropriate cell.
-                image->intensity[nxy+iphot].push_back(R->intensity);
-
-                // And clean up the Ray.
-                delete R;
             }
+
+            // Now propagate the ray.
+            G->propagate_ray_from_source(R);
+
+            // Now bin the photon into the right cell.
+            double ximage = R->r * ey;
+            double yimage = R->r * ex;
+
+            image->x.push_back(ximage);
+            image->y.push_back(yimage);
+            image->intensity.push_back(std::vector<double>());
+
+            // Finally, add the energy into the appropriate cell.
+            for (int inu=0; inu < image->nnu; inu++) {
+                image->intensity[nxy+iphot].push_back(R->intensity[inu]);
+            }
+
+            // And clean up the Ray.
+            delete R;
         }
     }
 }

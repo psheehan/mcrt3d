@@ -99,12 +99,12 @@ struct Camera {
 
     void set_orientation(double incl, double pa, double dpc);
 
-    Ray* emit_ray(double x, double y, double pixel_size, double nu);
-    double raytrace_pixel(double x, double y, double pixel_size, double nu, 
-            int count);
+    Ray* emit_ray(double x, double y, double pixel_size, double *nu, int nnu);
+    double* raytrace_pixel(double x, double y, double pixel_size, double *nu, 
+            int nnu, int count);
     void raytrace_pixel(UnstructuredImage *image, int ix, double pixel_size); 
-    double raytrace(double x, double y, double pixel_size, double nu, 
-            bool unstructured);
+    double* raytrace(double x, double y, double pixel_size, double *nu, 
+            int nnu, bool unstructured);
 
     void raytrace_sources(Image *I);
     void raytrace_sources(UnstructuredImage *I);

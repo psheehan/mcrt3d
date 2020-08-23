@@ -812,40 +812,48 @@ void Grid::propagate_ray(Ray *R) {
 
         double s = next_wall_distance(R);
 
-        double tau_abs = 0;
-        double tau_sca = 0;
-        double tau_cell = 0;
-        double intensity_abs = 0;
-        double intensity_sca = 0;
-        double intensity_cell = 0;
-        for (int idust=0; idust<nspecies; idust++) {
-            tau_abs = s*R->current_kext[idust]*(1.-R->current_albedo[idust])*
-                dens[idust][R->l[0]][R->l[1]][R->l[2]];
-            tau_sca = s*R->current_kext[idust]*R->current_albedo[idust]*
-                dens[idust][R->l[0]][R->l[1]][R->l[2]];
+        for (int inu = 0; inu < R->nnu; inu++) {
+            double tau_abs = 0;
+            double tau_sca = 0;
+            double tau_cell = 0;
+            double intensity_abs = 0;
+            double intensity_sca = 0;
+            double intensity_cell = 0;
 
-            tau_cell += s*R->current_kext[idust]*
-                dens[idust][R->l[0]][R->l[1]][R->l[2]];
+            for (int idust=0; idust<nspecies; idust++) {
+                tau_abs = s*R->current_kext[idust][inu]*(1.-
+                        R->current_albedo[idust][inu]) * 
+                        dens[idust][R->l[0]][R->l[1]][R->l[2]];
+                tau_sca = s*R->current_kext[idust][inu]*
+                        R->current_albedo[idust][inu] *
+                        dens[idust][R->l[0]][R->l[1]][R->l[2]];
 
-            intensity_abs += (1.0-exp(-tau_cell)) * (1-R->current_albedo[idust])
-                * planck_function(R->nu,temp[idust][R->l[0]][R->l[1]][R->l[2]]);
-            intensity_sca += (1.0-exp(-tau_cell)) * R->current_albedo[idust] * 
-                scatt[idust][R->l[0]][R->l[1]][R->l[2]][Q->inu];
+                tau_cell += s*R->current_kext[idust][inu] *
+                    dens[idust][R->l[0]][R->l[1]][R->l[2]];
 
-            intensity_cell += intensity_abs + intensity_sca;
+                intensity_abs += (1.0-exp(-tau_cell)) * (1 - 
+                        R->current_albedo[idust][inu])
+                        * planck_function(R->nu[inu], 
+                        temp[idust][R->l[0]][R->l[1]][R->l[2]]);
+                intensity_sca += (1.0-exp(-tau_cell)) * 
+                        R->current_albedo[idust][inu] * 
+                        scatt[idust][R->l[0]][R->l[1]][R->l[2]][inu];
+
+                intensity_cell += intensity_abs + intensity_sca;
+            }
+
+            if (Q->verbose) {
+                printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
+                        R->l[0], R->r[0]/au, s*R->n[0]/au);
+                printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity, R->l[1], 
+                        R->r[1]/au, s*R->n[1]/au);
+                printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau, R->l[2], 
+                        R->r[2]/au, s*R->n[2]/au);
+            }
+
+            R->intensity[inu] += intensity_cell*exp(-R->tau[inu]);
+            R->tau[inu] += tau_cell;
         }
-
-        if (Q->verbose) {
-            printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
-                    R->l[0], R->r[0]/au, s*R->n[0]/au);
-            printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity, R->l[1], 
-                    R->r[1]/au, s*R->n[1]/au);
-            printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau, R->l[2], R->r[2]/au, 
-                    s*R->n[2]/au);
-        }
-
-        R->intensity += intensity_cell*exp(-R->tau);
-        R->tau += tau_cell;
 
         R->move(s);
 
@@ -863,21 +871,24 @@ void Grid::propagate_ray_from_source(Ray *R) {
     do {
         double s = next_wall_distance(R);
 
-        double tau_cell = 0;
-        for (int idust=0; idust<nspecies; idust++)
-            tau_cell += s*R->current_kext[idust]*
-                dens[idust][R->l[0]][R->l[1]][R->l[2]];
+        for (int inu = 0; inu < R->nnu; inu++) {
 
-        if (Q->verbose) {
-            printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
-                    R->l[0], R->r[0]/au, s*R->n[0]/au);
-            printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity, R->l[1], 
-                    R->r[1]/au, s*R->n[1]/au);
-            printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau, R->l[2], R->r[2]/au, 
-                    s*R->n[2]/au);
+            double tau_cell = 0;
+            for (int idust=0; idust<nspecies; idust++)
+                tau_cell += s*R->current_kext[idust][inu]*
+                    dens[idust][R->l[0]][R->l[1]][R->l[2]];
+
+            if (Q->verbose) {
+                printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
+                        R->l[0], R->r[0]/au, s*R->n[0]/au);
+                printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity, R->l[1], 
+                        R->r[1]/au, s*R->n[1]/au);
+                printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau, R->l[2], R->r[2]/au, 
+                        s*R->n[2]/au);
+            }
+
+            R->intensity[inu] *= exp(-tau_cell);
         }
-
-        R->intensity *= exp(-tau_cell);
 
         R->move(s);
 

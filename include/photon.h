@@ -27,10 +27,18 @@ struct Photon {
 };
 
 struct Ray : public Photon {
-    double tau;
-    double intensity;
+    double **current_kext, **current_albedo;
+
+    int nnu;
+    int ndust;
+
+    double *nu;
+    double *tau;
+    double *intensity;
     double pixel_size;
     bool pixel_too_large;
+
+    ~Ray();
 };
 
 #endif

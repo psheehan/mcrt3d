@@ -13,12 +13,12 @@ Photon *Source::emit(double _nu, double _dnu, int nphot) {
     return new Photon();
 }
 
-Ray *Source::emit_ray(double _nu, double _dnu, double _pixelsize, \
+Ray *Source::emit_ray(double *_nu, int _nnu, double _pixelsize, \
         Vector<double, 3> _n, int nphot) {
     return new Ray();
 }
 
-Ray *Source::emit_ray(double _nu, double _dnu, Vector<double, 3> _n, 
+Ray *Source::emit_ray(double *_nu, int _nnu, Vector<double, 3> _n, 
         int nphot) {
     return new Ray();
 }

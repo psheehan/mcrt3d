@@ -11,3 +11,14 @@ Photon::~Photon() {
 void Photon::move(double s) {
     r += s*n;
 }
+
+/* Clean up the ray to properly remove pointers. */
+
+Ray::~Ray() {
+    for (int i = 0; i < ndust; i++) {
+        delete[] current_kext[i]; delete[] current_albedo[i];
+    }
+    delete[] current_kext; delete[] current_albedo;
+    delete[] intensity; delete[] tau;
+}
+

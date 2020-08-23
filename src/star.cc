@@ -147,7 +147,7 @@ Photon *Star::emit(double _nu, double _dnu, int nphot) {
     return P;
 };
 
-Ray *Star::emit_ray(double _nu, double _dnu, double _pixelsize, \
+Ray *Star::emit_ray(double *_nu, int _nnu, double _pixelsize, \
         Vector<double, 3> _n, int nphot) {
     Ray *R = new Ray();
 
@@ -168,19 +168,24 @@ Ray *Star::emit_ray(double _nu, double _dnu, double _pixelsize, \
     R->l[2] = -1;
 
     R->nu = _nu;
+    R->nnu = _nnu;
 
     // Now get the total energy of the photon.
-    R->intensity = flux(_nu) * pi*radius*radius / (_pixelsize * _pixelsize) /
-        nphot;
+    R->tau = new double[_nnu];
+    R->intensity = new double[_nnu];
+    for (int i = 0; i < _nnu; i++) {
+        R->tau[i] = 0;
+        R->intensity[i] = flux(_nu[i]) * pi*radius*radius / 
+                (_pixelsize * _pixelsize) / nphot;
+    }
 
-    R->tau = 0.0;
     R->pixel_size = _pixelsize;
     R->pixel_too_large = false;
 
     return R;
 };
 
-Ray *Star::emit_ray(double _nu, double _dnu, Vector<double, 3> _n, int nphot) {
+Ray *Star::emit_ray(double *_nu, int _nnu, Vector<double, 3> _n, int nphot) {
     Ray *R = new Ray();
 
     double theta = pi*random_number();
@@ -200,11 +205,16 @@ Ray *Star::emit_ray(double _nu, double _dnu, Vector<double, 3> _n, int nphot) {
     R->l[2] = -1;
 
     R->nu = _nu;
+    R->nnu = _nnu;
 
     // Now get the total energy of the photon.
-    R->intensity = flux(_nu) * pi*radius*radius / nphot;
+    R->tau = new double[_nnu];
+    R->intensity = new double[_nnu];
+    for (int i = 0; i < _nnu; i++) {
+        R->tau[i] = 0;
+        R->intensity[i] = flux(_nu[i]) * pi*radius*radius / nphot;
+    }
 
-    R->tau = 0.0;
     R->pixel_size = 0.0;
     R->pixel_too_large = false;
 
