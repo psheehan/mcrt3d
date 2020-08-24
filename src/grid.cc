@@ -609,6 +609,7 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
         if (absorbed_by_source) {
             sources[isource_intercept]->reemit(P);
             P->l = photon_loc(P);
+            absorbed_by_source = false;
         }
 
         // Kill the photon if it bounces around too many times...
