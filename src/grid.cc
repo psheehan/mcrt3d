@@ -135,6 +135,7 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
     for (int i = 0; i < n1; i++) {
         for (int j = 0; j < n2; j++) {
             for (int k = 0; k < n3; k++) {
+                if (__dens[i][j][k] < 1.0e-99) __dens[i][j][k] = 1.0e-99;
                 __temp[i][j][k] = 0.1;
                 __mass[i][j][k] = __dens[i][j][k] * volume[i][j][k];
                 __rosseland_mean_extinction[i][j][k] = 
