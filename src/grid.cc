@@ -353,6 +353,32 @@ Photon *Grid::emit(double _nu, double _dnu, int nphot) {
 /* Linker function to the dust absorb function. */
 
 void Grid::absorb(Photon *P, int idust) {
+    // Determine which dust species should do the absorption.
+    idust = 0;
+    if (nspecies == 1) {
+        idust = 0;
+    }
+    else {
+        double kabs_tot = 0;
+        double *kabs_cum = new double[nspecies];
+        for (int i=0; i<nspecies; i++) {
+            kabs_tot += (1 - P->current_albedo[i])*P->current_kext[i]*
+                dens[i][P->l[0]][P->l[1]][P->l[2]];
+            kabs_cum[i] = kabs_tot;
+        }
+
+        double rand = random_number();
+        for (int i=0; i<nspecies; i++) {
+            if (rand < kabs_cum[i] / kabs_tot) {
+                idust = i;
+                break;
+            }
+        }
+        delete[] kabs_cum;
+    }
+
+    // Now do the absorption.
+
     dust[idust]->absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw);
 
     // Update the photon's arrays of kext and albedo since P->nu has changed
@@ -369,6 +395,32 @@ void Grid::absorb(Photon *P, int idust) {
 }
 
 void Grid::absorb_mrw(Photon *P, int idust) {
+    // Determine which dust species should do the absorption.
+    idust = 0;
+    if (nspecies == 1) {
+        idust = 0;
+    }
+    else {
+        double kabs_tot = 0;
+        double *kabs_cum = new double[nspecies];
+        for (int i=0; i<nspecies; i++) {
+            kabs_tot += (1 - P->current_albedo[i])*P->current_kext[i]*
+                dens[i][P->l[0]][P->l[1]][P->l[2]];
+            kabs_cum[i] = kabs_tot;
+        }
+
+        double rand = random_number();
+        for (int i=0; i<nspecies; i++) {
+            if (rand < kabs_cum[i] / kabs_tot) {
+                idust = i;
+                break;
+            }
+        }
+        delete[] kabs_cum;
+    }
+
+    // Now do the absorption.
+
     dust[idust]->absorb_mrw(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw);
 
     // Update the photon's arrays of kext and albedo since P->nu has changed
@@ -387,6 +439,32 @@ void Grid::absorb_mrw(Photon *P, int idust) {
 /* Linker function to the dust scatter function. */
 
 void Grid::scatter(Photon *P, int idust) {
+    // Determine which dust species should do the absorption.
+    idust = 0;
+    if (nspecies == 1) {
+        idust = 0;
+    }
+    else {
+        double ksca_tot = 0;
+        double *ksca_cum = new double[nspecies];
+        for (int i=0; i<nspecies; i++) {
+            ksca_tot += P->current_albedo[i]*P->current_kext[i]*
+                dens[i][P->l[0]][P->l[1]][P->l[2]];
+            ksca_cum[i] = ksca_tot;
+        }
+
+        double rand = random_number();
+        for (int i=0; i<nspecies; i++) {
+            if (rand < ksca_cum[i] / ksca_tot) {
+                idust = i;
+                break;
+            }
+        }
+        delete[] ksca_cum;
+    }
+
+    // Now do the absorption.
+
     dust[idust]->scatter(P);
 
     // Check the photon's location again because there's a small chance that 
@@ -409,32 +487,19 @@ void Grid::propagate_photon_full(Photon *P) {
         // is figured out early for the sake of the continuous absorption
         // method.
         double albedo;
-        int idust;
         if (nspecies == 1) {
             albedo = P->current_albedo[0];
-            idust = 0;
         }
         else {
             double ksca_tot = 0;
-            double *ksca_cum = new double[nspecies];
             double kext_tot = 0;
             for (int i=0; i<nspecies; i++) {
                 ksca_tot += P->current_albedo[i]*P->current_kext[i]*
                     dens[i][P->l[0]][P->l[1]][P->l[2]];
-                ksca_cum[i] = ksca_tot;
                 kext_tot += P->current_kext[i]*
                     dens[i][P->l[0]][P->l[1]][P->l[2]];
             }
             albedo = ksca_tot / kext_tot;
-
-            double rand = random_number();
-            for (int i=0; i<nspecies; i++) {
-                if (rand < ksca_cum[i] / kext_tot) {
-                    idust = i;
-                    break;
-                }
-            }
-            delete[] ksca_cum;
         }
 
         bool absorb_photon = random_number() > albedo;
@@ -451,13 +516,13 @@ void Grid::propagate_photon_full(Photon *P) {
             P->event_count += 1;
             // If the next interaction is absorption...
             if (absorb_photon) {
-                absorb(P, idust);
+                absorb(P, 0);
                 // If we've asked for verbose output, print some info.
                 if (Q->verbose) {
                     printf("Absorbing photon at %i  %i  %i\n", P->l[0],
                             P->l[1], P->l[2]);
                     printf("Absorbed in a cell with temperature: %f\n",
-                            temp[idust][P->l[0]][P->l[1]][P->l[2]]);
+                            temp[0][P->l[0]][P->l[1]][P->l[2]]);
                     printf("Re-emitted with direction: %f  %f  %f\n",
                             P->n[0], P->n[1], P->n[2]);
                     printf("Re-emitted with frequency: %e\n", P->nu);
@@ -466,7 +531,7 @@ void Grid::propagate_photon_full(Photon *P) {
             // Otherwise, scatter the photon.
             else {
                 // Now scatter the photon.
-                scatter(P, idust);
+                scatter(P, 0);
                 // If we've asked for verbose output, print some info.
                 if (Q->verbose) {
                     printf("Scattering photon at cell  %i  %i  %i\n",
@@ -499,33 +564,7 @@ void Grid::propagate_photon_full(Photon *P) {
                     if (Q->bw) update_grid(P->l);
 
                     // Absorb the photon
-                    int idust = 0;
-                    if (nspecies == 1) {
-                        idust = 0;
-                    }
-                    else {
-                        double ksca_tot = 0;
-                        double *ksca_cum = new double[nspecies];
-                        double kext_tot = 0;
-                        for (int i=0; i<nspecies; i++) {
-                            ksca_tot += P->current_albedo[i]*P->current_kext[i]*
-                                dens[i][P->l[0]][P->l[1]][P->l[2]];
-                            ksca_cum[i] = ksca_tot;
-                            kext_tot += P->current_kext[i]*
-                                dens[i][P->l[0]][P->l[1]][P->l[2]];
-                        }
-
-                        double rand = random_number();
-                        for (int i=0; i<nspecies; i++) {
-                            if (rand < ksca_cum[i] / kext_tot) {
-                                idust = i;
-                                break;
-                            }
-                        }
-                        delete[] ksca_cum;
-                    }
-
-                    absorb_mrw(P, idust);
+                    absorb_mrw(P, 0);
                 }
             }
         }
