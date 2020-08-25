@@ -91,10 +91,10 @@ double SphericalGrid::next_wall_distance(Photon *P) {
         
         for (int i=P->l[1]; i <= P->l[1]+1; i++) {
             if (equal_zero(cos(w2[i]),1.0e-10)) {
-                double sz1 = -P->r[2]*P->invn[2];
-                if (equal_zero(sz1/(P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),
-                        1.0e-10)) sz1 = 0;
-                if ((sz1 < s) && (sz1 > 0)) s = sz1;
+                double st1 = -P->r[2]*P->invn[2];
+                if (equal_zero(st1/(P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),
+                        EPSILON)) st1 = 0;
+                if ((st1 < s) && (st1 > 0)) s = st1;
             }
             else {
                 double a = P->n[0]*P->n[0]+P->n[1]*P->n[1]-P->n[2]*P->n[2]*
@@ -308,7 +308,6 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
 
     /* Finally, update which cell the photon is in based on the direction it
      * is going. */
-
     if ((r == w1[l[0]]) && (P->n[0]*gnx+P->n[1]*gny+P->n[2]*gnz < 0))
         l[0] -= 1;
     else if ((r == w1[l[0]+1]) && (P->n[0]*gnx+P->n[1]*gny+P->n[2]*gnz >= 0))
