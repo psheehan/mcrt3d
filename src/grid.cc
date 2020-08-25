@@ -670,6 +670,8 @@ void Grid::propagate_photon_scattering(Photon *P) {
         // next interaction.
         double tau = -log(1-random_number());
 
+        int i = 0;
+
         // Move the photon to the point of it's next interaction.
         while ((tau > EPSILON) && (in_grid(P))) {
             // Calculate the distance to the next wall.
@@ -713,6 +715,13 @@ void Grid::propagate_photon_scattering(Photon *P) {
 
             // If the photon moved to the next cell, update it's location.
             if (s1 < s2) P->l = photon_loc(P);
+
+            i++;
+            // Kill the photon if it bounces around too many times...
+            if (i > 1000) {
+                tau = -1.0;
+                printf("!!!!!!! ERROR - Killing photon because it seems to be stuck.\n");
+            }
         }
 
         // If the photon is still in the grid when it reaches it's 
