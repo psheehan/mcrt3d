@@ -234,15 +234,6 @@ void Grid::initialize_luminosity_array(double nu) {
             }
         }
     }
-
-    for (int idust = 0; idust<nspecies; idust++) {
-        for (int ix = 0; ix<n1; ix++) {
-            for (int iy = 0; iy<n2; iy++) {
-                for (int iz = 0; iz<n3; iz++) {
-                }
-            }
-        }
-    }
 }
 
 void Grid::deallocate_luminosity_array() {
@@ -727,6 +718,7 @@ void Grid::propagate_photon_scattering(Photon *P) {
         // If the photon is still in the grid when it reaches it's 
         // destination...
         if (in_grid(P)) {
+            P->event_count += 1;
             // Now scatter the photon.
             scatter(P, 0);
         }
@@ -1066,6 +1058,6 @@ double Grid::cell_lum(Vector<int, 3> l, double nu) {
 
 double Grid::cell_lum(int idust, int ix, int iy, int iz, double nu) {
     return 4*pi*mass[idust][ix][iy][iz]*
-        dust[0]->opacity(nu)*(1. - dust[0]->albdo(nu))*
+        dust[idust]->opacity(nu)*(1. - dust[idust]->albdo(nu))*
         planck_function(nu, temp[idust][ix][iy][iz]);
 }
