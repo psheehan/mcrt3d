@@ -430,8 +430,8 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
 Vector<double, 3> SphericalGrid::random_location_in_cell(int ix, int iy, 
         int iz) {
     double r = w1[ix] + random_number() * (w1[ix+1] - w1[ix]);
-    double theta = w2[iy] + random_number() * (w2[iy+1] - w1[iy]);
-    double phi = w3[iz] + random_number() * (w3[iz+1] - w1[iz]);
+    double theta = w2[iy] + random_number() * (w2[iy+1] - w2[iy]);
+    double phi = w3[iz] + random_number() * (w3[iz+1] - w3[iz]);
 
     double x = r * sin(theta) * cos(phi);
     double y = r * sin(theta) * sin(phi);

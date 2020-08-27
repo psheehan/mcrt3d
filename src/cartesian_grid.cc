@@ -317,8 +317,8 @@ bool CartesianGrid::on_and_parallel_to_wall(Photon *P) {
 Vector<double, 3> CartesianGrid::random_location_in_cell(int ix, int iy, 
         int iz) {
     double x = w1[ix] + random_number() * (w1[ix+1] - w1[ix]);
-    double y = w2[iy] + random_number() * (w2[iy+1] - w1[iy]);
-    double z = w3[iz] + random_number() * (w3[iz+1] - w1[iz]);
+    double y = w2[iy] + random_number() * (w2[iy+1] - w2[iy]);
+    double z = w3[iz] + random_number() * (w3[iz+1] - w3[iz]);
 
     return Vector<double, 3>(x, y, z);
 }
