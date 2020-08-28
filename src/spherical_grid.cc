@@ -29,7 +29,7 @@ SphericalGrid::SphericalGrid(py::array_t<double> _r,
     // Check for mirror symmetry.
 
     int volume_scale = 1;
-    if (equal_zero(cos(w3[nw3-1]), EPSILON))
+    if (equal_zero(cos(w2[nw2-1]), EPSILON))
     {
         mirror_symmetry = true;
         volume_scale = 2;
