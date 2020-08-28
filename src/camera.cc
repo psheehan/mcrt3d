@@ -513,7 +513,8 @@ void Camera::raytrace_sources(Image *image) {
 
             // Finally, add the energy into the appropriate cell.
             for (int inu=0; inu < image->nnu; inu++) {
-                image->intensity[ix][iy][inu] += R->intensity[inu];
+                image->intensity[ix][iy][inu] += R->intensity[inu] *
+                    image->pixel_size * image->pixel_size / (r * r)/ Jy;
             }
 
             // And clean up the Ray.
