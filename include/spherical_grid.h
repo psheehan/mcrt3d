@@ -26,6 +26,7 @@ struct SphericalGrid : public Grid {
     double outer_wall_distance(Photon *P);
     double minimum_wall_distance(Photon *P);
     double smallest_wall_size(Photon *P);
+    double smallest_wall_size(Ray *R);
     double grid_size();
     Vector<int, 3> photon_loc(Photon *P);
     Vector<double, 3> random_location_in_cell(int ix, int iy, int iz);

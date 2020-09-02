@@ -961,6 +961,10 @@ double Grid::smallest_wall_size(Photon *P) {
     return 0.0;
 }
 
+double Grid::smallest_wall_size(Ray *R) {
+    return 0.0;
+}
+
 /* Calculate the size of the grid. */
 
 double Grid::grid_size() {

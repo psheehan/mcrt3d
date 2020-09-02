@@ -95,6 +95,7 @@ struct Grid {
     virtual double outer_wall_distance(Photon *P);
     virtual double minimum_wall_distance(Photon *P);
     virtual double smallest_wall_size(Photon *P);
+    virtual double smallest_wall_size(Ray *R);
     virtual double grid_size();
 
     void propagate_photon_full(Photon *P);

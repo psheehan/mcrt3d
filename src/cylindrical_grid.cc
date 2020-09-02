@@ -245,11 +245,34 @@ double CylindricalGrid::smallest_wall_size(Photon *P) {
     double s = fabs(w1[P->l[0]+1] - w1[P->l[0]]);
     
     if (nw2 != 2) {
-        double sp = fabs(w1[P->l[0]]*(w2[P->l[0]+1] - w2[P->l[0]]));
+        double r = w1[P->l[0]];
+        if (w1[P->l[0]] == 0)
+            r = w1[P->l[0]+1]*0.5;
+
+        double sp = fabs(r*(w2[P->l[0]+1] - w2[P->l[0]]));
         if (sp < s) s = sp;
     }
     
     double sz = fabs(w3[P->l[0]+1] - w3[P->l[0]]);
+    if (sz < s) s = sz;
+    
+    return s;
+}
+
+double CylindricalGrid::smallest_wall_size(Ray *R) {
+
+    double s = fabs(w1[R->l[0]+1] - w1[R->l[0]]);
+    
+    if (nw2 != 2) {
+        double r = w1[R->l[0]];
+        if (w1[R->l[0]] == 0)
+            r = w1[R->l[0]+1]*0.5;
+
+        double sp = fabs(r*(w2[R->l[0]+1] - w2[R->l[0]]));
+        if (sp < s) s = sp;
+    }
+    
+    double sz = fabs(w3[R->l[0]+1] - w3[R->l[0]]);
     if (sz < s) s = sz;
     
     return s;

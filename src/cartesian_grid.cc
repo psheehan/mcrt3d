@@ -165,6 +165,19 @@ double CartesianGrid::smallest_wall_size(Photon *P) {
     return s;
 }
 
+double CartesianGrid::smallest_wall_size(Ray *R) {
+
+    double s = fabs(w1[R->l[0]+1] - w1[R->l[0]]);
+    
+    double sy = fabs(w2[R->l[0]+1] - w2[R->l[0]]);
+    if (sy < s) s = sy;
+    
+    double sz = fabs(w3[R->l[0]+1] - w3[R->l[0]]);
+    if (sz < s) s = sz;
+    
+    return s;
+}
+
 /* Calculate the size of the grid. */
 
 double CartesianGrid::grid_size() {

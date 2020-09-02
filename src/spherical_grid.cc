@@ -214,17 +214,57 @@ double SphericalGrid::minimum_wall_distance(Photon *P) {
 double SphericalGrid::smallest_wall_size(Photon *P) {
 
     double s = fabs(w1[P->l[0]+1] - w1[P->l[0]]);
-    
+
     if (nw2 != 2) {
-        double st = fabs(w1[P->l[0]]*(w2[P->l[0]+1] - w2[P->l[0]]));
+        double r = w1[P->l[0]];
+        if (w1[P->l[0]] == 0)
+            r = w1[P->l[0]+1]*0.5;
+
+        double st = fabs(r*(w2[P->l[1]+1] - w2[P->l[1]]));
         if (st < s) s = st;
     }
     
     if (nw3 != 2) {
-        double sp = fabs(w1[P->l[0]]*sin(w2[P->l[1]])*
-                (w3[P->l[0]+1] - w3[P->l[0]]));
+        double r = w1[P->l[0]];
+        if (w1[P->l[0]] == 0)
+            r = w1[P->l[0]+1]*0.5;
+
+        double sint = fmin(sin(w2[P->l[1]]), sin(w2[P->l[1]+1]));
+        if (equal_zero(sint, EPSILON))
+            sint = sin(0.5*(w2[P->l[1]] + w2[P->l[1]+1]));
+
+        double sp = fabs(r * sint * (w3[P->l[2]+1] - w3[P->l[2]]));
         if (sp < s) s = sp;
     }
+    
+    return s;
+}
+
+double SphericalGrid::smallest_wall_size(Ray *R) {
+
+    double s = fabs(w1[R->l[0]+1] - w1[R->l[0]]);
+
+    /*if (nw2 != 2) {
+        double r = w1[R->l[0]];
+        if (w1[R->l[0]] == 0)
+            r = w1[R->l[0]+1]*0.5;
+
+        double st = fabs(r*(w2[R->l[1]+1] - w2[R->l[1]]));
+        if (st < s) s = st;
+    }
+    
+    if (nw3 != 2) {
+        double r = w1[R->l[0]];
+        if (w1[R->l[0]] == 0)
+            r = w1[R->l[0]+1]*0.5;
+
+        double sint = fmin(sin(w2[R->l[1]]), sin(w2[R->l[1]+1]));
+        if (equal_zero(sint, EPSILON))
+            sint = sin(0.5*(w2[R->l[1]] + w2[R->l[1]+1]));
+
+        double sp = fabs(r * sint * (w3[R->l[2]+1] - w3[R->l[2]]));
+        if (sp < s) s = sp;
+    }*/
     
     return s;
 }
