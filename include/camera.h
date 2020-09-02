@@ -104,7 +104,7 @@ struct Camera {
             int nnu, int count);
     void raytrace_pixel(UnstructuredImage *image, int ix, double pixel_size); 
     double* raytrace(double x, double y, double pixel_size, double *nu, 
-            int nnu, bool unstructured);
+            int nnu, bool unstructured, bool *pixel_too_large);
 
     void raytrace_sources(Image *I);
     void raytrace_sources(UnstructuredImage *I);

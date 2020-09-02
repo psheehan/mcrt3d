@@ -331,11 +331,13 @@ Ray *Camera::emit_ray(double x, double y, double pixel_size, double *nu,
 double* Camera::raytrace_pixel(double x, double y, double pixel_size, 
         double *nu, int nnu, int count) {
     //printf("%d\n", count);
-    double *intensity = raytrace(x, y, pixel_size, nu, nnu, false);
+    bool subpixel = false;
+
+    double *intensity = raytrace(x, y, pixel_size, nu, nnu, false, &subpixel);
 
     count++;
 
-    if ((intensity[0] < 0)) { // && (count < 1)) {
+    if (subpixel) { // && (count < 1)) {
         double *intensity1 = raytrace_pixel(x-pixel_size/4, y-pixel_size/4, 
                 pixel_size/2, nu, nnu, count);
         double *intensity2 = raytrace_pixel(x-pixel_size/4, y+pixel_size/4, 
@@ -365,17 +367,10 @@ void Camera::raytrace_pixel(UnstructuredImage *image, int ix,
     // Raytrace all frequencies.
 
     double *intensity = raytrace(image->x[ix], image->y[ix], pixel_size, 
-            image->nu, image->nnu, true);
+            image->nu, image->nnu, true, &subpixel);
 
     for (int i=0; i<image->nnu; i++)
-    {
-        if ((intensity[i] < 0)) { 
-            image->intensity[ix].push_back(-intensity[i]);
-            subpixel = true;
-        }
-        else
-            image->intensity[ix].push_back(intensity[i]);
-    }
+        image->intensity[ix].push_back(intensity[i]);
 
     delete[] intensity;
     
@@ -414,7 +409,7 @@ void Camera::raytrace_pixel(UnstructuredImage *image, int ix,
 }
 
 double* Camera::raytrace(double x, double y, double pixel_size, double *nu, 
-        int nnu, bool unstructured) {
+        int nnu, bool unstructured, bool *pixel_too_large) {
     /* Emit a ray from the given location. */
     Ray *R = emit_ray(x, y, pixel_size, nu, nnu);
 
@@ -441,6 +436,8 @@ double* Camera::raytrace(double x, double y, double pixel_size, double *nu,
             for (int i = 0; i < nnu; i++)
                 intensity[i] = -1.0;
 
+            *pixel_too_large = true;
+
             return intensity;
         }
 
@@ -453,13 +450,10 @@ double* Camera::raytrace(double x, double y, double pixel_size, double *nu,
 
         /* Check whether the run was successful or if we need to sub-pixel 
          * to get a good intensity measurement. */
-        for (int i = 0; i < nnu; i++) {
+        for (int i = 0; i < nnu; i++)
             intensity[i] = R->intensity[i];
-            if (R->pixel_too_large and not unstructured)
-                intensity[i] = -1.0;
-            if (R->pixel_too_large and unstructured)
-                intensity[i] *= -1.0;
-            }
+
+        *pixel_too_large = R->pixel_too_large;
 
         /* Clean up the ray. */
         delete R;
