@@ -846,13 +846,10 @@ void Grid::propagate_ray(Ray *R) {
 
     int i=0;
     do {
-        if (volume[R->l[0]][R->l[1]][R->l[2]] < 
-                pi*R->pixel_size*R->pixel_size*R->pixel_size/6.) {
-            R->pixel_too_large = true;
-            //break;
-        }
-
         double s = next_wall_distance(R);
+
+        if (smallest_wall_size(R) < R->pixel_size)
+            R->pixel_too_large = true;
 
         for (int inu = 0; inu < R->nnu; inu++) {
             double tau_abs = 0;
