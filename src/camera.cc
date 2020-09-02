@@ -81,9 +81,9 @@ UnstructuredImage::UnstructuredImage(int _nx, int _ny, double _pixel_size,
     for (int i = 0; i < nx; i++) {
         for (int j = 0; j < ny; j++) {
             x.push_back((i - nx/2)*pixel_size + (random_number()-0.5)*
-                    pixel_size/4.);
+                    pixel_size/10000);
             y.push_back((j - ny/2)*pixel_size + (random_number()-0.5)*
-                    pixel_size/4.);
+                    pixel_size/10000);
             intensity.push_back(std::vector<double>());
         }
     }
@@ -379,22 +379,22 @@ void Camera::raytrace_pixel(UnstructuredImage *image, int ix,
         int nxy = image->x.size();
 
         image->x.push_back(image->x[ix] - pixel_size/4 + (random_number()-0.5)*
-                pixel_size/8);
+                pixel_size/10000);
         image->x.push_back(image->x[ix] - pixel_size/4 + (random_number()-0.5)*
-                pixel_size/8);
+                pixel_size/10000);
         image->x.push_back(image->x[ix] + pixel_size/4 + (random_number()-0.5)*
-                pixel_size/8);
+                pixel_size/10000);
         image->x.push_back(image->x[ix] + pixel_size/4 + (random_number()-0.5)*
-                pixel_size/8);
+                pixel_size/10000);
 
         image->y.push_back(image->y[ix] - pixel_size/4 + (random_number()-0.5)*
-                pixel_size/8);
+                pixel_size/10000);
         image->y.push_back(image->y[ix] + pixel_size/4 + (random_number()-0.5)* 
-                pixel_size/8);
+                pixel_size/10000);
         image->y.push_back(image->y[ix] - pixel_size/4 + (random_number()-0.5)* 
-                pixel_size/8);
+                pixel_size/10000);
         image->y.push_back(image->y[ix] + pixel_size/4 + (random_number()-0.5)* 
-                pixel_size/8);
+                pixel_size/10000);
 
         image->intensity.push_back(std::vector<double>());
         image->intensity.push_back(std::vector<double>());
