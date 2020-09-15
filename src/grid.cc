@@ -685,21 +685,29 @@ void Grid::propagate_photon_scattering(Photon *P) {
             double s = s1;
             if (s2 < s) s = s2;
 
+            // Calculate the relevant optical depths.
+            double tau_abs = s * alpha_abs;
+            double tau_scat = s * alpha_scat;
+
+            // Calculate the average energy over the course of the cell.
+            double average_energy = (1.0 - exp(-tau_abs)) / tau_abs *
+                P->energy;
+            if (tau_abs < EPSILON)
+                average_energy = (1.0 - 0.5*tau_abs) * P->energy;
+
             // Add some of the energy to the scattering array.
             for (int idust=0; idust<nspecies; idust++)
                 scatt[idust][P->l[0]][P->l[1]][P->l[2]][Q->inu] +=
-                P->energy * s * P->current_albedo[idust] /
-                (4*pi * mass[idust][P->l[0]][P->l[1]][P->l[2]]/
-                dens[idust][P->l[0]][P->l[1]][P->l[2]]);
+                average_energy * s / (4*pi * volume[P->l[0]][P->l[1]][P->l[2]]);
 
             // Absorb some of the photon's energy.
-            P->energy *= exp(-s*alpha_abs);
+            P->energy *= exp(-tau_abs);
 
             // Remvove the tau we've used up with this stepl
-            tau -= s*alpha_scat;
+            tau -= tau_scat;
 
             // Add to the total absorbed tau.
-            total_tau_abs += s*alpha_abs;
+            total_tau_abs += tau_abs;
 
             // Move the photon to it's new position.
             P->move(s);
