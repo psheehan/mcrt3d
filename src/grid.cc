@@ -172,9 +172,9 @@ void Grid::add_star(double x, double y, double z, double _mass, double _radius,
 }*/
 
 void Grid::initialize_scattering_array() {
-    // Create a 4D scattering array for each of the dust components.
+    // Create a 4D scattering array for each of the separate threads.
 
-    for (int idust = 0; idust<nspecies; idust++) {
+    for (int ithread = 0; ithread < 1; ithread++) {
         // Create temperature array in Numpy.
 
         py::array_t<double> ___scatt = py::array_t<double>(n1*n2*n3*Q->nnu);
@@ -189,13 +189,13 @@ void Grid::initialize_scattering_array() {
         scatt.push_back(pymangle(n1, n2, n3, Q->nnu, 
                     (double *) _scatt_buf.ptr));
 
-        set4DArrValue(scatt[idust], 0., n1, n2, n3, Q->nnu);
+        set4DArrValue(scatt[ithread], 0., n1, n2, n3, Q->nnu);
     }
 }
 
 void Grid::deallocate_scattering_array() {
-    for (int idust = 0; idust < (int) scatt.size(); idust++)
-        freepymangle(scatt[idust]);
+    for (int ithread = 0; ithread < (int) scatt.size(); ithread++)
+        freepymangle(scatt[ithread]);
     scatt.clear();
 }
 
@@ -696,9 +696,8 @@ void Grid::propagate_photon_scattering(Photon *P) {
                 average_energy = (1.0 - 0.5*tau_abs) * P->energy;
 
             // Add some of the energy to the scattering array.
-            for (int idust=0; idust<nspecies; idust++)
-                scatt[idust][P->l[0]][P->l[1]][P->l[2]][Q->inu] +=
-                average_energy * s / (4*pi * volume[P->l[0]][P->l[1]][P->l[2]]);
+            scatt[0][P->l[0]][P->l[1]][P->l[2]][Q->inu] += average_energy * s / 
+                    (4*pi * volume[P->l[0]][P->l[1]][P->l[2]]);
 
             // Absorb some of the photon's energy.
             P->energy *= exp(-tau_abs);
@@ -860,34 +859,36 @@ void Grid::propagate_ray(Ray *R) {
             R->pixel_too_large = true;
 
         for (int inu = 0; inu < R->nnu; inu++) {
-            double tau_abs = 0;
-            double tau_sca = 0;
             double tau_cell = 0;
             double intensity_abs = 0;
             double intensity_sca = 0;
             double intensity_cell = 0;
+            double alpha_abs = 0;
+            double alpha_sca = 0;
 
             for (int idust=0; idust<nspecies; idust++) {
-                tau_abs = s*R->current_kext[idust][inu]*(1.-
-                        R->current_albedo[idust][inu]) * 
-                        dens[idust][R->l[0]][R->l[1]][R->l[2]];
-                tau_sca = s*R->current_kext[idust][inu]*
-                        R->current_albedo[idust][inu] *
+                tau_cell += s*R->current_kext[idust][inu] *
                         dens[idust][R->l[0]][R->l[1]][R->l[2]];
 
-                tau_cell += s*R->current_kext[idust][inu] *
-                    dens[idust][R->l[0]][R->l[1]][R->l[2]];
+                alpha_abs += R->current_kext[idust][inu] *
+                        (1 - R->current_albedo[idust][inu]) * 
+                        dens[idust][R->l[0]][R->l[1]][R->l[2]];
+                alpha_sca += R->current_kext[idust][inu] *
+                        R->current_albedo[idust][inu] *
+                        dens[idust][R->l[0]][R->l[1]][R->l[2]];
 
                 intensity_abs += (1.0-exp(-tau_cell)) * (1 - 
                         R->current_albedo[idust][inu])
                         * planck_function(R->nu[inu], 
                         temp[idust][R->l[0]][R->l[1]][R->l[2]]);
-                intensity_sca += (1.0-exp(-tau_cell)) * 
-                        R->current_albedo[idust][inu] * 
-                        scatt[idust][R->l[0]][R->l[1]][R->l[2]][inu];
-
-                intensity_cell += intensity_abs + intensity_sca;
             }
+
+            double albedo = alpha_sca / (alpha_abs + alpha_sca);
+
+            intensity_sca += (1.0-exp(-tau_cell)) * albedo * 
+                    scatt[0][R->l[0]][R->l[1]][R->l[2]][inu];
+
+            intensity_cell += intensity_abs + intensity_sca;
 
             if (Q->verbose) {
                 printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
