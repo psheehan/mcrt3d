@@ -165,37 +165,30 @@ void Grid::add_star(double x, double y, double z, double _mass, double _radius,
     nsources++;
 }
 
-/*void Grid::add_scattering_array(double *_scatt, int nnu) {
-    double ****__scatt = pymangle(n1, n2, n3, nnu, _scatt);
+void Grid::add_scattering_array(py::array_t<double> ___scatt) {
+    // Add the array to the Python-connected list of scattering phase
+    // functions.
 
-    scatt.push_back(__scatt);
-}*/
+    _scatt.append(___scatt);
+
+    // Get the buffer and create an array useful for C++.
+
+    auto _scatt_buf = ___scatt.request();
+
+    scatt.push_back(pymangle(n1, n2, n3, Q->nnu, (double *) _scatt_buf.ptr));
+}
 
 void Grid::initialize_scattering_array() {
     // Create a 4D scattering array for each of the separate threads.
 
     for (int ithread = 0; ithread < 1; ithread++) {
-        // Create temperature array in Numpy.
-
-        py::array_t<double> ___scatt = py::array_t<double>(n1*n2*n3*Q->nnu);
-        ___scatt.resize({n1, n2, n3, Q->nnu});
-
-        _scatt.append(___scatt);
-
-        // Get the buffer and create an array useful for C++.
-
-        auto _scatt_buf = ___scatt.request();
-
-        scatt.push_back(pymangle(n1, n2, n3, Q->nnu, 
-                    (double *) _scatt_buf.ptr));
-
-        set4DArrValue(scatt[ithread], 0., n1, n2, n3, Q->nnu);
+        scatt.push_back(create4DArrValue(n1, n2, n3, Q->nnu, 0.));
     }
 }
 
 void Grid::deallocate_scattering_array() {
     for (int ithread = 0; ithread < (int) scatt.size(); ithread++)
-        freepymangle(scatt[ithread]);
+        delete4DArr(scatt[ithread], n1, n2, n3, Q->nnu);
     scatt.clear();
 }
 

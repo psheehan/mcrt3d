@@ -278,9 +278,21 @@ void delete4DArr(std::vector<double***> arr, int nx, int ny, int nz, int nq) {
     arr.clear();
 }
 
-/* Create a 3-dimensional array filled with a particular value. */
+void delete4DArr(double ****arr, int nx, int ny, int nz, int nq) {
+    for (int i=0; i<nx; i++) {
+        for (int j=0; j<ny; j++) {
+            for (int k=0; k<nz; k++)
+                delete[] arr[i][j][k];
+            delete[] arr[i][j];
+        }
+        delete[] arr[i];
+    }
+    delete[] arr;
+};
 
-/*double ****create4DArrValue(int nx, int ny, int nz, int nq, double value) {
+/* Create a 4-dimensional array filled with a particular value. */
+
+double ****create4DArrValue(int nx, int ny, int nz, int nq, double value) {
     double ****arr = new double***[nx];
     for (int i=0; i<nx; i++) {
         arr[i] = new double**[ny];
@@ -295,7 +307,7 @@ void delete4DArr(std::vector<double***> arr, int nx, int ny, int nz, int nq) {
     }
 
     return arr;
-};*/
+};
 
 /* Set the value of a 4-dimensional array to a constant value. */
 

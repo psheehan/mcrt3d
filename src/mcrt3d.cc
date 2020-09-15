@@ -85,9 +85,10 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
     }
 }
 
-void MCRT::scattering_mc(int nphot, bool verbose) {
-    // Make sure parameters are set properly.
+void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose, 
+        bool save) {
 
+    // Make sure parameters are set properly.
     Q->nphot = nphot; 
     Q->use_mrw = false; 
     Q->verbose = verbose;
@@ -96,8 +97,36 @@ void MCRT::scattering_mc(int nphot, bool verbose) {
     bool old_scattering = Q->scattering;
     Q->scattering = true;
 
-    // Set the Grid's scattering array.
-    G->initialize_scattering_array();
+    // Set some parameters that are going to be needed.
+    auto _lam_buf = __lam.request();
+    if (_lam_buf.ndim != 1)
+        throw std::runtime_error("Number of dimensions must be one");
+    double *lam = (double *) _lam_buf.ptr;
+
+    Q->nnu = _lam_buf.shape[0];
+    Q->scattering_nu = new double[Q->nnu];
+
+    for (int i = 0; i < Q->nnu; i++)
+        Q->scattering_nu[i] = c_l / (lam[i]*1.0e-4);
+
+    // Create a scattering array in Numpy.
+
+    if (save) {
+        py::array_t<double> scatt = py::array_t<double>(G->n1*G->n2*G->n3*
+                Q->nnu);
+        scatt.resize({G->n1, G->n2, G->n3, Q->nnu});
+
+        // Set the Grid's scattering array.
+        G->add_scattering_array(scatt);
+
+        // Make sure the scattering array is zeroed out.
+        for (int i = 0; i < G->n1; i++)
+            for (int j = 0; j < G->n2; j++)
+                for (int k = 0; k < G->n3; k++)
+                    for (int l = 0; l < Q->nnu; l++)
+                        G->scatt[0][i][j][k][l] = 0.;
+    } else
+        G->initialize_scattering_array();
 
     // Run the simulation for every frequency bin.
     for (int inu=0; inu<Q->nnu; inu++) {
@@ -114,6 +143,16 @@ void MCRT::scattering_mc(int nphot, bool verbose) {
 
     // Reset the scattering simulation to what it was before.
     Q->scattering = old_scattering;
+
+    // Clean up the appropriate grid parameters.
+    if (save) {
+        for (int i = 0; i < G->scatt.size(); i++)
+            freepymangle(G->scatt[i]);
+        G->scatt.clear();
+
+        Q->nnu = 0;
+        delete[] Q->scattering_nu;
+    }
 }
 
 void MCRT::mc_iteration() {
@@ -152,20 +191,8 @@ void MCRT::mc_iteration() {
 void MCRT::run_image(py::array_t<double> __lam, int nx, int ny, 
         double pixel_size, int nphot, double incl, double pa, double dpc) {
 
-    // Set some parameters that are going to be needed.
-    auto _lam_buf = __lam.request();
-    if (_lam_buf.ndim != 1)
-        throw std::runtime_error("Number of dimensions must be one");
-    double *lam = (double *) _lam_buf.ptr;
-
-    Q->nnu = _lam_buf.shape[0];
-    Q->scattering_nu = new double[Q->nnu];
-
-    for (int i = 0; i < Q->nnu; i++)
-        Q->scattering_nu[i] = c_l / (lam[i]*1.0e-4);
-
     // Run a scattering simulation.
-    scattering_mc(nphot, false);
+    scattering_mc(__lam, nphot, false, false);
 
     // Now, run the image through the camera.
     Image *I = C->make_image(nx, ny, pixel_size, __lam, incl, pa, dpc);
@@ -182,20 +209,8 @@ void MCRT::run_image(py::array_t<double> __lam, int nx, int ny,
 void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny, 
         double pixel_size, int nphot, double incl, double pa, double dpc) {
 
-    // Set some parameters that are going to be needed.
-    auto _lam_buf = __lam.request();
-    if (_lam_buf.ndim != 1)
-        throw std::runtime_error("Number of dimensions must be one");
-    double *lam = (double *) _lam_buf.ptr;
-
-    Q->nnu = _lam_buf.shape[0];
-    Q->scattering_nu = new double[Q->nnu];
-
-    for (int i = 0; i < Q->nnu; i++)
-        Q->scattering_nu[i] = c_l / (lam[i]*1.0e-4);
-
     // Run a scattering simulation.
-    scattering_mc(nphot, false);
+    scattering_mc(__lam, nphot, false, false);
 
     // Now, run the image through the camera.
     UnstructuredImage *I = C->make_unstructured_image(nx, ny, pixel_size, 
@@ -212,21 +227,9 @@ void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny,
 
 void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl, 
             double pa, double dpc) {
-    // Set some parameters that are going to be needed.
-
-    auto _lam_buf = __lam.request();
-    if (_lam_buf.ndim != 1)
-        throw std::runtime_error("Number of dimensions must be one");
-    double *lam = (double *) _lam_buf.ptr;
-
-    Q-> nnu = _lam_buf.shape[0];
-    Q->scattering_nu = new double[Q->nnu];
-
-    for (int i = 0; i < Q->nnu; i++)
-        Q->scattering_nu[i] = c_l / (lam[i]*1.0e-4);
 
     // Run a scattering simulation.
-    scattering_mc(nphot, false);
+    scattering_mc(__lam, nphot, false, false);
 
     // Now, run the image through the camera.
     Spectrum *S = C->make_spectrum(__lam, incl, pa, dpc);
@@ -329,6 +332,9 @@ PYBIND11_MODULE(mcrt3d, m) {
                 py::arg("nphot")=1000000, py::arg("bw")=true, 
                 py::arg("use_mrw")=false, py::arg("mrw_gamma")=4, 
                 py::arg("verbose")=false)
+        .def("scattering_mc", &MCRT::scattering_mc, py::arg("lam"), 
+                py::arg("nphot")=100000, py::arg("verbose")=false, 
+                py::arg("save")=true)
         .def("run_image", &MCRT::run_image, "Generate an image.", 
                 py::arg("lam"), py::arg("nx")=256, py::arg("ny")=256, 
                 py::arg("pixel_size")=0.1, py::arg("nphot")=100000, 

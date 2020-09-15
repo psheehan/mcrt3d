@@ -37,7 +37,8 @@ struct MCRT {
 
     void thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
             bool verbose);
-    void scattering_mc(int nphot, bool verbose);
+    void scattering_mc(py::array_t<double> scatt, int nphot, bool verbose, 
+            bool save);
 
     void mc_iteration();
 
