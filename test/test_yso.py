@@ -5,6 +5,8 @@ import pdspy.modeling as modeling
 import pdspy.dust as dust
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
+import scipy.optimize
+import scipy.integrate
 import numpy
 
 from mcrt3d import MCRT
@@ -46,6 +48,82 @@ def disk_density(r, theta, phi):
 
     return rho
 
+def envelope_density(r, theta, phi):
+    #numpy.seterr(all='ignore')
+    ##### Envelope parameters
+
+    rin = 0.1
+    rout = 1000.
+    mass = 0.00001
+    rcent = 150.
+    cavz0 = 1.
+    cavpl = 1.5
+    cavrfact = 0.5
+    theta_open = 60. * numpy.pi / 180.
+
+    cava = (rout*numpy.sin(theta_open/2) / numpy.tan(theta_open/2) - \
+            cavz0) * (rout*numpy.sin(theta_open/2))**-cavpl
+
+    # Set up the coordinates.
+
+    rr = 0.5*(r[1:] + r[0:-1])
+    tt = 0.5*(theta[1:] + theta[0:-1])
+    pp = 0.5*(phi[1:] + phi[0:-1])
+
+    rr, tt, pp = numpy.meshgrid(rr, tt, pp, indexing='ij')
+
+    mu = numpy.cos(tt)
+
+    RR = rr * numpy.sin(tt)
+    zz = rr * numpy.cos(tt)
+
+    # Calculate mu0 at each r, theta combination.
+
+    def func(mu0,r,mu,R_c):
+        return mu0**3-mu0*(1-r/R_c)-mu*(r/R_c)
+
+    mu0 = mu*0.
+    for ir in range(rr.shape[0]):
+        for it in range(rr.shape[1]):
+            mu0[ir,it,0] = scipy.optimize.brenth(func, -1.0, 1.0, \
+                    args=(rr[ir,it,0], mu[ir,it,0], rcent))
+
+    ##### Make the dust density model for an Ulrich envelope.
+
+    rho0 = 1.0
+
+    rho = rho0 * (rr / rcent)**(-1.5) * (1 + mu/mu0)**(-0.5)* \
+            (mu/mu0 + 2*mu0**2 * rcent/rr)**(-1)
+
+    mid1 = (numpy.abs(mu) < 1.0e-10) & (rr < rcent)
+    rho[mid1] = rho0 * (rr[mid1] / rcent)**(-0.5) * \
+            (1. - rr[mid1] / rcent)**(-1) / 2.
+
+    mid2 = (numpy.abs(mu) < 1.0e-10) & (rr > rcent)
+    rho[mid2] = rho0 * (2.*rr[mid2]/rcent - 1)**(-0.5) * \
+            (rr[mid2]/rcent - 1.)**(-1)
+
+    rho[(rr >= rout) ^ (rr <= rin)] *= 1.0e-50
+
+    ##### Add an outflow cavity.
+
+    rho[numpy.abs(zz)-cavz0-cava*(RR)**cavpl > 0.0] *= cavrfact
+
+    ##### Normalize the mass correctly.
+
+    if theta.max() > numpy.pi/2:
+        mdot = mass*M_sun/(2*numpy.pi*scipy.integrate.trapz(\
+                scipy.integrate.trapz(rho*(rr*AU)**2*numpy.sin(tt), tt, \
+                axis=1), rr[:,0,:]*AU, axis=0))[0]
+    else:
+        mdot = mass*M_sun/(4*numpy.pi*scipy.integrate.trapz(\
+                scipy.integrate.trapz(rho*(rr*AU)**2*numpy.sin(tt), tt, \
+                axis=1), rr[:,0,:]*AU, axis=0))[0]
+    rho *= mdot
+
+    #numpy.seterr(all='warn')
+
+    return rho
 
 ################################################################################
 #
@@ -84,9 +162,13 @@ m.grid.lam = lam * 1.0e4
 
 # Set the density.
 
-dens = disk_density(r, t, p)
+disk_dens = disk_density(r, t, p)
 
-m.grid.add_density(dens, d)
+m.grid.add_density(disk_dens, d)
+
+env_dens = envelope_density(r, t, p)
+
+m.grid.add_density(env_dens, d)
 
 # Add a star.
 
@@ -154,9 +236,13 @@ d = IsotropicDust(lam, kabs, ksca)
 
 # Set up the density.
 
-density = disk_density(r, t, p)
+density_disk = disk_density(r, t, p)
 
-model.grid.add_density(density, d)
+model.grid.add_density(density_disk, d)
+
+density_envelope = envelope_density(r, t, p)
+
+model.grid.add_density(density_envelope, d)
 
 # Set up the star.
 
@@ -195,29 +281,43 @@ model.run_spectrum(numpy.logspace(-1,4,200), 10000, incl=0, pa=0, dpc=140.)
 
 # Plot the temperature structure.
 
-fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(11,3), \
+fig, ax = plt.subplots(nrows=2, ncols=3, figsize=(11,6), \
         gridspec_kw=dict(left=0.05, right=0.95, wspace=0.25))
 
-vmin = min(m.grid.temperature[0].min(), model.grid.temperature[0].min())
-vmax = min(m.grid.temperature[0].max(), model.grid.temperature[0].max())
+vmin = min(m.grid.temperature[0].min(), model.grid.temperature[0].min(), \
+        m.grid.temperature[1].min(), model.grid.temperature[1].min())
+vmax = max(m.grid.temperature[0].max(), model.grid.temperature[0].max(), \
+        m.grid.temperature[1].max(), model.grid.temperature[1].max())
 
-diff = (m.grid.temperature[0][:,:,0] - model.grid.temperature[0][1:,:,0]) / \
+diff1 = (m.grid.temperature[0][:,:,0] - model.grid.temperature[0][1:,:,0]) / \
         m.grid.temperature[0][:,:,0] * 100
+diff2 = (m.grid.temperature[1][:,:,0] - model.grid.temperature[1][1:,:,0]) / \
+        m.grid.temperature[1][:,:,0] * 100
 
-im1 = ax[0].imshow(m.grid.temperature[0][:,:,0], origin="lower", \
+im1 = ax[0,0].imshow(m.grid.temperature[0][:,:,0], origin="lower", \
         interpolation="nearest", vmin=vmin, vmax=vmax)
 
-im2 = ax[1].imshow(model.grid.temperature[0][1:,:,0], origin="lower",\
+im2 = ax[0,1].imshow(model.grid.temperature[0][1:,:,0], origin="lower",\
         interpolation="nearest", vmin=vmin, vmax=vmax)
 
-im3 = ax[2].imshow(diff, origin="lower", interpolation="nearest")
+im3 = ax[0,2].imshow(diff1, origin="lower", interpolation="nearest")
 
-ax[0].set_title("RADMC-3D")
-ax[1].set_title("MCRT3D")
-ax[2].set_title("RADMC-3D - MCRT3D")
+im4 = ax[1,0].imshow(m.grid.temperature[1][:,:,0], origin="lower", \
+        interpolation="nearest", vmin=vmin, vmax=vmax)
 
-fig.colorbar(im1, ax=ax[1], fraction=0.046)
-fig.colorbar(im3, ax=ax[2], fraction=0.046)
+im5 = ax[1,1].imshow(model.grid.temperature[1][1:,:,0], origin="lower",\
+        interpolation="nearest", vmin=vmin, vmax=vmax)
+
+im6 = ax[1,2].imshow(diff2, origin="lower", interpolation="nearest")
+
+ax[0,0].set_title("RADMC-3D")
+ax[0,1].set_title("MCRT3D")
+ax[0,2].set_title("RADMC-3D - MCRT3D")
+
+fig.colorbar(im1, ax=ax[0,1], fraction=0.046)
+fig.colorbar(im3, ax=ax[0,2], fraction=0.046)
+fig.colorbar(im4, ax=ax[1,1], fraction=0.046)
+fig.colorbar(im6, ax=ax[1,2], fraction=0.046)
 
 plt.show()
 
@@ -230,21 +330,26 @@ with numpy.errstate(divide="ignore", invalid="ignore"):
     vmin = min(numpy.nanmin(numpy.log10(m.grid.scattering_phase[0])[\
             numpy.isfinite(numpy.log10(m.grid.scattering_phase[0]))]), \
             numpy.nanmin(numpy.log10(model.grid.scatt[0]*\
-            model.grid.density[0]*d.kext[-40])[numpy.isfinite(\
-            numpy.log10(model.grid.scatt[0]*model.grid.density[0]))]))
+            (model.grid.density[0]*d.kext[-40]+\
+            model.grid.density[1]*d.kext[-40]))[numpy.isfinite(\
+            numpy.log10(model.grid.scatt[0]*(model.grid.density[0]*\
+            d.kext[-40] + model.grid.density[1]*d.kext[-40])))]))
     vmax = max(numpy.nanmax(numpy.log10(m.grid.scattering_phase[0])), \
             numpy.nanmax(numpy.log10(model.grid.scatt[0]*\
-            model.grid.density[0]*d.kext[-40])))
+            (model.grid.density[0]*d.kext[-40]+\
+            model.grid.density[1]*d.kext[-40]))))
 
     diff = numpy.log10(m.grid.scattering_phase[0][:,:,0]) - \
             numpy.log10(model.grid.scatt[0][1:,:,0,0]*\
-            model.grid.density[0][1:,:,0]*d.kext[-40])
+            (model.grid.density[0][1:,:,0]*d.kext[-40] + \
+            model.grid.density[1][1:,:,0]*d.kext[-40]))
 
     im1 = ax[0].imshow(numpy.log10(m.grid.scattering_phase[0][:,:,0]), \
             origin="lower", interpolation="nearest", vmin=vmin, vmax=vmax)
 
     im2 = ax[1].imshow(numpy.log10(model.grid.scatt[0][1:,:,0,0]*\
-            model.grid.density[0][1:,:,0]*d.kext[-40]), origin="lower",\
+            (model.grid.density[0][1:,:,0]*d.kext[-40] + \
+            model.grid.density[1][1:,:,0]*d.kext[-40])), origin="lower",\
             interpolation="nearest", vmin=vmin, vmax=vmax)
 
     im3 = ax[2].imshow(diff, origin="lower", interpolation="nearest", \
