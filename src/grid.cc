@@ -854,34 +854,33 @@ void Grid::propagate_ray(Ray *R) {
         for (int inu = 0; inu < R->nnu; inu++) {
             double tau_cell = 0;
             double intensity_abs = 0;
-            double intensity_sca = 0;
-            double intensity_cell = 0;
-            double alpha_abs = 0;
+            double alpha_ext = 0;
             double alpha_sca = 0;
 
             for (int idust=0; idust<nspecies; idust++) {
                 tau_cell += s*R->current_kext[idust][inu] *
                         dens[idust][R->l[0]][R->l[1]][R->l[2]];
 
-                alpha_abs += R->current_kext[idust][inu] *
-                        (1 - R->current_albedo[idust][inu]) * 
+                alpha_ext += R->current_kext[idust][inu] *
                         dens[idust][R->l[0]][R->l[1]][R->l[2]];
                 alpha_sca += R->current_kext[idust][inu] *
                         R->current_albedo[idust][inu] *
                         dens[idust][R->l[0]][R->l[1]][R->l[2]];
 
-                intensity_abs += (1.0-exp(-tau_cell)) * (1 - 
-                        R->current_albedo[idust][inu])
+                intensity_abs += R->current_kext[idust][inu] * 
+                        (1 - R->current_albedo[idust][inu]) *
+                        dens[idust][R->l[0]][R->l[1]][R->l[2]]
                         * planck_function(R->nu[inu], 
                         temp[idust][R->l[0]][R->l[1]][R->l[2]]);
             }
 
-            double albedo = alpha_sca / (alpha_abs + alpha_sca);
+            double albedo = alpha_sca / alpha_ext;
 
-            intensity_sca += (1.0-exp(-tau_cell)) * albedo * 
+            intensity_abs *= (1.0-exp(-tau_cell)) / alpha_ext;
+            double intensity_sca = (1.0-exp(-tau_cell)) * albedo * 
                     scatt[0][R->l[0]][R->l[1]][R->l[2]][inu];
 
-            intensity_cell += intensity_abs + intensity_sca;
+            double intensity_cell = intensity_abs + intensity_sca;
 
             if (Q->verbose) {
                 printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
@@ -1001,9 +1000,9 @@ bool Grid::in_grid(Photon *P) {
  * been absorbed in the cell. */
 
 void Grid::update_grid(Vector<int, 3> l) {
-    bool not_converged = true;
-
     for (int idust=0; idust<nspecies; idust++) {
+        bool not_converged = true;
+
         while (not_converged) {
             double T_old = temp[idust][l[0]][l[1]][l[2]];
 
