@@ -101,6 +101,12 @@ m.run_thermal(code="radmc3d", nphot=1e6, verbose=False)
 t2 = time()
 print(t2-t1)
 
+# Run the scattering phase function calculation.
+
+m.set_camera_wavelength(numpy.array([4.]))
+
+m.run_scattering(code="radmc3d", nphot=1e5, verbose=False, loadlambda=True)
+
 # Run the image.
 
 m.run_image(name="image", nphot=1e5, npix=256, pixelsize=0.1, lam="4", \
@@ -165,12 +171,16 @@ model.thermal_mc(nphot=1000000, bw=True, use_mrw=False, mrw_gamma=2, \
 t2 = time()
 print(t2-t1)
 
+# Run the scattering phase function calculation.
+
+model.scattering_mc(numpy.array([4.]), nphot=100000, verbose=False)
+
 # Run the images.
 
 model.run_image(numpy.array([4.]), 256, 256, 0.1, 100000, incl=0., pa=0, \
         dpc=140.)
 
-model.run_unstructured_image(numpy.array([1300.]), 25, 25, 1.0, 100000, \
+model.run_unstructured_image(numpy.array([1300.]), 25, 25, 2.0, 100000, \
         incl=0., pa=0., dpc=140.)
 
 # Run the spectra.
@@ -201,6 +211,44 @@ im2 = ax[1].imshow(model.grid.temperature[0][1:,:,0], origin="lower",\
         interpolation="nearest", vmin=vmin, vmax=vmax)
 
 im3 = ax[2].imshow(diff, origin="lower", interpolation="nearest")
+
+ax[0].set_title("RADMC-3D")
+ax[1].set_title("MCRT3D")
+ax[2].set_title("RADMC-3D - MCRT3D")
+
+fig.colorbar(im1, ax=ax[1], fraction=0.046)
+fig.colorbar(im3, ax=ax[2], fraction=0.046)
+
+plt.show()
+
+# Plot the scattering phase function.
+
+fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(11,3), \
+        gridspec_kw=dict(left=0.05, right=0.95, wspace=0.25))
+
+with numpy.errstate(divide="ignore", invalid="ignore"):
+    vmin = min(numpy.nanmin(numpy.log10(m.grid.scattering_phase[0])[\
+            numpy.isfinite(numpy.log10(m.grid.scattering_phase[0]))]), \
+            numpy.nanmin(numpy.log10(model.grid.scatt[0]*\
+            model.grid.density[0]*d.kext[-40])[numpy.isfinite(\
+            numpy.log10(model.grid.scatt[0]*model.grid.density[0]))]))
+    vmax = max(numpy.nanmax(numpy.log10(m.grid.scattering_phase[0])), \
+            numpy.nanmax(numpy.log10(model.grid.scatt[0]*\
+            model.grid.density[0]*d.kext[-40])))
+
+    diff = numpy.log10(m.grid.scattering_phase[0][:,:,0]) - \
+            numpy.log10(model.grid.scatt[0][1:,:,0,0]*\
+            model.grid.density[0][1:,:,0]*d.kext[-40])
+
+    im1 = ax[0].imshow(numpy.log10(m.grid.scattering_phase[0][:,:,0]), \
+            origin="lower", interpolation="nearest", vmin=vmin, vmax=vmax)
+
+    im2 = ax[1].imshow(numpy.log10(model.grid.scatt[0][1:,:,0,0]*\
+            model.grid.density[0][1:,:,0]*d.kext[-40]), origin="lower",\
+            interpolation="nearest", vmin=vmin, vmax=vmax)
+
+    im3 = ax[2].imshow(diff, origin="lower", interpolation="nearest", \
+            vmin=-0.5, vmax=0.5)
 
 ax[0].set_title("RADMC-3D")
 ax[1].set_title("MCRT3D")
