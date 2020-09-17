@@ -79,9 +79,10 @@ struct Grid {
     void add_star(double x, double y, double z, double _mass, double _radius, 
             double _temperature);
 
-    void add_scattering_array(py::array_t<double> _scatt);
-    void initialize_scattering_array();
-    void deallocate_scattering_array();
+    void add_scattering_array(py::array_t<double> _scatt, int nthreads);
+    void initialize_scattering_array(int nthreads);
+    void deallocate_scattering_array(int start);
+    void collapse_scattering_array();
     void initialize_luminosity_array();
     void initialize_luminosity_array(double nu);
     void deallocate_luminosity_array();

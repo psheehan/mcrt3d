@@ -86,7 +86,7 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
 }
 
 void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose, 
-        bool save) {
+        bool save, int nthreads) {
 
     // Make sure parameters are set properly.
     Q->nphot = nphot; 
@@ -110,6 +110,7 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
         Q->scattering_nu[i] = c_l / (lam[i]*1.0e-4);
 
     // Create a scattering array in Numpy.
+    if (G->scatt.size() > 1) printf("Whoops, looks like the scattering array wasn't cleaned properly.\n");
 
     if (save) {
         py::array_t<double> scatt = py::array_t<double>(G->n1*G->n2*G->n3*
@@ -117,7 +118,7 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
         scatt.resize({G->n1, G->n2, G->n3, Q->nnu});
 
         // Set the Grid's scattering array.
-        G->add_scattering_array(scatt);
+        G->add_scattering_array(scatt, nthreads);
 
         // Make sure the scattering array is zeroed out.
         for (int i = 0; i < G->n1; i++)
@@ -126,7 +127,7 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
                     for (int l = 0; l < Q->nnu; l++)
                         G->scatt[0][i][j][k][l] = 0.;
     } else
-        G->initialize_scattering_array();
+        G->initialize_scattering_array(nthreads);
 
     // Run the simulation for every frequency bin.
     for (int inu=0; inu<Q->nnu; inu++) {
@@ -143,6 +144,9 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
 
     // Reset the scattering simulation to what it was before.
     Q->scattering = old_scattering;
+
+    // If nthreads is >1, collapse the scattering array to a single value.
+    if (nthreads > 1) G->collapse_scattering_array();
 
     // Clean up the appropriate grid parameters.
     if (save) {
@@ -163,6 +167,7 @@ void MCRT::mc_iteration() {
 
         Photon *P = G->emit(i);
         P->event_count = 0;
+        P->ithread = 0;
 
         if (Q->verbose) {
             printf("Emitting photon # %i\n", i);
@@ -189,10 +194,11 @@ void MCRT::mc_iteration() {
 }
 
 void MCRT::run_image(py::array_t<double> __lam, int nx, int ny, 
-        double pixel_size, int nphot, double incl, double pa, double dpc) {
+        double pixel_size, int nphot, double incl, double pa, double dpc, 
+        int nthreads) {
 
     // Run a scattering simulation.
-    scattering_mc(__lam, nphot, false, false);
+    scattering_mc(__lam, nphot, false, false, nthreads);
 
     // Now, run the image through the camera.
     Image *I = C->make_image(nx, ny, pixel_size, __lam, incl, pa, dpc);
@@ -200,17 +206,18 @@ void MCRT::run_image(py::array_t<double> __lam, int nx, int ny,
     images.append(I);
 
     // Clean up the appropriate grid parameters.
-    G->deallocate_scattering_array();
+    G->deallocate_scattering_array(0);
 
     Q->nnu = 0;
     delete[] Q->scattering_nu;
 }
 
 void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny, 
-        double pixel_size, int nphot, double incl, double pa, double dpc) {
+        double pixel_size, int nphot, double incl, double pa, double dpc, 
+        int nthreads) {
 
     // Run a scattering simulation.
-    scattering_mc(__lam, nphot, false, false);
+    scattering_mc(__lam, nphot, false, false, nthreads);
 
     // Now, run the image through the camera.
     UnstructuredImage *I = C->make_unstructured_image(nx, ny, pixel_size, 
@@ -219,17 +226,17 @@ void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny,
     images.append(I);
 
     // Clean up the appropriate grid parameters.
-    G->deallocate_scattering_array();
+    G->deallocate_scattering_array(0);
 
     Q->nnu = 0;
     delete[] Q->scattering_nu;
 }
 
 void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl, 
-            double pa, double dpc) {
+            double pa, double dpc, int nthreads) {
 
     // Run a scattering simulation.
-    scattering_mc(__lam, nphot, false, false);
+    scattering_mc(__lam, nphot, false, false, nthreads);
 
     // Now, run the image through the camera.
     Spectrum *S = C->make_spectrum(__lam, incl, pa, dpc);
@@ -237,7 +244,7 @@ void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl,
     spectra.append(S);
 
     // Clean up the appropriate grid parameters.
-    G->deallocate_scattering_array();
+    G->deallocate_scattering_array(0);
 
     Q->nnu = 0;
     delete[] Q->scattering_nu;
@@ -334,17 +341,19 @@ PYBIND11_MODULE(mcrt3d, m) {
                 py::arg("verbose")=false)
         .def("scattering_mc", &MCRT::scattering_mc, py::arg("lam"), 
                 py::arg("nphot")=100000, py::arg("verbose")=false, 
-                py::arg("save")=true)
+                py::arg("save")=true, py::arg("nthreads")=1)
         .def("run_image", &MCRT::run_image, "Generate an image.", 
                 py::arg("lam"), py::arg("nx")=256, py::arg("ny")=256, 
                 py::arg("pixel_size")=0.1, py::arg("nphot")=100000, 
-                py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1.)
+                py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1., 
+                py::arg("nthreads")=1)
         .def("run_unstructured_image", &MCRT::run_unstructured_image, 
                 "Generate an unstructured image.", 
                 py::arg("lam"), py::arg("nx")=25, py::arg("ny")=25, 
                 py::arg("pixel_size")=1.0, py::arg("nphot")=100000, 
-                py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1.)
+                py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1., 
+                py::arg("nthreads")=1)
         .def("run_spectrum", &MCRT::run_spectrum, "Generate a spectrum.", 
                 py::arg("lam"), py::arg("nphot")=10000, py::arg("incl")=0,
-                py::arg("pa")=0, py::arg("dpc")=1.);
+                py::arg("pa")=0, py::arg("dpc")=1., py::arg("nthreads")=1);
 }

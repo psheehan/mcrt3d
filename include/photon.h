@@ -17,6 +17,8 @@ struct Photon {
 
     double rad, phi, theta;
 
+    int ithread;
+
     /* Clean up the photon to remove any pointers. */
 
     ~Photon();

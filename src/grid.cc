@@ -85,7 +85,7 @@ Grid::~Grid() {
     // Make sure the scattering array is deallocated.
 
     if (scatt.size() > 0)
-        deallocate_scattering_array();
+        deallocate_scattering_array(0);
 
     // Clear the sources.
     
@@ -165,7 +165,7 @@ void Grid::add_star(double x, double y, double z, double _mass, double _radius,
     nsources++;
 }
 
-void Grid::add_scattering_array(py::array_t<double> ___scatt) {
+void Grid::add_scattering_array(py::array_t<double> ___scatt, int nthreads) {
     // Add the array to the Python-connected list of scattering phase
     // functions.
 
@@ -176,20 +176,38 @@ void Grid::add_scattering_array(py::array_t<double> ___scatt) {
     auto _scatt_buf = ___scatt.request();
 
     scatt.push_back(pymangle(n1, n2, n3, Q->nnu, (double *) _scatt_buf.ptr));
-}
 
-void Grid::initialize_scattering_array() {
-    // Create a 4D scattering array for each of the separate threads.
+    // If we are using more than one thread, add additional arrays.
 
-    for (int ithread = 0; ithread < 1; ithread++) {
+    for (int ithread = 1; ithread < nthreads; ithread++) {
         scatt.push_back(create4DArrValue(n1, n2, n3, Q->nnu, 0.));
     }
 }
 
-void Grid::deallocate_scattering_array() {
-    for (int ithread = 0; ithread < (int) scatt.size(); ithread++)
+void Grid::initialize_scattering_array(int nthreads) {
+    // Create a 4D scattering array for each of the separate threads.
+
+    for (int ithread = 0; ithread < nthreads; ithread++) {
+        scatt.push_back(create4DArrValue(n1, n2, n3, Q->nnu, 0.));
+    }
+}
+
+void Grid::collapse_scattering_array() {
+    for (int ithread = 1; ithread < scatt.size(); ithread++)
+        for (int ix=0; ix < n1; ix++)
+            for (int iy=0; iy < n2; iy++)
+                for (int iz=0; iz < n3; iz++)
+                    for (int iq=0; iq < Q->nnu; iq++)
+                        scatt[0][ix][iy][iz][iq] += 
+                            scatt[ithread][ix][iy][iz][iq];
+
+    deallocate_scattering_array(1);
+}
+
+void Grid::deallocate_scattering_array(int start) {
+    for (int ithread = start; ithread < (int) scatt.size(); ithread++)
         delete4DArr(scatt[ithread], n1, n2, n3, Q->nnu);
-    scatt.clear();
+    scatt.erase(scatt.begin()+start, scatt.end());
 }
 
 void Grid::initialize_luminosity_array() {
@@ -689,8 +707,9 @@ void Grid::propagate_photon_scattering(Photon *P) {
                 average_energy = (1.0 - 0.5*tau_abs) * P->energy;
 
             // Add some of the energy to the scattering array.
-            scatt[0][P->l[0]][P->l[1]][P->l[2]][Q->inu] += average_energy * s / 
-                    (4*pi * volume[P->l[0]][P->l[1]][P->l[2]]);
+            scatt[P->ithread][P->l[0]][P->l[1]][P->l[2]][Q->inu] += 
+                    average_energy * s / (4*pi * 
+                    volume[P->l[0]][P->l[1]][P->l[2]]);
 
             // Absorb some of the photon's energy.
             P->energy *= exp(-tau_abs);

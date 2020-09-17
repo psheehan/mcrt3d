@@ -38,14 +38,15 @@ struct MCRT {
     void thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
             bool verbose);
     void scattering_mc(py::array_t<double> scatt, int nphot, bool verbose, 
-            bool save);
+            bool save, int nthreads);
 
     void mc_iteration();
 
     void run_image(py::array_t<double> lam, int nx, int ny, double pixel_size, 
-            int nphot, double incl, double pa, double dpc);
+            int nphot, double incl, double pa, double dpc, int nthreads);
     void run_unstructured_image(py::array_t<double> lam, int nx, int ny, 
-            double pixel_size, int nphot, double incl, double pa, double dpc);
+            double pixel_size, int nphot, double incl, double pa, double dpc, 
+            int nthreads);
     void run_spectrum(py::array_t<double> lam, int nphot, double incl, 
-            double pa, double dpc);
+            double pa, double dpc, int nthreads);
 };
