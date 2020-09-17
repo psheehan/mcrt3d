@@ -41,7 +41,7 @@ struct Grid {
     py::list _scatt;
 
     std::vector<double***> dens;
-    std::vector<double***> energy;
+    std::vector<std::vector<double***>> energy;
     std::vector<double***> temp;
     std::vector<double***> mass;
     std::vector<double***> rosseland_mean_extinction;

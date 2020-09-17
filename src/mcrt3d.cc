@@ -73,7 +73,9 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
             mc_iteration(nthreads);
 
             G->update_grid();
-            set4DArrValue(G->energy, 0.0, G->nspecies, G->n1, G->n2, G->n3);
+            for (int ithread=0; ithread < G->energy.size(); ithread++)
+                set4DArrValue(G->energy[ithread], 0.0, G->nspecies, G->n1, 
+                        G->n2, G->n3);
 
             if (i > 2)
                 if (converged(G->temp, told, treallyold, G->nspecies, G->n1, 

@@ -72,9 +72,14 @@ Grid::~Grid() {
         freepymangle(dens[i]);
         freepymangle(temp[i]);
         delete3DArr(mass[i], n1, n2, n3);
-        delete3DArr(energy[i], n1, n2, n3);
         delete3DArr(rosseland_mean_extinction[i], n1, n2, n3);
         delete3DArr(planck_mean_opacity[i], n1, n2, n3);
+    }
+    for (int i = 0; i < energy.size(); i++) {
+        for (int j = 0; j < nspecies; j++)
+            delete3DArr(energy[i][j], n1, n2, n3);
+        energy[i].clear();
+
     }
     dens.clear(); temp.clear(); mass.clear(); energy.clear(); dust.clear();
 
@@ -126,7 +131,12 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
     dens.push_back(__dens);
     temp.push_back(__temp);
     mass.push_back(__mass);
-    energy.push_back(__energy);
+    if (energy.empty()) { 
+        std::vector<double***> ___energy = {__energy};
+        energy.push_back(___energy);
+    } else
+        energy[0].push_back(__energy);
+
     rosseland_mean_extinction.push_back(__rosseland_mean_extinction);
     planck_mean_opacity.push_back(__planck_mean_opacity);
 
@@ -615,8 +625,8 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
         // current trajectory is absorption.
         if (absorb) {
             for (int idust=0; idust<nspecies; idust++)
-                energy[idust][P->l[0]][P->l[1]][P->l[2]] += P->energy*
-                    s*P->current_kext[idust]*
+                energy[P->ithread][idust][P->l[0]][P->l[1]][P->l[2]] += 
+                    P->energy*s*P->current_kext[idust]*
                     dens[idust][P->l[0]][P->l[1]][P->l[2]];
             // If we're doing a Bjorkman & Wood simulation, update the cell to
             // find its new temperature.
@@ -774,7 +784,9 @@ void Grid::propagate_photon_mrw(Photon *P) {
     double energy_threshold = 0.;
     for (int idust = 0; idust<nspecies; idust++) {
         if (temp[idust][P->l[0]][P->l[1]][P->l[2]] > 3.) {
-            energy_threshold += energy[idust][P->l[0]][P->l[1]][P->l[2]];
+            for (int ithread = 0; ithread < energy.size(); ithread++)
+                energy_threshold += energy[ithread][idust][P->l[0]]
+                        [P->l[1]][P->l[2]];
         } else {
             energy_threshold = HUGE_VAL;
             break;
@@ -808,9 +820,9 @@ void Grid::propagate_photon_mrw(Photon *P) {
             }
             // Add the energy absorbed into the grid.
             for (int idust=0; idust<nspecies; idust++)
-                energy[idust][P->l[0]][P->l[1]][P->l[2]] += P->energy*
-                        s*planck_mean_opacity[idust][P->l[0]][P->l[1]][P->l[2]]*
-                        dens[idust][P->l[0]][P->l[1]][P->l[2]];
+                energy[P->ithread][idust][P->l[0]][P->l[1]][P->l[2]] += 
+                        P->energy*s*planck_mean_opacity[idust][P->l[0]][P->l[1]]
+                        [P->l[2]]*dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
             // Move the photon to the edge of the sphere.
             P->move(R_0);
@@ -834,9 +846,9 @@ void Grid::propagate_photon_mrw(Photon *P) {
             // Continuously absorb the photon's energy, if the end result of the
             // current trajectory is absorption.
             for (int idust=0; idust<nspecies; idust++)
-                energy[idust][P->l[0]][P->l[1]][P->l[2]] += P->energy*
-                        s*planck_mean_opacity[idust][P->l[0]][P->l[1]][P->l[2]]*
-                        dens[idust][P->l[0]][P->l[1]][P->l[2]];
+                energy[P->ithread][idust][P->l[0]][P->l[1]][P->l[2]] += 
+                        P->energy*s*planck_mean_opacity[idust][P->l[0]][P->l[1]]
+                        [P->l[2]]*dens[idust][P->l[0]][P->l[1]][P->l[2]];
 
             // Move the photon to it's new position.
             P->move(s);
@@ -851,8 +863,9 @@ void Grid::propagate_photon_mrw(Photon *P) {
         }
 
         double energy_tot = 0.;
-        for (int idust=0; idust<nspecies; idust++)
-            energy_tot += energy[idust][P->l[0]][P->l[1]][P->l[2]];
+        for (int ithread = 0; ithread < energy.size(); ithread++)
+            for (int idust=0; idust<nspecies; idust++)
+                energy_tot += energy[ithread][idust][P->l[0]][P->l[1]][P->l[2]];
 
         if (energy_tot > energy_threshold)
             break;
@@ -1025,7 +1038,11 @@ void Grid::update_grid(Vector<int, 3> l) {
         while (not_converged) {
             double T_old = temp[idust][l[0]][l[1]][l[2]];
 
-            temp[idust][l[0]][l[1]][l[2]]=pow(energy[idust][l[0]][l[1]][l[2]]/
+            double total_energy = 0;
+            for (int ithread = 0; ithread < energy.size(); ithread++)
+                total_energy += energy[ithread][idust][l[0]][l[1]][l[2]];
+
+            temp[idust][l[0]][l[1]][l[2]]=pow(total_energy/
                 (4*sigma*dust[idust]->\
                 planck_mean_opacity(temp[idust][l[0]][l[1]][l[2]])*
                 mass[idust][l[0]][l[1]][l[2]]),0.25);
