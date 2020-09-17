@@ -1,3 +1,7 @@
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "mcrt3d.h"
 
 MCRT::MCRT() {
@@ -36,7 +40,7 @@ void MCRT::set_spherical_grid(py::array_t<double> r,
  * grid. */
 
 void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma, 
-        bool verbose) {
+        bool verbose, int nthreads) {
     // Make sure parameters are set properly.
 
     Q->nphot = nphot; 
@@ -48,7 +52,7 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
 
     // Do the thermal calculation.
     if (Q->bw)
-        mc_iteration();
+        mc_iteration(1);
     else {
         std::vector<double***> told = create4DArr(G->nspecies, G->n1,
                 G->n2, G->n3);
@@ -66,7 +70,7 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
             equate4DArrs(treallyold, told, G->nspecies, G->n1, G->n2, G->n3);
             equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
 
-            mc_iteration();
+            mc_iteration(nthreads);
 
             G->update_grid();
             set4DArrValue(G->energy, 0.0, G->nspecies, G->n1, G->n2, G->n3);
@@ -138,7 +142,7 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
         Q->dnu = abs(Q->scattering_nu[inu+1] - Q->scattering_nu[inu]);
 
         G->initialize_luminosity_array(Q->nu);
-        mc_iteration();
+        mc_iteration(nthreads);
         G->deallocate_luminosity_array();
     }
 
@@ -159,15 +163,20 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
     }
 }
 
-void MCRT::mc_iteration() {
+void MCRT::mc_iteration(int nthreads) {
     double event_average = 0;
 
+    #pragma omp parallel for schedule(guided) num_threads(nthreads)
     for (int i=0; i<Q->nphot; i++) {
         if (fmod(i+1,Q->nphot/10) == 0) printf("%i\n",i+1);
 
         Photon *P = G->emit(i);
         P->event_count = 0;
+        #ifdef _OPENMP
+        P->ithread = omp_get_thread_num();
+        #else
         P->ithread = 0;
+        #endif
 
         if (Q->verbose) {
             printf("Emitting photon # %i\n", i);
@@ -338,7 +347,7 @@ PYBIND11_MODULE(mcrt3d, m) {
                 "Calculate the temperature throughout the grid.",
                 py::arg("nphot")=1000000, py::arg("bw")=true, 
                 py::arg("use_mrw")=false, py::arg("mrw_gamma")=4, 
-                py::arg("verbose")=false)
+                py::arg("verbose")=false, py::arg("nthreads")=1)
         .def("scattering_mc", &MCRT::scattering_mc, py::arg("lam"), 
                 py::arg("nphot")=100000, py::arg("verbose")=false, 
                 py::arg("save")=true, py::arg("nthreads")=1)

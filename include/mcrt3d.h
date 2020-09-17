@@ -36,11 +36,11 @@ struct MCRT {
             py::array_t<double> phi);
 
     void thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
-            bool verbose);
+            bool verbose, int nthreads);
     void scattering_mc(py::array_t<double> scatt, int nphot, bool verbose, 
             bool save, int nthreads);
 
-    void mc_iteration();
+    void mc_iteration(int nthreads);
 
     void run_image(py::array_t<double> lam, int nx, int ny, double pixel_size, 
             int nphot, double incl, double pa, double dpc, int nthreads);
