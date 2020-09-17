@@ -35,7 +35,7 @@ double planck_function_derivative(double nu, double T) {
     double value = (-2.0*h*nu*nu*nu*nu)/(c_l*c_l*k*T*T) / 
         (exp(h*nu/(k*T))-1.0) / (1. - exp(-h*nu/(k*T)));
 
-    if (isnan(value))
+    if (std::isnan(value))
         return 0;
     else
         return value;
