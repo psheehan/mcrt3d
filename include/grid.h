@@ -83,6 +83,10 @@ struct Grid {
     void initialize_scattering_array(int nthreads);
     void deallocate_scattering_array(int start);
     void collapse_scattering_array();
+
+    void add_energy_arrays(int nthreads);
+    void deallocate_energy_arrays();
+
     void initialize_luminosity_array();
     void initialize_luminosity_array(double nu);
     void deallocate_luminosity_array();

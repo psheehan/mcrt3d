@@ -175,6 +175,8 @@ void Grid::add_star(double x, double y, double z, double _mass, double _radius,
     nsources++;
 }
 
+/* Functions to manage the scattering array. */
+
 void Grid::add_scattering_array(py::array_t<double> ___scatt, int nthreads) {
     // Add the array to the Python-connected list of scattering phase
     // functions.
@@ -219,6 +221,30 @@ void Grid::deallocate_scattering_array(int start) {
         delete4DArr(scatt[ithread], n1, n2, n3, Q->nnu);
     scatt.erase(scatt.begin()+start, scatt.end());
 }
+
+/* Functions to manage the energy array. */
+
+void Grid::add_energy_arrays(int nthreads) {
+    // Create a 3D energy array for each of the separate threads.
+
+    for (int ithread = 1; ithread < nthreads; ithread++) {
+        std::vector<double***> _energy = {};
+        energy.push_back(_energy);
+        for (int idust = 0; idust < nspecies; idust++)
+            energy[ithread].push_back(create3DArrValue(n1, n2, n3, 0.));
+    }
+}
+
+void Grid::deallocate_energy_arrays() {
+    for (int ithread = 1; ithread < energy.size(); ithread++) {
+        for (int idust = 0; idust < nspecies; idust++)
+            delete3DArr(energy[ithread][idust], n1, n2, n3);
+        energy[ithread].clear();
+    }
+    energy.erase(energy.begin()+1, energy.end());
+}
+
+/* Functions to manage the luminosity array. */
 
 void Grid::initialize_luminosity_array() {
     total_lum = 0.;
@@ -1035,12 +1061,12 @@ void Grid::update_grid(Vector<int, 3> l) {
     for (int idust=0; idust<nspecies; idust++) {
         bool not_converged = true;
 
+        double total_energy = 0;
+        for (int ithread = 0; ithread < energy.size(); ithread++)
+            total_energy += energy[ithread][idust][l[0]][l[1]][l[2]];
+
         while (not_converged) {
             double T_old = temp[idust][l[0]][l[1]][l[2]];
-
-            double total_energy = 0;
-            for (int ithread = 0; ithread < energy.size(); ithread++)
-                total_energy += energy[ithread][idust][l[0]][l[1]][l[2]];
 
             temp[idust][l[0]][l[1]][l[2]]=pow(total_energy/
                 (4*sigma*dust[idust]->\

@@ -1,18 +1,25 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include <stdio.h>
 #include <cmath>
+
 #include "params.h"
+#include "dust.h"
 #include "isotropic_dust.h"
 #include "grid.h"
 #include "cartesian_grid.h"
 #include "cylindrical_grid.h"
 #include "spherical_grid.h"
+#include "source.h"
 #include "star.h"
-#include "pymangle.h"
-//#include "timer.c"
 #include "camera.h"
+#include "misc.h"
+#include "photon.h"
 
 namespace py = pybind11;
 

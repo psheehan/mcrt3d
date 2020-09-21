@@ -1,8 +1,17 @@
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 #include "mcrt3d.h"
+
+#include "params.cc"
+#include "dust.cc"
+#include "isotropic_dust.cc"
+#include "grid.cc"
+#include "cartesian_grid.cc"
+#include "cylindrical_grid.cc"
+#include "spherical_grid.cc"
+#include "source.cc"
+#include "star.cc"
+#include "camera.cc"
+#include "misc.cc"
+#include "photon.cc"
 
 MCRT::MCRT() {
     Q = new Params();
@@ -50,6 +59,10 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
     Q->verbose = verbose;
     Q->scattering = false;
 
+    // Make sure the proper number of energy arrays are allocated for the
+    // threads.
+    G->add_energy_arrays(nthreads);
+
     // Do the thermal calculation.
     if (Q->bw)
         mc_iteration(1);
@@ -89,6 +102,9 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
         delete4DArr(told, G->nspecies, G->n1, G->n2, G->n3);
         delete4DArr(treallyold, G->nspecies, G->n1, G->n2, G->n3);
     }
+
+    // Clean up the energy arrays that were calculated.
+    G->deallocate_energy_arrays();
 }
 
 void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose, 
@@ -168,7 +184,18 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
 void MCRT::mc_iteration(int nthreads) {
     double event_average = 0;
 
-    #pragma omp parallel for schedule(guided) num_threads(nthreads)
+    #pragma omp parallel num_threads(nthreads) private(seed1, seed2) \
+            shared(G,Q,event_average, nthreads) default(none)
+    {
+    #ifdef _OPENMP
+    seed1 = int(time(NULL)) ^ omp_get_thread_num();
+    seed2 = int(time(NULL)) ^ omp_get_thread_num();
+    #else
+    seed1 = int(time(NULL));
+    seed2 = int(time(NULL));
+    #endif
+
+    #pragma omp for schedule(guided)
     for (int i=0; i<Q->nphot; i++) {
         if (fmod(i+1,Q->nphot/10) == 0) printf("%i\n",i+1);
 
@@ -194,10 +221,12 @@ void MCRT::mc_iteration(int nthreads) {
         else
             G->propagate_photon_full(P);
 
+        #pragma omp atomic
         event_average += P->event_count;
 
         delete P;
         if (Q->verbose) printf("Photon has escaped the grid.\n\n");
+    }
     }
 
     printf("Average number of abs/scat events per photon package = %f \n", 

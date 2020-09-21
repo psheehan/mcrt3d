@@ -65,49 +65,8 @@ class build_ext(_build_ext):
 # Create the extension.
 
 if __name__ == "__main__":
-    r"""
-    dust = Extension("mcrt3d.dust.Dust", sources=["mcrt3d/dust/Dust.pyx"], \
-            include_dirs=[numpy.get_include(),"./include"], language="c++")
-
-    star = Extension("mcrt3d.sources.Star", sources=["mcrt3d/sources/Star.pyx"], \
-            include_dirs=[numpy.get_include(),"./include"], language="c++")
-
-    grid = Extension("mcrt3d.grid.Grid", sources=["mcrt3d/grid/Grid.pyx"], \
-            include_dirs=[numpy.get_include(),"./include"], language="c++")
-
-    cartesian_grid = Extension("mcrt3d.grid.CartesianGrid", \
-            sources=["mcrt3d/grid/CartesianGrid.pyx"], \
-            include_dirs=[numpy.get_include(),"./include"], language="c++")
-
-    cylindrical_grid = Extension("mcrt3d.grid.CylindricalGrid", \
-            sources=["mcrt3d/grid/CylindricalGrid.pyx"], \
-            include_dirs=[numpy.get_include(),"./include"], language="c++")
-
-    spherical_grid = Extension("mcrt3d.grid.SphericalGrid", \
-            sources=["mcrt3d/grid/SphericalGrid.pyx"], \
-            include_dirs=[numpy.get_include(),"./include"], language="c++")
-
-    image = Extension("mcrt3d.camera.Image", sources=["mcrt3d/camera/Image.pyx"], \
-            include_dirs=[numpy.get_include(),"./include"], language="c++")
-
-    spectrum = Extension("mcrt3d.camera.Spectrum", \
-            sources=["mcrt3d/camera/Spectrum.pyx"], \
-            include_dirs=[numpy.get_include(),"./include"], language="c++")
-
-    camera = Extension("mcrt3d.camera.Camera",sources=["mcrt3d/camera/Camera.pyx"],\
-            include_dirs=[numpy.get_include(),"./include"], language="c++")
-
-    setup(cmdclass = {'build_ext': build_ext}, ext_modules = [mcrt3d, dust, star, \
-            grid, cartesian_grid, cylindrical_grid, spherical_grid, image, \
-            spectrum, camera])
-    """
-
     mcrt3d = Extension("mcrt3d.mcrt3d", \
-            sources=["src/mcrt3d.cc", \
-            "src/camera.cc", "src/isotropic_dust.cc", "src/cartesian_grid.cc", \
-            "src/source.cc", "src/cylindrical_grid.cc", "src/misc.cc", \
-            "src/spherical_grid.cc", "src/dust.cc", "src/params.cc",\
-            "src/star.cc", "src/grid.cc", "src/photon.cc"], \
+            sources=["src/mcrt3d.cc"], \
             language="c++")
 
     setup(name="mcrt3d", 
