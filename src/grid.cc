@@ -428,7 +428,13 @@ void Grid::absorb(Photon *P, int idust) {
 
     // Now do the absorption.
 
+    #ifdef _OPENMP
+    omp_set_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
+    #endif
     dust[idust]->absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw);
+    #ifdef _OPENMP
+    omp_unset_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
+    #endif
 
     // Update the photon's arrays of kext and albedo since P->nu has changed
     // upon absorption.
@@ -470,7 +476,13 @@ void Grid::absorb_mrw(Photon *P, int idust) {
 
     // Now do the absorption.
 
+    #ifdef _OPENMP
+    omp_set_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
+    #endif
     dust[idust]->absorb_mrw(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw);
+    #ifdef _OPENMP
+    omp_unset_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
+    #endif
 
     // Update the photon's arrays of kext and albedo since P->nu has changed
     // upon absorption.
@@ -820,6 +832,9 @@ void Grid::propagate_photon_mrw(Photon *P) {
     // Rosseland mean opacity.
     double energy_threshold = 0.;
     for (int idust = 0; idust<nspecies; idust++) {
+        #ifdef _OPENMP
+        omp_set_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
+        #endif
         if (temp[idust][P->l[0]][P->l[1]][P->l[2]] > 3.) {
             for (int ithread = 0; ithread < (int) energy.size(); ithread++)
                 energy_threshold += energy[ithread][idust][P->l[0]]
@@ -828,6 +843,9 @@ void Grid::propagate_photon_mrw(Photon *P) {
             energy_threshold = HUGE_VAL;
             break;
         }
+        #ifdef _OPENMP
+        omp_unset_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
+        #endif
     }
     energy_threshold *= (1. + 0.3);
 
