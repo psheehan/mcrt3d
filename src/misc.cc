@@ -23,7 +23,7 @@ double random_number() {
 /* Calculate the blackbody function for a given frequency and temperature. */
 
 double planck_function(double nu, double T) {
-    double value = 2.0*h*nu*nu*nu/(c_l*c_l)*1.0/(exp(h*nu/(k*T))-1.0);
+    double value = 2.0*h*nu*nu*nu/(c_l*c_l)*1.0/(exp(h*nu/(k_B*T))-1.0);
 
     if (std::isnan(value))
         return 0;
@@ -32,8 +32,8 @@ double planck_function(double nu, double T) {
 };
 
 double planck_function_derivative(double nu, double T) {
-    double value = (-2.0*h*nu*nu*nu*nu)/(c_l*c_l*k*T*T) / 
-        (exp(h*nu/(k*T))-1.0) / (1. - exp(-h*nu/(k*T)));
+    double value = (-2.0*h*nu*nu*nu*nu)/(c_l*c_l*k_B*T*T) / 
+        (exp(h*nu/(k_B*T))-1.0) / (1. - exp(-h*nu/(k_B*T)));
 
     if (std::isnan(value))
         return 0;

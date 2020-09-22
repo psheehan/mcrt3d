@@ -86,6 +86,7 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
             mc_iteration(nthreads);
 
             G->update_grid();
+
             for (int ithread=0; ithread < (int) G->energy.size(); ithread++)
                 set4DArrValue(G->energy[ithread], 0.0, G->nspecies, G->n1, 
                         G->n2, G->n3);
@@ -184,8 +185,8 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
 void MCRT::mc_iteration(int nthreads) {
     double event_average = 0;
 
-    #pragma omp parallel num_threads(nthreads) private(seed1, seed2) \
-            shared(G,Q,event_average, nthreads) default(none)
+    #pragma omp parallel num_threads(nthreads) default(none) \
+            shared(G,Q,event_average, nthreads)
     {
     #ifdef _OPENMP
     seed1 = int(time(NULL)) ^ omp_get_thread_num();

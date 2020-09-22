@@ -1069,7 +1069,7 @@ void Grid::update_grid(Vector<int, 3> l) {
             double T_old = temp[idust][l[0]][l[1]][l[2]];
 
             temp[idust][l[0]][l[1]][l[2]]=pow(total_energy/
-                (4*sigma*dust[idust]->\
+                (4*sigma*dust[idust]->
                 planck_mean_opacity(temp[idust][l[0]][l[1]][l[2]])*
                 mass[idust][l[0]][l[1]][l[2]]),0.25);
 
