@@ -184,9 +184,10 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
 
 void MCRT::mc_iteration(int nthreads) {
     double event_average = 0;
+    int photon_count = 0;
 
     #pragma omp parallel num_threads(nthreads) default(none) \
-            shared(G,Q,event_average, nthreads)
+            shared(G,Q,event_average,nthreads,photon_count)
     {
     #ifdef _OPENMP
     seed1 = int(time(NULL)) ^ omp_get_thread_num();
@@ -198,8 +199,6 @@ void MCRT::mc_iteration(int nthreads) {
 
     #pragma omp for schedule(guided)
     for (int i=0; i<Q->nphot; i++) {
-        if (fmod(i+1,Q->nphot/10) == 0) printf("%i\n",i+1);
-
         Photon *P = G->emit(i);
         P->event_count = 0;
         #ifdef _OPENMP
@@ -227,6 +226,11 @@ void MCRT::mc_iteration(int nthreads) {
 
         delete P;
         if (Q->verbose) printf("Photon has escaped the grid.\n\n");
+
+        #pragma omp atomic
+        photon_count++;
+
+        if (fmod(photon_count,Q->nphot/10) == 0) printf("%i\n", photon_count);
     }
     }
 
