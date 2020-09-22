@@ -75,7 +75,7 @@ Grid::~Grid() {
         delete3DArr(rosseland_mean_extinction[i], n1, n2, n3);
         delete3DArr(planck_mean_opacity[i], n1, n2, n3);
     }
-    for (int i = 0; i < energy.size(); i++) {
+    for (int i = 0; i < (int) energy.size(); i++) {
         for (int j = 0; j < nspecies; j++)
             delete3DArr(energy[i][j], n1, n2, n3);
         energy[i].clear();
@@ -89,7 +89,7 @@ Grid::~Grid() {
 
     // Make sure the scattering array is deallocated.
 
-    if (scatt.size() > 0)
+    if ((int) scatt.size() > 0)
         deallocate_scattering_array(0);
 
     // Clear the sources.
@@ -205,7 +205,7 @@ void Grid::initialize_scattering_array(int nthreads) {
 }
 
 void Grid::collapse_scattering_array() {
-    for (int ithread = 1; ithread < scatt.size(); ithread++)
+    for (int ithread = 1; ithread < (int) scatt.size(); ithread++)
         for (int ix=0; ix < n1; ix++)
             for (int iy=0; iy < n2; iy++)
                 for (int iz=0; iz < n3; iz++)
@@ -236,7 +236,7 @@ void Grid::add_energy_arrays(int nthreads) {
 }
 
 void Grid::deallocate_energy_arrays() {
-    for (int ithread = 1; ithread < energy.size(); ithread++) {
+    for (int ithread = 1; ithread < (int) energy.size(); ithread++) {
         for (int idust = 0; idust < nspecies; idust++)
             delete3DArr(energy[ithread][idust], n1, n2, n3);
         energy[ithread].clear();
@@ -810,7 +810,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
     double energy_threshold = 0.;
     for (int idust = 0; idust<nspecies; idust++) {
         if (temp[idust][P->l[0]][P->l[1]][P->l[2]] > 3.) {
-            for (int ithread = 0; ithread < energy.size(); ithread++)
+            for (int ithread = 0; ithread < (int) energy.size(); ithread++)
                 energy_threshold += energy[ithread][idust][P->l[0]]
                         [P->l[1]][P->l[2]];
         } else {
@@ -889,7 +889,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
         }
 
         double energy_tot = 0.;
-        for (int ithread = 0; ithread < energy.size(); ithread++)
+        for (int ithread = 0; ithread < (int) energy.size(); ithread++)
             for (int idust=0; idust<nspecies; idust++)
                 energy_tot += energy[ithread][idust][P->l[0]][P->l[1]][P->l[2]];
 
@@ -943,9 +943,9 @@ void Grid::propagate_ray(Ray *R) {
             if (Q->verbose) {
                 printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
                         R->l[0], R->r[0]/au, s*R->n[0]/au);
-                printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity, R->l[1], 
+                printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity[inu], R->l[1],
                         R->r[1]/au, s*R->n[1]/au);
-                printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau, R->l[2], 
+                printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau[inu], R->l[2], 
                         R->r[2]/au, s*R->n[2]/au);
             }
 
@@ -979,10 +979,10 @@ void Grid::propagate_ray_from_source(Ray *R) {
             if (Q->verbose) {
                 printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
                         R->l[0], R->r[0]/au, s*R->n[0]/au);
-                printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity, R->l[1], 
+                printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity[inu], R->l[1],
                         R->r[1]/au, s*R->n[1]/au);
-                printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau, R->l[2], R->r[2]/au, 
-                        s*R->n[2]/au);
+                printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau[inu], R->l[2], 
+                        R->r[2]/au, s*R->n[2]/au);
             }
 
             R->intensity[inu] *= exp(-tau_cell);
@@ -1062,7 +1062,7 @@ void Grid::update_grid(Vector<int, 3> l) {
         bool not_converged = true;
 
         double total_energy = 0;
-        for (int ithread = 0; ithread < energy.size(); ithread++)
+        for (int ithread = 0; ithread < (int) energy.size(); ithread++)
             total_energy += energy[ithread][idust][l[0]][l[1]][l[2]];
 
         while (not_converged) {

@@ -217,7 +217,7 @@ double CylindricalGrid::minimum_wall_distance(Photon *P) {
     // Calculate the distance to the nearest phi wall.
     
     if (nw2 != 2) {
-        double phi = P->phi;
+        //double phi = P->phi;
 
         for (int i=P->l[1]; i <= P->l[1]+1; i++) {
             Vector<double, 3> phi_hat = Vector<double, 3>(-sin(w2[i]), 

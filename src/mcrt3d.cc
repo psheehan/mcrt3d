@@ -72,7 +72,7 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
         std::vector<double***> treallyold = create4DArr(G->nspecies, G->n1,
                 G->n2, G->n3);
 
-        int maxniter = 10;
+        int maxniter = 3;
 
         equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
 
@@ -86,7 +86,7 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
             mc_iteration(nthreads);
 
             G->update_grid();
-            for (int ithread=0; ithread < G->energy.size(); ithread++)
+            for (int ithread=0; ithread < (int) G->energy.size(); ithread++)
                 set4DArrValue(G->energy[ithread], 0.0, G->nspecies, G->n1, 
                         G->n2, G->n3);
 
@@ -132,7 +132,7 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
         Q->scattering_nu[i] = c_l / (lam[i]*1.0e-4);
 
     // Create a scattering array in Numpy.
-    if (G->scatt.size() > 1) printf("Whoops, looks like the scattering array wasn't cleaned properly.\n");
+    if ((int) G->scatt.size() > 1) printf("Whoops, looks like the scattering array wasn't cleaned properly.\n");
 
     if (save) {
         py::array_t<double> scatt = py::array_t<double>(G->n1*G->n2*G->n3*
@@ -172,7 +172,7 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
 
     // Clean up the appropriate grid parameters.
     if (save) {
-        for (int i = 0; i < G->scatt.size(); i++)
+        for (int i = 0; i < (int) G->scatt.size(); i++)
             freepymangle(G->scatt[i]);
         G->scatt.clear();
 

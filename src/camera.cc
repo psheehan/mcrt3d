@@ -237,7 +237,7 @@ UnstructuredImage *Camera::make_unstructured_image(int nx, int ny,
     double *_y_arr = (double *) _y_buf.ptr;
     double *_intensity_arr = (double *) _intensity_buf.ptr;
 
-    for (int i = 0; i < image->x.size(); i++) {
+    for (int i = 0; i < (int) image->x.size(); i++) {
         _x_arr[i] = image->x[i];
         _y_arr[i] = image->y[i];
 
