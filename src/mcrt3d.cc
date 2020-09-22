@@ -65,14 +65,14 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
 
     // Do the thermal calculation.
     if (Q->bw)
-        mc_iteration(1);
+        mc_iteration(nthreads);
     else {
         std::vector<double***> told = create4DArr(G->nspecies, G->n1,
                 G->n2, G->n3);
         std::vector<double***> treallyold = create4DArr(G->nspecies, G->n1,
                 G->n2, G->n3);
 
-        int maxniter = 3;
+        int maxniter = 10;
 
         equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
 

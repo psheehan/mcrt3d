@@ -216,6 +216,22 @@ double ***create3DArr(int nx, int ny, int nz) {
     return arr;
 };
 
+#ifdef _OPENMP
+omp_lock_t ***create3DLock(int nx, int ny, int nz) {
+    omp_lock_t ***arr = new omp_lock_t**[nx];
+    for (int i=0; i<nx; i++) {
+        arr[i] = new omp_lock_t*[ny];
+        for (int j=0; j<ny; j++) {
+            arr[i][j] = new omp_lock_t[nz];
+            for (int k=0; k<nz; k++)
+                omp_init_lock(&(arr[i][j][k]));
+        }
+    }
+
+    return arr;
+};
+#endif
+
 /* Create a 3-dimensional array filled with a particular value. */
 
 double ***create3DArrValue(int nx, int ny, int nz, int value) {
@@ -242,6 +258,20 @@ void delete3DArr(double ***arr, int nx, int ny, int nz) {
     }
     delete[] arr;
 };
+
+#ifdef _OPENMP
+void delete3DLock(omp_lock_t ***arr, int nx, int ny, int nz) {
+    for (int i=0; i<nx; i++) {
+        for (int j=0; j<ny; j++) {
+            for (int k=0; k<nz; k++)
+                omp_destroy_lock(&(arr[i][j][k]));
+            delete[] arr[i][j];
+        }
+        delete[] arr[i];
+    }
+    delete[] arr;
+};
+#endif
 
 /* Set the value of a 3-dimensional array to a constant value. */
 

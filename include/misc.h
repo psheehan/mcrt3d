@@ -13,6 +13,10 @@
 
 #define RAND_SCALE1 (1.0 / RAND_M1)
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include <cmath>
 #include <stdlib.h>
 #include <stdio.h>
@@ -94,11 +98,19 @@ void delete2DArr(double **arr, int nx, int ny);
 
 double ***create3DArr(int nx, int ny, int nz);
 
+#ifdef _OPENMP
+omp_lock_t ***create3DLock(int nx, int ny, int nz);
+#endif
+
 /* Create a 3-dimensional array filled with a particular value. */
 
 double ***create3DArrValue(int nx, int ny, int nz, int value);
 
 void delete3DArr(double ***arr, int nx, int ny, int nz);
+
+#ifdef _OPENMP
+void delete3DLock(omp_lock_t ***arr, int nx, int ny, int nz);
+#endif
 
 /* Set the value of a 3-dimensional array to a constant value. */
 

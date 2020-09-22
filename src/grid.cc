@@ -74,14 +74,19 @@ Grid::~Grid() {
         delete3DArr(mass[i], n1, n2, n3);
         delete3DArr(rosseland_mean_extinction[i], n1, n2, n3);
         delete3DArr(planck_mean_opacity[i], n1, n2, n3);
+        #ifdef _OPENMP
+        delete3DLock(lock[i], n1, n2, n3);
+        #endif
     }
     for (int i = 0; i < (int) energy.size(); i++) {
         for (int j = 0; j < nspecies; j++)
             delete3DArr(energy[i][j], n1, n2, n3);
         energy[i].clear();
-
     }
     dens.clear(); temp.clear(); mass.clear(); energy.clear(); dust.clear();
+    #ifdef _OPENMP
+    lock.clear();
+    #endif
 
     // Deallocate the uses_mrw array.
 
@@ -127,10 +132,16 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
     double ***__energy = create3DArrValue(n1, n2, n3, 0);
     double ***__rosseland_mean_extinction = create3DArrValue(n1, n2, n3, 0);
     double ***__planck_mean_opacity = create3DArrValue(n1, n2, n3, 0);
+    #ifdef _OPENMP
+    omp_lock_t*** __lock = create3DLock(n1, n2, n3);
+    #endif
 
     dens.push_back(__dens);
     temp.push_back(__temp);
     mass.push_back(__mass);
+    #ifdef _OPENMP
+    lock.push_back(__lock);
+    #endif
     if (energy.empty()) { 
         std::vector<double***> ___energy = {__energy};
         energy.push_back(___energy);
@@ -1059,6 +1070,10 @@ bool Grid::in_grid(Photon *P) {
 
 void Grid::update_grid(Vector<int, 3> l) {
     for (int idust=0; idust<nspecies; idust++) {
+        #ifdef _OPENMP
+        omp_set_lock(&(lock[idust][l[0]][l[1]][l[2]]));
+        #endif
+
         bool not_converged = true;
 
         double total_energy = 0;
@@ -1090,6 +1105,10 @@ void Grid::update_grid(Vector<int, 3> l) {
                     dust[idust]->planck_mean_opacity(
                     temp[idust][l[0]][l[1]][l[2]]);
         }
+
+        #ifdef _OPENMP
+        omp_unset_lock(&(lock[idust][l[0]][l[1]][l[2]]));
+        #endif
     }
 }
 

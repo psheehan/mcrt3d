@@ -4,6 +4,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -50,6 +54,10 @@ struct Grid {
     std::vector<double****> scatt;
     double ***volume;
     double ***uses_mrw;
+
+    #ifdef _OPENMP
+    std::vector<omp_lock_t***> lock;
+    #endif
 
     int nspecies;
     std::vector<Dust*> dust;
