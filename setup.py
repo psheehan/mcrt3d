@@ -40,7 +40,7 @@ class build_ext(_build_ext):
         flags = ['-std=c++11','-stdlib=libc++','-Ofast',"-funroll-loops",\
                 "-Wno-unused-function","-Wno-uninitialized",
                 "-Wno-unused-local-typedefs",'-march=native',
-                '-mmacosx-version-min=10.9','-fopenmp']
+                '-mmacosx-version-min=10.9','-fopenmp','-fvisibility=hidden']
 
         opts = []
         for flag in flags:
