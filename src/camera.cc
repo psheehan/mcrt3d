@@ -167,7 +167,8 @@ void Camera::set_orientation(double _incl, double _pa, double _dpc) {
 }
 
 Image *Camera::make_image(int nx, int ny, double pixel_size, 
-        py::array_t<double> lam, double incl, double pa, double dpc) {
+        py::array_t<double> lam, double incl, double pa, double dpc, 
+        int nthreads) {
 
     // Set the camera orientation.
     set_orientation(incl, pa, dpc);
@@ -178,6 +179,7 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
 
     // Now go through and raytrace.
 
+    #pragma omp parallel for num_threads(nthreads) schedule(guided) collapse(2)
     for (int j=0; j<image->nx; j++)
         for (int k=0; k<image->ny; k++) {
             if (Q->verbose) printf("%d   %d\n", j, k);
@@ -194,7 +196,7 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
 
     // Also raytrace the sources.
 
-    raytrace_sources(image);
+    raytrace_sources(image, nthreads);
 
     // And return.
 
@@ -203,7 +205,7 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
 
 UnstructuredImage *Camera::make_unstructured_image(int nx, int ny, 
         double pixel_size, py::array_t<double> lam, double incl, double pa, 
-        double dpc) {
+        double dpc, int nthreads) {
 
     // Set the camera orientation.
     set_orientation(incl, pa, dpc);
@@ -215,8 +217,21 @@ UnstructuredImage *Camera::make_unstructured_image(int nx, int ny,
 
     // Now go through and raytrace.
 
+    #pragma omp parallel num_threads(nthreads)
+    {
+    #ifdef _OPENMP
+    seed1 = int(time(NULL)) ^ omp_get_thread_num();
+    seed2 = int(time(NULL)) ^ omp_get_thread_num();
+    #else
+    seed1 = int(time(NULL));
+    seed2 = int(time(NULL));
+    #endif
+
+    #pragma omp for schedule(guided)
     for (int j=0; j < nx*ny; j++)
         raytrace_pixel(image, j, image->pixel_size);
+    #pragma omp taskwait
+    }
 
     // Also raytrace the sources.
 
@@ -251,7 +266,7 @@ UnstructuredImage *Camera::make_unstructured_image(int nx, int ny,
 }
 
 Spectrum *Camera::make_spectrum(py::array_t<double> lam, double incl,
-        double pa, double dpc) {
+        double pa, double dpc, int nthreads) {
 
     // Set up parameters for the image.
 
@@ -262,7 +277,8 @@ Spectrum *Camera::make_spectrum(py::array_t<double> lam, double incl,
 
     // Set up and create an image.
 
-    Image *image = make_image(nx, ny, pixel_size, lam, incl, pa, dpc);
+    Image *image = make_image(nx, ny, pixel_size, lam, incl, pa, dpc, 
+            nthreads);
 
     // Sum the image intensity.
     Spectrum *S = new Spectrum(lam);
@@ -338,14 +354,21 @@ double* Camera::raytrace_pixel(double x, double y, double pixel_size,
     count++;
 
     if (subpixel) { // && (count < 1)) {
-        double *intensity1 = raytrace_pixel(x-pixel_size/4, y-pixel_size/4, 
+        double *intensity1, *intensity2, *intensity3, *intensity4;
+
+        #pragma omp task shared(intensity1)
+        intensity1 = raytrace_pixel(x-pixel_size/4, y-pixel_size/4, 
                 pixel_size/2, nu, nnu, count);
-        double *intensity2 = raytrace_pixel(x-pixel_size/4, y+pixel_size/4, 
+        #pragma omp task shared(intensity2)
+        intensity2 = raytrace_pixel(x-pixel_size/4, y+pixel_size/4, 
                 pixel_size/2, nu, nnu, count);
-        double *intensity3 = raytrace_pixel(x+pixel_size/4, y-pixel_size/4, 
+        #pragma omp task shared(intensity3)
+        intensity3 = raytrace_pixel(x+pixel_size/4, y-pixel_size/4, 
                 pixel_size/2, nu, nnu, count);
-        double *intensity4 = raytrace_pixel(x+pixel_size/4, y+pixel_size/4, 
+        #pragma omp task shared(intensity4)
+        intensity4 = raytrace_pixel(x+pixel_size/4, y+pixel_size/4, 
                 pixel_size/2, nu, nnu, count);
+        #pragma omp taskwait
 
         for (int i = 0; i < nnu; i++) {
             intensity[i] = (intensity1[i]+intensity2[i]+intensity3[i]+
@@ -361,7 +384,6 @@ double* Camera::raytrace_pixel(double x, double y, double pixel_size,
 
 void Camera::raytrace_pixel(UnstructuredImage *image, int ix, 
         double pixel_size) {
-
     bool subpixel = false;
 
     // Raytrace all frequencies.
@@ -376,7 +398,10 @@ void Camera::raytrace_pixel(UnstructuredImage *image, int ix,
     
     // Split the cell into four and raytrace again.
     if (subpixel) {
-        int nxy = image->x.size();
+        int nxy;
+        #pragma omp critical
+        {
+        nxy = image->x.size();
 
         image->x.push_back(image->x[ix] - pixel_size/4 + (random_number()-0.5)*
                 pixel_size/10000);
@@ -400,11 +425,17 @@ void Camera::raytrace_pixel(UnstructuredImage *image, int ix,
         image->intensity.push_back(std::vector<double>());
         image->intensity.push_back(std::vector<double>());
         image->intensity.push_back(std::vector<double>());
+        }
 
+        #pragma omp task
         raytrace_pixel(image, nxy+0, pixel_size/2);
+        #pragma omp task
         raytrace_pixel(image, nxy+1, pixel_size/2);
+        #pragma omp task
         raytrace_pixel(image, nxy+2, pixel_size/2);
+        #pragma omp task
         raytrace_pixel(image, nxy+3, pixel_size/2);
+        #pragma omp taskwait
     }
 }
 
@@ -470,8 +501,9 @@ double* Camera::raytrace(double x, double y, double pixel_size, double *nu,
     }
 }
 
-void Camera::raytrace_sources(Image *image) {
+void Camera::raytrace_sources(Image *image, int nthreads) {
 
+    #pragma omp parallel for num_threads(nthreads) schedule(guided) collapse(2)
     for (int isource=0; isource < G->nsources; isource++) {
         for (int iphot=0; iphot < 1000; iphot++) {
             // Emit the ray.
@@ -506,9 +538,12 @@ void Camera::raytrace_sources(Image *image) {
                     (2*image->y[image->ny-1]) + 0.5);
 
             // Finally, add the energy into the appropriate cell.
+            #pragma omp critical
+            {
             for (int inu=0; inu < image->nnu; inu++) {
                 image->intensity[ix][iy][inu] += R->intensity[inu] *
                     image->pixel_size * image->pixel_size / (r * r)/ Jy;
+            }
             }
 
             // And clean up the Ray.

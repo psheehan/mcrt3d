@@ -246,7 +246,8 @@ void MCRT::run_image(py::array_t<double> __lam, int nx, int ny,
     scattering_mc(__lam, nphot, false, false, nthreads);
 
     // Now, run the image through the camera.
-    Image *I = C->make_image(nx, ny, pixel_size, __lam, incl, pa, dpc);
+    Image *I = C->make_image(nx, ny, pixel_size, __lam, incl, pa, dpc, 
+            nthreads);
 
     images.append(I);
 
@@ -266,7 +267,7 @@ void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny,
 
     // Now, run the image through the camera.
     UnstructuredImage *I = C->make_unstructured_image(nx, ny, pixel_size, 
-            __lam, incl, pa, dpc);
+            __lam, incl, pa, dpc, nthreads);
 
     images.append(I);
 
@@ -284,7 +285,7 @@ void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl,
     scattering_mc(__lam, nphot, false, false, nthreads);
 
     // Now, run the image through the camera.
-    Spectrum *S = C->make_spectrum(__lam, incl, pa, dpc);
+    Spectrum *S = C->make_spectrum(__lam, incl, pa, dpc, nthreads);
 
     spectra.append(S);
 

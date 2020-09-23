@@ -88,14 +88,15 @@ struct Camera {
     Camera(Grid *_G, Params *_Q);
 
     Image* make_image(int nx, int ny, double pixel_size, 
-            py::array_t<double> lam, double incl, double pa, double dpc);
+            py::array_t<double> lam, double incl, double pa, double dpc, 
+            int nthreads);
 
     UnstructuredImage* make_unstructured_image(int nx, int ny, 
             double pixel_size, py::array_t<double> lam, double incl, 
-            double pa, double dpc);
+            double pa, double dpc, int nthreads);
 
     Spectrum* make_spectrum(py::array_t<double> lam, double incl, 
-            double pa, double dpc);
+            double pa, double dpc, int nthreads);
 
     void set_orientation(double incl, double pa, double dpc);
 
@@ -106,7 +107,7 @@ struct Camera {
     double* raytrace(double x, double y, double pixel_size, double *nu, 
             int nnu, bool unstructured, bool *pixel_too_large);
 
-    void raytrace_sources(Image *I);
+    void raytrace_sources(Image *I, int nthreads);
     void raytrace_sources(UnstructuredImage *I);
 };
 
