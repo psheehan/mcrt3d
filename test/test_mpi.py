@@ -179,7 +179,36 @@ t1 = time()
 m.thermal_mc(nphot=1000000, bw=True, use_mrw=False, mrw_gamma=4, \
         verbose=False, nthreads=1)
 t2 = time()
-print(t2-t1)
+serial_thermal_time = t2-t1
+
+# Run the scattering phase function calculation.
+
+t1 = time()
+m.scattering_mc(numpy.array([4.]), nphot=100000, verbose=False, nthreads=1)
+t2 = time()
+serial_scattering_time = t2-t1
+
+# Run the images.
+
+t1 = time()
+m.run_image(numpy.array([4.]), 256, 256, 0.1, 100000, incl=0., pa=0, \
+        dpc=140., nthreads=1)
+t2 = time()
+serial_image_time = t2-t1
+
+t1 = time()
+m.run_unstructured_image(numpy.array([1300.]), 25, 25, 2.0, 100000, \
+        incl=0., pa=0., dpc=140., nthreads=1)
+t2 = time()
+serial_unimage_time = t2-t1
+
+# Run the spectra.
+
+t1 = time()
+m.run_spectrum(numpy.logspace(-1,4,200), 10000, incl=0, pa=0, dpc=140., \
+        nthreads=1)
+t2 = time()
+serial_sed_time = t2-t1
 
 ################################################################################
 #
@@ -235,30 +264,56 @@ t1 = time()
 model.thermal_mc(nphot=1000000, bw=True, use_mrw=False, mrw_gamma=4, \
         verbose=False, nthreads=4)
 t2 = time()
-print(t2-t1)
+parallel_thermal_time = t2-t1
 
 # Run the scattering phase function calculation.
 
-"""
 t1 = time()
 model.scattering_mc(numpy.array([4.]), nphot=100000, verbose=False, nthreads=4)
 t2 = time()
-print(t2-t1)
-"""
+parallel_scattering_time = t2-t1
 
-"""
 # Run the images.
 
+t1 = time()
 model.run_image(numpy.array([4.]), 256, 256, 0.1, 100000, incl=0., pa=0, \
-        dpc=140.)
+        dpc=140., nthreads=4)
+t2 = time()
+parallel_image_time = t2-t1
 
+t1 = time()
 model.run_unstructured_image(numpy.array([1300.]), 25, 25, 2.0, 100000, \
-        incl=0., pa=0., dpc=140.)
+        incl=0., pa=0., dpc=140., nthreads=4)
+t2 = time()
+parallel_unimage_time = t2-t1
 
 # Run the spectra.
 
-model.run_spectrum(numpy.logspace(-1,4,200), 10000, incl=0, pa=0, dpc=140.)
-"""
+t1 = time()
+model.run_spectrum(numpy.logspace(-1,4,200), 10000, incl=0, pa=0, dpc=140., \
+        nthreads=4)
+t2 = time()
+parallel_sed_time = t2-t1
+
+################################################################################
+#
+# Print the timing results.
+#
+################################################################################
+
+print()
+print("                          Serial      Parallel")
+print("Thermal simulation        {0:6.2f}      {1:8.2f}".\
+        format(serial_thermal_time, parallel_thermal_time))
+print("Scattering simulation     {0:6.2f}      {1:8.2f}".\
+        format(serial_scattering_time, parallel_scattering_time))
+print("Imaging                   {0:6.2f}      {1:8.2f}".\
+        format(serial_image_time, parallel_image_time))
+print("Unstructured Imaging      {0:6.2f}      {1:8.2f}".\
+        format(serial_unimage_time, parallel_unimage_time))
+print("SED                       {0:6.2f}      {1:8.2f}".\
+        format(serial_sed_time, parallel_sed_time))
+print()
 
 ################################################################################
 #
@@ -269,7 +324,8 @@ model.run_spectrum(numpy.logspace(-1,4,200), 10000, incl=0, pa=0, dpc=140.)
 # Plot the temperature structure.
 
 fig, ax = plt.subplots(nrows=2, ncols=3, figsize=(11,6), \
-        gridspec_kw=dict(left=0.05, right=0.95, wspace=0.25))
+        gridspec_kw=dict(left=0.05, right=0.95, wspace=0.15, top=0.9, \
+        bottom=0.05))
 
 vmin = min(m.grid.temperature[0].min(), model.grid.temperature[0].min(), \
         m.grid.temperature[1].min(), model.grid.temperature[1].min())
@@ -298,9 +354,9 @@ im5 = ax[1,1].imshow(model.grid.temperature[1][:,:,0], origin="lower",\
 
 im6 = ax[1,2].imshow(diff2, origin="lower", interpolation="nearest")
 
-ax[0,0].set_title("RADMC-3D")
-ax[0,1].set_title("MCRT3D")
-ax[0,2].set_title("RADMC-3D - MCRT3D")
+ax[0,0].set_title("Serial")
+ax[0,1].set_title("Parallel")
+ax[0,2].set_title("Serial - Parallel")
 
 fig.colorbar(im1, ax=ax[0,1], fraction=0.046)
 fig.colorbar(im3, ax=ax[0,2], fraction=0.046)
@@ -311,64 +367,52 @@ plt.show()
 
 # Plot the scattering phase function.
 
-"""
 fig, ax = plt.subplots(nrows=1, ncols=3, figsize=(11,3), \
         gridspec_kw=dict(left=0.05, right=0.95, wspace=0.25))
 
 with numpy.errstate(divide="ignore", invalid="ignore"):
-    vmin = min(numpy.nanmin(numpy.log10(m.grid.scattering_phase[0])[\
-            numpy.isfinite(numpy.log10(m.grid.scattering_phase[0]))]), \
-            numpy.nanmin(numpy.log10(model.grid.scatt[0]*\
-            (model.grid.density[0]*d.kext[-40]+\
-            model.grid.density[1]*d.kext[-40]))[numpy.isfinite(\
-            numpy.log10(model.grid.scatt[0]*(model.grid.density[0]*\
-            d.kext[-40] + model.grid.density[1]*d.kext[-40])))]))
-    vmax = max(numpy.nanmax(numpy.log10(m.grid.scattering_phase[0])), \
-            numpy.nanmax(numpy.log10(model.grid.scatt[0]*\
-            (model.grid.density[0]*d.kext[-40]+\
-            model.grid.density[1]*d.kext[-40]))))
+    vmin = min(numpy.nanmin(numpy.log10(m.grid.scatt[0])[\
+            numpy.isfinite(numpy.log10(m.grid.scatt[0]))]), \
+            numpy.nanmin(numpy.log10(model.grid.scatt[0])[numpy.isfinite(\
+            numpy.log10(model.grid.scatt[0]))]))
+    vmax = max(numpy.nanmax(numpy.log10(m.grid.scatt[0])), \
+            numpy.nanmax(numpy.log10(model.grid.scatt[0])))
 
-    diff = numpy.log10(m.grid.scattering_phase[0][:,:,0]) - \
-            numpy.log10(model.grid.scatt[0][1:,:,0,0]*\
-            (model.grid.density[0][1:,:,0]*d.kext[-40] + \
-            model.grid.density[1][1:,:,0]*d.kext[-40]))
+    diff = numpy.log10(m.grid.scatt[0][:,:,0,0]) - \
+            numpy.log10(model.grid.scatt[0][:,:,0,0])
 
-    im1 = ax[0].imshow(numpy.log10(m.grid.scattering_phase[0][:,:,0]), \
+    im1 = ax[0].imshow(numpy.log10(m.grid.scatt[0][:,:,0,0]), \
             origin="lower", interpolation="nearest", vmin=vmin, vmax=vmax)
 
-    im2 = ax[1].imshow(numpy.log10(model.grid.scatt[0][1:,:,0,0]*\
-            (model.grid.density[0][1:,:,0]*d.kext[-40] + \
-            model.grid.density[1][1:,:,0]*d.kext[-40])), origin="lower",\
-            interpolation="nearest", vmin=vmin, vmax=vmax)
+    im2 = ax[1].imshow(numpy.log10(model.grid.scatt[0][:,:,0,0]), \
+            origin="lower", interpolation="nearest", vmin=vmin, vmax=vmax)
 
     im3 = ax[2].imshow(diff, origin="lower", interpolation="nearest", \
             vmin=-0.5, vmax=0.5)
 
-ax[0].set_title("RADMC-3D")
-ax[1].set_title("MCRT3D")
-ax[2].set_title("RADMC-3D - MCRT3D")
+ax[0].set_title("Serial")
+ax[1].set_title("Parallel")
+ax[2].set_title("Serial - Parallel")
 
 fig.colorbar(im1, ax=ax[1], fraction=0.046)
 fig.colorbar(im3, ax=ax[2], fraction=0.046)
 
 plt.show()
-"""
 
-"""
 # Plot the images.
 
 fig, ax = plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True, \
         figsize=(10,3), gridspec_kw=dict(left=0.05, right=0.95, wspace=0.25))
 
 with numpy.errstate(divide="ignore", invalid="ignore"):
-    vmax = min(numpy.log10(numpy.nanmax(m.images["image"].image[:,:,0,0])), \
+    vmax = min(numpy.log10(numpy.nanmax(m.images[0].intensity[:,:,0])), \
             numpy.log10(numpy.nanmax(model.images[0].intensity[:,:,0])))
     vmin = vmax - 10.
 
-    diff = (numpy.log10(m.images["image"].image[:,:,0,0]) - \
+    diff = (numpy.log10(m.images[0].intensity[:,:,0]) - \
             numpy.log10(model.images[0].intensity[:,:,0]))
 
-    im1 = ax[0].imshow(numpy.log10(m.images["image"].image[:,:,0,0]), \
+    im1 = ax[0].imshow(numpy.log10(m.images[0].intensity[:,:,0]), \
             origin="lower", interpolation="none", vmin=vmin, vmax=vmax)
 
     im2 = ax[1].imshow(numpy.log10(model.images[0].intensity[:,:,0]), \
@@ -376,9 +420,9 @@ with numpy.errstate(divide="ignore", invalid="ignore"):
 
     im3 = ax[2].imshow(diff, origin="lower", interpolation="none")
 
-ax[0].set_title("RADMC-3D")
-ax[1].set_title("MCRT3D")
-ax[2].set_title("RADMC-3D - MCRT3D")
+ax[0].set_title("Serial")
+ax[1].set_title("Parallel")
+ax[2].set_title("Serial - Parallel")
 
 fig.colorbar(im3, ax=ax[2], fraction=0.046)
 
@@ -386,17 +430,30 @@ plt.show()
 
 # Plot the unstructured image.
 
-triang = tri.Triangulation(model.images[1].x/AU, model.images[1].y/AU)
+fig, ax = plt.subplots(nrows=1, ncols=2, sharex=True, sharey=True, \
+        figsize=(9,4.5), gridspec_kw=dict(left=0.1, right=0.95, wspace=0.25, \
+        bottom=0.15))
 
-plt.tripcolor(triang, model.images[1].intensity[:,0], "ko-")
-plt.triplot(triang, "k.-", linewidth=0.1, markersize=0.1)
+triang1 = tri.Triangulation(m.images[1].x/AU, m.images[1].y/AU)
 
-plt.axes().set_aspect("equal")
+ax[0].tripcolor(triang1, m.images[1].intensity[:,0], "ko-")
+ax[0].triplot(triang1, "k.-", linewidth=0.1, markersize=0.1)
 
-plt.xlabel("x", fontsize=14)
-plt.ylabel("y", fontsize=14)
+triang2 = tri.Triangulation(model.images[1].x/AU, model.images[1].y/AU)
 
-plt.axes().tick_params(labelsize=14)
+ax[1].tripcolor(triang2, model.images[1].intensity[:,0], "ko-")
+ax[1].triplot(triang2, "k.-", linewidth=0.1, markersize=0.1)
+
+for axes in ax:
+    axes.set_aspect("equal")
+
+    axes.set_xlabel("x", fontsize=14)
+    axes.set_ylabel("y", fontsize=14)
+
+    axes.tick_params(labelsize=14)
+
+ax[0].set_title("Serial")
+ax[1].set_title("Parallel")
 
 plt.show()
 
@@ -404,10 +461,9 @@ plt.show()
 
 fig, ax = plt.subplots(nrows=1, ncols=1)
 
-ax.loglog(m.spectra["SED"].wave, m.spectra["SED"].flux)
+ax.loglog(m.spectra[0].lam, m.spectra[0].intensity)
 ax.loglog(model.spectra[0].lam, model.spectra[0].intensity)
 
 ax.set_ylim(1.0e-6,1.0e1)
 
 plt.show()
-"""
