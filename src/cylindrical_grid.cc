@@ -261,28 +261,19 @@ double CylindricalGrid::smallest_wall_size(Photon *P) {
 
 double CylindricalGrid::smallest_wall_size(Ray *R) {
 
-    // The approximate radius of the current cell.
-    double r = 0.5*(w1[R->l[0]+1] + w1[R->l[0]]);
+    double s = fabs(w1[R->l[0]+1] - w1[R->l[0]]);
 
-    // The size across the cell in the R direction, with a minimum value of 
-    // 0.003*R.
-    double s1 = fabs(w1[R->l[0]+1] - w1[R->l[0]]);
-    double s2 = 0.003 * r;
+    if (nw2 != 2) {
+        double r = w1[R->l[0]];
+        if (w1[R->l[0]] == 0)
+            r = w1[R->l[0]+1]*0.5;
 
-    double sr = fmax(s1, s2);
+        double sp = fabs(r*(w2[R->l[0]+1] - w2[R->l[0]]));
+        if (sp < s) s = sp;
+    }
 
-    // Calculate the minimum size in the phi direction.
-    double sp = fabs(r * fmax(fmin(w2[R->l[1]+1] - w2[R->l[1]],0.3), 0.05));
-
-    // Calculate the minimum size in the z direction.
     double sz = fabs(w3[R->l[0]+1] - w3[R->l[0]]);
-
-    // Try to account for projection effects, a la RADMC3D.
-    double proj = fabs(R->n[0]*R->r[0] + R->n[1]*R->r[1] + R->n[2]*R->r[2]) / 
-        R->rad;
-    double sproj = (fabs(R->n[2])*sz + (1.0 - fabs(R->n[2]))*sp) * proj;
-
-    double s = fmax(sr, fmin(sz, fmin(sp, sproj)));
+    if (sz < s) s = sz;
 
     return s;
 }
