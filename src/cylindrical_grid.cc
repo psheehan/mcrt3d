@@ -268,7 +268,7 @@ double CylindricalGrid::smallest_wall_size(Ray *R) {
         if (w1[R->l[0]] == 0)
             r = w1[R->l[0]+1]*0.5;
 
-        double sp = fabs(r*(w2[R->l[0]+1] - w2[R->l[0]]));
+        double sp = fabs(r*fmax(w2[R->l[0]+1] - w2[R->l[0]],0.05));
         if (sp < s) s = sp;
     }
 

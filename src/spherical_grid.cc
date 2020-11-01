@@ -248,7 +248,7 @@ double SphericalGrid::smallest_wall_size(Ray *R) {
         double r = w1[R->l[0]];
         if (w1[R->l[0]] == 0)
             r = w1[R->l[0]+1]*0.5;
-        double st = fabs(r*(w2[R->l[1]+1] - w2[R->l[1]]));
+        double st = fabs(r*fmax(0.05, w2[R->l[1]+1] - w2[R->l[1]]));
         if (st < s) s = st;
     }
 
@@ -259,7 +259,7 @@ double SphericalGrid::smallest_wall_size(Ray *R) {
         double sint = fmin(sin(w2[R->l[1]]), sin(w2[R->l[1]+1]));
         if (equal_zero(sint, EPSILON))
             sint = sin(0.5*(w2[R->l[1]] + w2[R->l[1]+1]));
-        double sp = fabs(r * sint * (w3[R->l[2]+1] - w3[R->l[2]]));
+        double sp = fabs(r * sint * fmax(0.05, w3[R->l[2]+1] - w3[R->l[2]]));
         if (sp < s) s = sp;
     }
 
