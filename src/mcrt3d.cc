@@ -278,6 +278,25 @@ void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny,
     delete[] Q->scattering_nu;
 }
 
+void MCRT::run_circular_image(py::array_t<double> __lam, int nr, int nphi, 
+        int nphot, double incl, double pa, double dpc, int nthreads) {
+
+    // Run a scattering simulation.
+    scattering_mc(__lam, nphot, false, false, nthreads);
+
+    // Now, run the image through the camera.
+    UnstructuredImage *I = C->make_circular_image(nr, nphi, __lam, incl, 
+            pa, dpc, nthreads);
+
+    images.append(I);
+
+    // Clean up the appropriate grid parameters.
+    G->deallocate_scattering_array(0);
+
+    Q->nnu = 0;
+    delete[] Q->scattering_nu;
+}
+
 void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl, 
             double pa, double dpc, int nthreads) {
 
@@ -399,6 +418,11 @@ PYBIND11_MODULE(mcrt3d, m) {
                 py::arg("pixel_size")=1.0, py::arg("nphot")=100000, 
                 py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1., 
                 py::arg("nthreads")=1)
+        .def("run_circular_image", &MCRT::run_circular_image, 
+                "Generate an unstructured image.", 
+                py::arg("lam"), py::arg("nr")=128, py::arg("ny")=128, 
+                py::arg("nphot")=100000, py::arg("incl")=0., py::arg("pa")=0., 
+                py::arg("dpc")=1., py::arg("nthreads")=1)
         .def("run_spectrum", &MCRT::run_spectrum, "Generate a spectrum.", 
                 py::arg("lam"), py::arg("nphot")=10000, py::arg("incl")=0,
                 py::arg("pa")=0, py::arg("dpc")=1., py::arg("nthreads")=1);

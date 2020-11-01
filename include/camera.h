@@ -56,6 +56,8 @@ struct UnstructuredImage {
 
     UnstructuredImage(int nx, int ny, double pixel_size, 
             py::array_t<double> lam);
+    UnstructuredImage(int nr, int nphi, double rmin, double rmax, 
+            py::array_t<double> lam);
 };
 
 struct Spectrum {
@@ -94,6 +96,10 @@ struct Camera {
     UnstructuredImage* make_unstructured_image(int nx, int ny, 
             double pixel_size, py::array_t<double> lam, double incl, 
             double pa, double dpc, int nthreads);
+
+    UnstructuredImage* make_circular_image(int nr, int nphi, 
+            py::array_t<double> lam, double incl, double pa, double dpc, 
+            int nthreads);
 
     Spectrum* make_spectrum(py::array_t<double> lam, double incl, 
             double pa, double dpc, int nthreads);

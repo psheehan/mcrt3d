@@ -99,6 +99,56 @@ UnstructuredImage::UnstructuredImage(int _nx, int _ny, double _pixel_size,
         nu[i] = c_l / (lam[i]*1.0e-4);
 }
 
+UnstructuredImage::UnstructuredImage(int _nr, int _nphi, double rmin, 
+        double rmax, py::array_t<double> __lam) {
+    // Start by setting up the appropriate Python arrays.
+
+    nx = _nr; ny = _nphi;
+    _lam = __lam;
+
+    auto _lam_buf = _lam.request();
+
+    if (_lam_buf.ndim != 1)
+        throw std::runtime_error("Number of dimensions must be one");
+
+    // Now get the correct format.
+    
+    lam = (double *) _lam_buf.ptr;
+
+    nnu = _lam_buf.shape[0];
+
+    // Set up the x and y values properly.
+
+    pixel_size = 0;
+
+    double logrmin = log10(rmin);
+    double logrmax = log10(rmax);
+    double dlogr = (logrmax - logrmin) / (nx - 1);
+
+    for (int i = 0; i < nx; i++) {
+        for (int j = 0; j < ny; j++) {
+            double r = pow(10, logrmin + dlogr*i);
+            double phi = 2*pi * (j + 0.5) / ny;
+            x.push_back(r*cos(phi));
+            y.push_back(r*sin(phi));
+            intensity.push_back(std::vector<double>());
+        }
+    }
+    x.push_back(0.);
+    y.push_back(0.);
+    intensity.push_back(std::vector<double>());
+
+    // Set up the frequency array.
+
+    _nu = py::array_t<double>(nnu);
+    auto _nu_buf = _nu.request();
+
+    nu = (double *) _nu_buf.ptr;
+
+    for (int i = 0; i < nnu; i++)
+        nu[i] = c_l / (lam[i]*1.0e-4);
+}
+
 Spectrum::Spectrum(py::array_t<double> __lam) {
     // Start by setting up the appropriate Python arrays.
 
@@ -229,6 +279,68 @@ UnstructuredImage *Camera::make_unstructured_image(int nx, int ny,
 
     #pragma omp for schedule(guided)
     for (int j=0; j < nx*ny; j++)
+        raytrace_pixel(image, j, image->pixel_size);
+    #pragma omp taskwait
+    }
+
+    // Also raytrace the sources.
+
+    //raytrace_sources(image);
+
+    // Now that thats done, create an intensity Python array to populate.
+    //
+    image->_x = py::array_t<double>(image->x.size());
+    image->_y = py::array_t<double>(image->y.size());
+    image->_intensity = py::array_t<double>(image->x.size()*image->nnu);
+    image->_intensity.resize({(int)image->x.size(), image->nnu});
+
+    auto _x_buf = image->_x.request();
+    auto _y_buf = image->_y.request();
+    auto _intensity_buf = image->_intensity.request();
+
+    double *_x_arr = (double *) _x_buf.ptr;
+    double *_y_arr = (double *) _y_buf.ptr;
+    double *_intensity_arr = (double *) _intensity_buf.ptr;
+
+    for (int i = 0; i < (int) image->x.size(); i++) {
+        _x_arr[i] = image->x[i];
+        _y_arr[i] = image->y[i];
+
+        for (int j = 0; j < image->nnu; j++)
+            _intensity_arr[i*image->nnu + j] = image->intensity[i][j];
+    }
+
+    // And return.
+
+    return image;
+}
+
+UnstructuredImage *Camera::make_circular_image(int nr, int nphi, 
+        py::array_t<double> lam, double incl, double pa, double dpc, 
+        int nthreads) {
+
+    // Set the camera orientation.
+    set_orientation(incl, pa, dpc);
+
+    // Set up the image.
+
+    UnstructuredImage *image = new UnstructuredImage(nr, nphi, 
+            G->w1[1]*0.05, 0.5*G->grid_size()*1.05, lam);
+
+    // Now go through and raytrace.
+
+    #pragma omp parallel num_threads(nthreads)
+    {
+    #ifdef _OPENMP
+    seed1 = int(time(NULL)) ^ omp_get_thread_num();
+    seed2 = int(time(NULL)) ^ omp_get_thread_num();
+    #else
+    seed1 = int(time(NULL));
+    seed2 = int(time(NULL));
+    #endif
+
+    #pragma omp for schedule(guided)
+    for (int j=0; j < (int)image->x.size(); j++)
         raytrace_pixel(image, j, image->pixel_size);
     #pragma omp taskwait
     }
