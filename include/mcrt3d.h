@@ -20,6 +20,7 @@
 #include "camera.h"
 #include "misc.h"
 #include "photon.h"
+#include "gas.h"
 
 namespace py = pybind11;
 

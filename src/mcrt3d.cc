@@ -12,6 +12,7 @@
 #include "camera.cc"
 #include "misc.cc"
 #include "photon.cc"
+#include "gas.cc"
 
 MCRT::MCRT() {
     Q = new Params();
@@ -329,6 +330,22 @@ PYBIND11_MODULE(mcrt3d, m) {
     py::class_<IsotropicDust, Dust>(m, "IsotropicDust")
         .def(py::init<py::array_t<double>, py::array_t<double>, 
                 py::array_t<double>>());
+
+    py::class_<Gas>(m, "Gas")
+        .def(py::init<int, py::array_t<int>, py::array_t<double>, 
+                py::array_t<double>, py::array_t<int>, py::array_t<int>, 
+                py::array_t<int>, py::array_t<int>, py::array_t<double>,
+                py::array_t<double>, py::array_t<double>>())
+        .def_readonly("levels", &Gas::_levels)
+        .def_readonly("energies", &Gas::_energies)
+        .def_readonly("weights", &Gas::_weights)
+        .def_readonly("J", &Gas::_J)
+        .def_readonly("transitions", &Gas::_transitions)
+        .def_readonly("up", &Gas::_up)
+        .def_readonly("low", &Gas::_low)
+        .def_readonly("A", &Gas::_A)
+        .def_readonly("nu", &Gas::_nu)
+        .def_readonly("Eu", &Gas::_Eu);
 
     py::class_<Source>(m, "Source")
         .def_readonly("lam", &Source::_lam)
