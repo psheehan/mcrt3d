@@ -20,6 +20,7 @@
 #include "photon.h"
 #include "misc.h"
 #include "params.h"
+#include "gas.h"
 
 namespace py = pybind11;
 
@@ -55,6 +56,12 @@ struct Grid {
     double ***volume;
     double ***uses_mrw;
 
+    std::vector<double***> number_dens;
+    std::vector<double****> velocity;
+
+    py::list _number_dens;
+    py::list _velocity;
+
     #ifdef _OPENMP
     std::vector<omp_lock_t***> lock;
     #endif
@@ -62,6 +69,10 @@ struct Grid {
     int nspecies;
     std::vector<Dust*> dust;
     py::list _dust;
+
+    int ngases;
+    std::vector<Gas *> gas;
+    py::list _gas;
 
     int nsources;
     std::vector<Source*> sources;
@@ -82,6 +93,7 @@ struct Grid {
     //void add_density(double *_dens, double *_temp, double *_mass, 
     //        Dust *D);
     void add_density(py::array_t<double>, Dust *d);
+    void add_number_density(py::array_t<double>, py::array_t<double>, Gas *g);
 
     //void add_source(Source *S);
     void add_star(double x, double y, double z, double _mass, double _radius, 

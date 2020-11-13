@@ -96,6 +96,14 @@ Grid::~Grid() {
 
     if ((int) scatt.size() > 0)
         deallocate_scattering_array(0);
+    
+    // Clear the gas.
+    
+    for (int i = 0; i < ngases; i++) {
+        freepymangle(number_dens[i]);
+        freepymangle(velocity[i]);
+    }
+    number_dens.clear(); velocity.clear(); gas.clear();
 
     // Clear the sources.
     
@@ -172,6 +180,34 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
     dust.push_back(D);
     _dust.append(D);
     nspecies++;
+}
+
+void Grid::add_number_density(py::array_t<double> ___number_dens, 
+        py::array_t<double> ___velocity, Gas *G) {
+
+    // Deal with the Python code.
+
+    auto _number_dens_buf = ___number_dens.request();
+    auto _velocity_buf = ___velocity.request();
+
+    _number_dens.append(___number_dens);
+    _velocity.append(___velocity);
+
+    // Now send to C++ useful things.
+
+    double ***__number_dens = pymangle(n1, n2, n3, 
+            (double *) _number_dens_buf.ptr);
+    double ****__velocity = pymangle(n1, n2, n3, 3, 
+            (double *) _velocity_buf.ptr);
+
+    number_dens.push_back(__number_dens);
+    velocity.push_back(__velocity);
+
+    // Add the dust to the list of dust classes.
+
+    gas.push_back(G);
+    _gas.append(G);
+    ngases++;
 }
 
 //void Grid::add_source(Source *S) {
