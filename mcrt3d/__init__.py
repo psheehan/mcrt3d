@@ -8,3 +8,5 @@
 
 from .mcrt3d import MCRT
 from .mcrt3d import IsotropicDust
+
+from .load_gas_properties_lamda import load_gas_properties_lamda

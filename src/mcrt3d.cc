@@ -332,7 +332,7 @@ PYBIND11_MODULE(mcrt3d, m) {
                 py::array_t<double>>());
 
     py::class_<Gas>(m, "Gas")
-        .def(py::init<int, py::array_t<int>, py::array_t<double>, 
+        .def(py::init<double, py::array_t<int>, py::array_t<double>, 
                 py::array_t<double>, py::array_t<int>, py::array_t<int>, 
                 py::array_t<int>, py::array_t<int>, py::array_t<double>,
                 py::array_t<double>, py::array_t<double>>())
