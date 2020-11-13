@@ -32,6 +32,8 @@ struct CylindricalGrid : public Grid {
     Vector<double, 3> random_location_in_cell(int ix, int iy, int iz);
     bool in_grid(Photon *P);
     bool on_and_parallel_to_wall(Photon *P);
+
+    Vector<double, 3> vector_velocity(int igas, Photon *P);
 };
 
 #endif

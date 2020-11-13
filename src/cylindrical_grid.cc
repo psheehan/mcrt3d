@@ -474,3 +474,19 @@ bool CylindricalGrid::in_grid(Photon *P) {
     else
         return true;
 }
+
+/* Calculate the line profile of a spectral line. */
+
+Vector<double, 3> CylindricalGrid::vector_velocity(int igas, Photon *P) {
+    double phi = P->phi;
+    Vector<double, 3> rhat(cos(phi), sin(phi), 0.);
+    Vector<double, 3> phihat(-sin(phi), cos(phi), 0.);
+    Vector<double, 3> zhat(0., 0., 1.);
+
+    Vector<double, 3> v = velocity[igas][P->l[0]][P->l[1]][P->l[2]][0] * rhat + 
+        velocity[igas][P->l[0]][P->l[1]][P->l[2]][1] * phihat + 
+        velocity[igas][P->l[0]][P->l[1]][P->l[2]][2] * zhat;
+
+    return v;
+}
+

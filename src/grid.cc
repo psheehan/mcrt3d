@@ -101,9 +101,10 @@ Grid::~Grid() {
     
     for (int i = 0; i < ngases; i++) {
         freepymangle(number_dens[i]);
+        freepymangle(gas_temp[i]);
         freepymangle(velocity[i]);
     }
-    number_dens.clear(); velocity.clear(); gas.clear();
+    number_dens.clear(); gas_temp.clear(); velocity.clear(); gas.clear();
 
     // Clear the sources.
     
@@ -193,14 +194,26 @@ void Grid::add_number_density(py::array_t<double> ___number_dens,
     _number_dens.append(___number_dens);
     _velocity.append(___velocity);
 
+    // Create temperature array.
+
+    py::array_t<double> ___gas_temp = py::array_t<double>(n1*n2*n3);
+    ___gas_temp.resize({n1, n2, n3});
+
+    _gas_temp.append(___gas_temp);
+
+    auto _gas_temp_buf = ___gas_temp.request();
+
     // Now send to C++ useful things.
 
     double ***__number_dens = pymangle(n1, n2, n3, 
             (double *) _number_dens_buf.ptr);
+    double ***__gas_temp = pymangle(n1, n2, n3, 
+            (double *) _gas_temp_buf.ptr);
     double ****__velocity = pymangle(n1, n2, n3, 3, 
             (double *) _velocity_buf.ptr);
 
     number_dens.push_back(__number_dens);
+    gas_temp.push_back(__gas_temp);
     velocity.push_back(__velocity);
 
     // Add the dust to the list of dust classes.
@@ -997,6 +1010,24 @@ void Grid::propagate_ray(Ray *R) {
                         temp[idust][R->l[0]][R->l[1]][R->l[2]]);
             }
 
+            double alpha_line = 0;
+            double intensity_line = 0;
+            for (int igas=0; igas < ngases; igas++) {
+                double alpha_this_line = c_l*c_l / (8*pi*gas[igas]->nu[0]*
+                        gas[igas]->nu[0]) * gas[igas]->A[0] * 
+                        number_dens[igas][R->l[0]][R->l[1]][R->l[2]] * 
+                        (exp(h_p * gas[igas]->nu[0] / (k_B * 
+                        gas_temp[igas][R->l[0]][R->l[1]][R->l[2]])) - 1) * 
+                        line_profile(igas, 0, R->l, R->nu[inu] * (1 - 
+                        -R->n.dot(vector_velocity(igas, R)) / c_l));
+                        
+                alpha_line += alpha_this_line;
+                tau_cell += s*alpha_this_line;
+
+                intensity_line += alpha_this_line * planck_function(R->nu[inu],
+                        gas_temp[igas][R->l[0]][R->l[1]][R->l[2]]);
+            }
+
             double albedo = alpha_sca / alpha_ext;
 
             intensity_abs *= (1.0-exp(-tau_cell)) / alpha_ext;
@@ -1197,4 +1228,21 @@ double Grid::cell_lum(int idust, int ix, int iy, int iz, double nu) {
     return 4*pi*mass[idust][ix][iy][iz]*
         dust[idust]->opacity(nu)*(1. - dust[idust]->albdo(nu))*
         planck_function(nu, temp[idust][ix][iy][iz]);
+}
+
+/* Calculate the line profile of a spectral line. */
+
+Vector<double, 3> Grid::vector_velocity(int igas, Photon *P) {
+    return Vector<double, 3>(0., 0., 0.);
+}
+
+double Grid::line_profile(int igas, int iline, Vector<int, 3> l, double nu) {
+    double gamma_thermal = gas[igas]->nu[iline] / c_l * sqrt(2 * k_B * 
+            gas_temp[igas][l[0]][l[1]][l[2]] / (gas[igas]->mu * m_p));
+
+    double profile = exp(-(nu - gas[igas]->nu[iline])*(nu - 
+            gas[igas]->nu[iline]) / (gamma_thermal * gamma_thermal)) / 
+            (gamma_thermal * sqrt(pi));
+
+    return profile;
 }

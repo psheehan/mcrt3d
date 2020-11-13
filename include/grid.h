@@ -57,9 +57,11 @@ struct Grid {
     double ***uses_mrw;
 
     std::vector<double***> number_dens;
+    std::vector<double***> gas_temp;
     std::vector<double****> velocity;
 
     py::list _number_dens;
+    py::list _gas_temp;
     py::list _velocity;
 
     #ifdef _OPENMP
@@ -147,6 +149,9 @@ struct Grid {
     double cell_lum(int idust, int ix, int iy, int iz);
     double cell_lum(Vector<int, 3> l, double nu);
     double cell_lum(int idust, int ix, int iy, int iz, double nu);
+
+    virtual Vector<double, 3> vector_velocity(int igas, Photon *P);
+    double line_profile(int igas, int iline, Vector<int, 3> l, double nu);
 };
 
 #endif

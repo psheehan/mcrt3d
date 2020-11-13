@@ -349,3 +349,18 @@ bool CartesianGrid::in_grid(Photon *P) {
     else
         return true;
 }
+
+/* Calculate the line profile of a spectral line. */
+
+Vector<double, 3> CartesianGrid::vector_velocity(int igas, Photon *P) {
+    Vector<double, 3> xhat(1., 0., 0.);
+    Vector<double, 3> yhat(0., 1., 0.);
+    Vector<double, 3> zhat(0., 0., 1.);
+
+    Vector<double, 3> v = velocity[igas][P->l[0]][P->l[1]][P->l[2]][0] * xhat + 
+        velocity[igas][P->l[0]][P->l[1]][P->l[2]][1] * yhat + 
+        velocity[igas][P->l[0]][P->l[1]][P->l[2]][2] * zhat;
+
+    return v;
+}
+
