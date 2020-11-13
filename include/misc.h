@@ -34,6 +34,7 @@ const double k_B = 1.380658e-16;
 const double sigma = 5.67051e-5;
 const double arcsec = 4.8481e-6;
 const double Jy = 1.0e-23;
+const double h_p = 6.6261e-27;
 
 /* Get a random number between 0 and 1. */
 

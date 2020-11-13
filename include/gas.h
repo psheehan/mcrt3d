@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <cmath>
 #include "pymangle.h"
+#include "misc.h"
 
 namespace py = pybind11;
 
@@ -39,6 +40,11 @@ struct Gas {
     py::array_t<double> _nu;
     py::array_t<double> _Eu;
 
+    int ntemp;
+    double *temp;
+    double *Z;
+    double *dZdT;
+
     Gas(double _mu, py::array_t<int> __levels, py::array_t<double> __energies, 
             py::array_t<double> __weights, py::array_t<int> __J, 
             py::array_t<int> __transitions, py::array_t<int> __up, 
@@ -46,6 +52,8 @@ struct Gas {
             py::array_t<double> __nu, py::array_t<double> __Eu);
 
     ~Gas();
+
+    double partition_function(double T);
 };
 
 #endif

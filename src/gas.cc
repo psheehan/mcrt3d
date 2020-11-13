@@ -50,7 +50,32 @@ Gas::Gas(double _mu, py::array_t<int> __levels, py::array_t<double> __energies,
     A = (double *) _A_buf.ptr;
     nu = (double *) _nu_buf.ptr;
     Eu = (double *) _Eu_buf.ptr;
+
+    // Calculate the partition function.
+
+    ntemp = 1000;
+    temp = new double[ntemp];
+    Z = new double[ntemp];
+
+    for (int i = 0; i < ntemp; i++) {
+        temp[i] = pow(10.,-1.+i*6./(ntemp-1));
+        Z[i] = 0;
+
+        for (int j = 0; j < nlevels; j++)
+            Z[i] += weights[j]*exp(-h_p*c_l*energies[j] / (k_B * temp[i]));
+    }
+
+    dZdT = derivative(Z, temp, ntemp);
 }
 
 Gas::~Gas() {
+    delete[] temp; delete[] Z; delete[] dZdT;
+}
+
+double Gas::partition_function(double T) {
+    int n = find_in_arr(T,temp,ntemp);
+
+    double partition_function = dZdT[n]*(T-temp[n])+Z[n];
+
+    return partition_function;
 }
