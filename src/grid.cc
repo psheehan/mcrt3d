@@ -1027,6 +1027,7 @@ void Grid::propagate_ray(Ray *R) {
                 double alpha_this_line = c_l*c_l / (8*pi*gas[igas]->nu[iline]*
                         gas[igas]->nu[iline]) * gas[igas]->A[iline] * 
                         number_dens[igas][R->l[0]][R->l[1]][R->l[2]] * 
+                        level_populations[itrans/2][R->l[0]][R->l[1]][R->l[2]] *
                         (exp(h_p * gas[igas]->nu[iline] / (k_B * 
                         gas_temp[igas][R->l[0]][R->l[1]][R->l[2]])) - 1) * 
                         line_profile(igas, iline, R->l, R->nu[inu] * (1 - 
@@ -1375,11 +1376,31 @@ void Grid::select_lines(py::array_t<double> _lam) {
                     ((min_nu < max_frequency) && (max_frequency < max_nu))) {
                 include_lines.push_back(igas);
                 include_lines.push_back(iline);
+
+                level_populations.push_back(calculate_level_populations(
+                            igas, iline));
             }
         }
     }
 }
 
+double*** Grid::calculate_level_populations(int igas, int iline) {
+    double ***level_pop = create3DArr(n1, n2, n3);
+
+    int level = gas[igas]->up[iline]-1;
+
+    for (int ix = 0; ix < n1; ix++)
+        for (int iy = 0; iy < n2; iy++)
+            for (int iz = 0; iz < n3; iz++)
+                level_pop[ix][iy][iz] = gas[igas]->weights[level] * 
+                    exp(-h_p * c_l * gas[igas]->energies[level] / (k_B *
+                    gas_temp[igas][ix][iy][iz])) / 
+                    gas[igas]->partition_function(gas_temp[igas][ix][iy][iz]);
+}
+
 void Grid::deselect_lines() {
+    for (int iline = 0; iline<level_populations.size(); iline++) {
+        delete3DArr(level_populations[iline], n1, n2, n3);
+    }
     include_lines.clear();
 }
