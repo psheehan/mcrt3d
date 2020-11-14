@@ -75,6 +75,7 @@ struct Grid {
     int ngases;
     std::vector<Gas *> gas;
     py::list _gas;
+    std::vector<int> include_lines;
 
     int nsources;
     std::vector<Source*> sources;
@@ -151,7 +152,12 @@ struct Grid {
     double cell_lum(int idust, int ix, int iy, int iz, double nu);
 
     virtual Vector<double, 3> vector_velocity(int igas, Photon *P);
+    double maximum_velocity(int igas);
+    double maximum_gas_temperature(int igas);
     double line_profile(int igas, int iline, Vector<int, 3> l, double nu);
+    void set_tgas_eq_tdust();
+    void select_lines(py::array_t<double> lam);
+    void deselect_lines();
 };
 
 #endif

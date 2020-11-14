@@ -246,6 +246,10 @@ void MCRT::run_image(py::array_t<double> __lam, int nx, int ny,
     // Run a scattering simulation.
     scattering_mc(__lam, nphot, false, false, nthreads);
 
+    // Make sure the lines are properly set.
+    G->set_tgas_eq_tdust();
+    G->select_lines(__lam);
+
     // Now, run the image through the camera.
     Image *I = C->make_image(nx, ny, pixel_size, __lam, incl, pa, dpc, 
             nthreads);
@@ -254,6 +258,7 @@ void MCRT::run_image(py::array_t<double> __lam, int nx, int ny,
 
     // Clean up the appropriate grid parameters.
     G->deallocate_scattering_array(0);
+    G->deselect_lines();
 
     Q->nnu = 0;
     delete[] Q->scattering_nu;
@@ -266,6 +271,10 @@ void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny,
     // Run a scattering simulation.
     scattering_mc(__lam, nphot, false, false, nthreads);
 
+    // Make sure the lines are properly set.
+    G->set_tgas_eq_tdust();
+    G->select_lines(__lam);
+
     // Now, run the image through the camera.
     UnstructuredImage *I = C->make_unstructured_image(nx, ny, pixel_size, 
             __lam, incl, pa, dpc, nthreads);
@@ -274,6 +283,7 @@ void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny,
 
     // Clean up the appropriate grid parameters.
     G->deallocate_scattering_array(0);
+    G->deselect_lines();
 
     Q->nnu = 0;
     delete[] Q->scattering_nu;
@@ -285,6 +295,10 @@ void MCRT::run_circular_image(py::array_t<double> __lam, int nr, int nphi,
     // Run a scattering simulation.
     scattering_mc(__lam, nphot, false, false, nthreads);
 
+    // Make sure the lines are properly set.
+    G->set_tgas_eq_tdust();
+    G->select_lines(__lam);
+
     // Now, run the image through the camera.
     UnstructuredImage *I = C->make_circular_image(nr, nphi, __lam, incl, 
             pa, dpc, nthreads);
@@ -293,6 +307,7 @@ void MCRT::run_circular_image(py::array_t<double> __lam, int nr, int nphi,
 
     // Clean up the appropriate grid parameters.
     G->deallocate_scattering_array(0);
+    G->deselect_lines();
 
     Q->nnu = 0;
     delete[] Q->scattering_nu;
@@ -304,6 +319,10 @@ void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl,
     // Run a scattering simulation.
     scattering_mc(__lam, nphot, false, false, nthreads);
 
+    // Make sure the lines are properly set.
+    G->set_tgas_eq_tdust();
+    G->select_lines(__lam);
+
     // Now, run the image through the camera.
     Spectrum *S = C->make_spectrum(__lam, incl, pa, dpc, nthreads);
 
@@ -311,6 +330,7 @@ void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl,
 
     // Clean up the appropriate grid parameters.
     G->deallocate_scattering_array(0);
+    G->deselect_lines();
 
     Q->nnu = 0;
     delete[] Q->scattering_nu;

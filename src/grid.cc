@@ -1012,13 +1012,16 @@ void Grid::propagate_ray(Ray *R) {
 
             double alpha_line = 0;
             double intensity_line = 0;
-            for (int igas=0; igas < ngases; igas++) {
-                double alpha_this_line = c_l*c_l / (8*pi*gas[igas]->nu[0]*
-                        gas[igas]->nu[0]) * gas[igas]->A[0] * 
+            for (int itrans=0; itrans < include_lines.size(); itrans++) {
+                int igas = include_lines[itrans];
+                int iline = include_lines[itrans+1];
+
+                double alpha_this_line = c_l*c_l / (8*pi*gas[igas]->nu[iline]*
+                        gas[igas]->nu[iline]) * gas[igas]->A[iline] * 
                         number_dens[igas][R->l[0]][R->l[1]][R->l[2]] * 
-                        (exp(h_p * gas[igas]->nu[0] / (k_B * 
+                        (exp(h_p * gas[igas]->nu[iline] / (k_B * 
                         gas_temp[igas][R->l[0]][R->l[1]][R->l[2]])) - 1) * 
-                        line_profile(igas, 0, R->l, R->nu[inu] * (1 - 
+                        line_profile(igas, iline, R->l, R->nu[inu] * (1 - 
                         -R->n.dot(vector_velocity(igas, R)) / c_l));
                         
                 alpha_line += alpha_this_line;
@@ -1236,6 +1239,40 @@ Vector<double, 3> Grid::vector_velocity(int igas, Photon *P) {
     return Vector<double, 3>(0., 0., 0.);
 }
 
+double Grid::maximum_velocity(int igas) {
+    double vmax = 0;
+
+    for (int ix = 0; ix < n1; ix++) {
+        for (int iy = 0; iy < n2; iy++) {
+            for (int iz = 0; iz < n3; iz++) {
+                Vector<double, 3> vcell(velocity[igas][ix][iy][iz][0],
+                        velocity[igas][ix][iy][iz][1], 
+                        velocity[igas][ix][iy][iz][2]);
+                double vnorm = vcell.norm();
+
+                if (vnorm > vmax) vmax = vnorm;
+            }
+        }
+    }
+
+    return vmax;
+}
+
+double Grid::maximum_gas_temperature(int igas) {
+    double Tmax = 0;
+
+    for (int ix = 0; ix < n1; ix++) {
+        for (int iy = 0; iy < n2; iy++) {
+            for (int iz = 0; iz < n3; iz++) {
+                if (gas_temp[igas][ix][iy][iz] > Tmax) Tmax = 
+                        gas_temp[igas][ix][iy][iz];
+            }
+        }
+    }
+
+    return Tmax;
+}
+
 double Grid::line_profile(int igas, int iline, Vector<int, 3> l, double nu) {
     double gamma_thermal = gas[igas]->nu[iline] / c_l * sqrt(2 * k_B * 
             gas_temp[igas][l[0]][l[1]][l[2]] / (gas[igas]->mu * m_p));
@@ -1245,4 +1282,76 @@ double Grid::line_profile(int igas, int iline, Vector<int, 3> l, double nu) {
             (gamma_thermal * sqrt(pi));
 
     return profile;
+}
+
+void Grid::set_tgas_eq_tdust() {
+    for (int ix = 0; ix < n1; ix++) {
+        for (int iy = 0; iy < n2; iy++) {
+            for (int iz = 0; iz < n3; iz++) {
+                double dust_temperature = 0;
+                double dust_density = 0;
+
+                for (int idust = 0; idust < nspecies; idust++) {
+                    dust_temperature += dens[idust][ix][iy][iz] * 
+                        temp[idust][ix][iy][iz];
+                    dust_density += dens[idust][iy][iy][iz];
+                }
+
+                if (dust_density > 0)
+                    dust_temperature /= dust_density;
+                else
+                    dust_temperature = 0.1;
+
+                for (int igas = 0; igas < ngases; igas++)
+                    gas_temp[igas][ix][iy][iz] = dust_temperature;
+            }
+        }
+    }
+}
+
+void Grid::select_lines(py::array_t<double> _lam) {
+    // Load the array buffers to get the proper setup info.
+
+    auto _lam_buf = _lam.request();
+
+    // Now get the correct format.
+    
+    int nlam = _lam_buf.shape[0];
+    double *lam = (double *) _lam_buf.ptr; 
+    
+    // Find the max and min frequencies.
+
+    double max_nu = 0.;
+    double min_nu = HUGE_VAL;
+    for (int ilam = 0; ilam < nlam; ilam++) {
+        double nu = c_l / lam[ilam];
+
+        if (nu > max_nu) max_nu = nu;
+        if (nu < min_nu) min_nu = nu;
+    }
+
+    // Now, figure out which lines fall in that range.
+
+    for (int igas = 0; igas < ngases; igas++) {
+        double max_v = maximum_velocity(igas);
+        double gamma_thermal = 3*sqrt(2 * k_B * maximum_gas_temperature(igas) / 
+                (gas[igas]->mu * m_p)); // 3-sigma width
+
+        max_v += gamma_thermal;
+
+        for (int iline = 0; iline < gas[igas]->ntransitions; iline++) {
+            double max_frequency = gas[igas]->nu[iline] * (1. + max_v / c_l);
+            double min_frequency = gas[igas]->nu[iline] * (1. - max_v / c_l);
+
+            if (((min_nu < min_frequency) && (min_frequency < max_nu)) || 
+                    ((min_nu < max_frequency) && (max_frequency < max_nu))) {
+                include_lines.push_back(igas);
+                include_lines.push_back(iline);
+            }
+        }
+    }
+}
+
+void Grid::deselect_lines() {
+    include_lines.clear();
 }
