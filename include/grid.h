@@ -59,9 +59,11 @@ struct Grid {
     std::vector<double***> number_dens;
     std::vector<double***> gas_temp;
     std::vector<double****> velocity;
+    std::vector<double***> microturbulence;
 
     py::list _number_dens;
     py::list _gas_temp;
+    py::list _microturbulence;
     py::list _velocity;
 
     #ifdef _OPENMP
@@ -96,7 +98,8 @@ struct Grid {
     //void add_density(double *_dens, double *_temp, double *_mass, 
     //        Dust *D);
     void add_density(py::array_t<double>, Dust *d);
-    void add_number_density(py::array_t<double>, py::array_t<double>, Gas *g);
+    void add_number_density(py::array_t<double>, py::array_t<double>, 
+            py::array_t<double>, Gas *g);
 
     //void add_source(Source *S);
     void add_star(double x, double y, double z, double _mass, double _radius, 
@@ -154,6 +157,7 @@ struct Grid {
     virtual Vector<double, 3> vector_velocity(int igas, Photon *P);
     double maximum_velocity(int igas);
     double maximum_gas_temperature(int igas);
+    double maximum_microturbulence(int igas);
     double line_profile(int igas, int iline, Vector<int, 3> l, double nu);
     void set_tgas_eq_tdust();
     void select_lines(py::array_t<double> lam);

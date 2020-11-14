@@ -103,8 +103,10 @@ Grid::~Grid() {
         freepymangle(number_dens[i]);
         freepymangle(gas_temp[i]);
         freepymangle(velocity[i]);
+        freepymangle(microturbulence[i]);
     }
-    number_dens.clear(); gas_temp.clear(); velocity.clear(); gas.clear();
+    number_dens.clear(); gas_temp.clear(); velocity.clear(); 
+    microturbulence.clear(); gas.clear();
 
     // Clear the sources.
     
@@ -184,15 +186,18 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
 }
 
 void Grid::add_number_density(py::array_t<double> ___number_dens, 
-        py::array_t<double> ___velocity, Gas *G) {
+        py::array_t<double> ___velocity, py::array_t<double> ___microturbulence,
+        Gas *G) {
 
     // Deal with the Python code.
 
     auto _number_dens_buf = ___number_dens.request();
     auto _velocity_buf = ___velocity.request();
+    auto _microturbulence_buf = ___microturbulence.request();
 
     _number_dens.append(___number_dens);
     _velocity.append(___velocity);
+    _microturbulence.append(___microturbulence);
 
     // Create temperature array.
 
@@ -211,10 +216,13 @@ void Grid::add_number_density(py::array_t<double> ___number_dens,
             (double *) _gas_temp_buf.ptr);
     double ****__velocity = pymangle(n1, n2, n3, 3, 
             (double *) _velocity_buf.ptr);
+    double ***__microturbulence = pymangle(n1, n2, n3, 
+            (double *) _microturbulence_buf.ptr);
 
     number_dens.push_back(__number_dens);
     gas_temp.push_back(__gas_temp);
     velocity.push_back(__velocity);
+    microturbulence.push_back(__microturbulence);
 
     // Add the dust to the list of dust classes.
 
@@ -1273,9 +1281,28 @@ double Grid::maximum_gas_temperature(int igas) {
     return Tmax;
 }
 
+double Grid::maximum_microturbulence(int igas) {
+    double Mmax = 0;
+
+    for (int ix = 0; ix < n1; ix++) {
+        for (int iy = 0; iy < n2; iy++) {
+            for (int iz = 0; iz < n3; iz++) {
+                if (microturbulence[igas][ix][iy][iz] > Mmax) Mmax = 
+                        microturbulence[igas][ix][iy][iz];
+            }
+        }
+    }
+
+    return Mmax;
+}
+
 double Grid::line_profile(int igas, int iline, Vector<int, 3> l, double nu) {
-    double gamma_thermal = gas[igas]->nu[iline] / c_l * sqrt(2 * k_B * 
-            gas_temp[igas][l[0]][l[1]][l[2]] / (gas[igas]->mu * m_p));
+    double a_thermal = sqrt(2 * k_B * gas_temp[igas][l[0]][l[1]][l[2]] / 
+            (gas[igas]->mu * m_p));
+    double a_microturb = microturbulence[igas][l[0]][l[1]][l[2]];
+
+    double gamma_thermal = gas[igas]->nu[iline] / c_l * sqrt(
+            a_thermal*a_thermal + a_microturb*a_microturb);
 
     double profile = exp(-(nu - gas[igas]->nu[iline])*(nu - 
             gas[igas]->nu[iline]) / (gamma_thermal * gamma_thermal)) / 
@@ -1334,10 +1361,11 @@ void Grid::select_lines(py::array_t<double> _lam) {
 
     for (int igas = 0; igas < ngases; igas++) {
         double max_v = maximum_velocity(igas);
-        double gamma_thermal = 3*sqrt(2 * k_B * maximum_gas_temperature(igas) / 
+        double a_thermal = 3*sqrt(2 * k_B * maximum_gas_temperature(igas) / 
                 (gas[igas]->mu * m_p)); // 3-sigma width
+        double a_microturb = maximum_microturbulence(igas);
 
-        max_v += gamma_thermal;
+        max_v += a_thermal + a_microturb;
 
         for (int iline = 0; iline < gas[igas]->ntransitions; iline++) {
             double max_frequency = gas[igas]->nu[iline] * (1. + max_v / c_l);
