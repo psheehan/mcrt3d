@@ -1018,7 +1018,6 @@ void Grid::propagate_ray(Ray *R) {
                         temp[idust][R->l[0]][R->l[1]][R->l[2]]);
             }
 
-            double alpha_line = 0;
             double intensity_line = 0;
             for (int itrans=0; itrans < include_lines.size(); itrans++) {
                 int igas = include_lines[itrans];
@@ -1033,8 +1032,8 @@ void Grid::propagate_ray(Ray *R) {
                         line_profile(igas, iline, R->l, R->nu[inu] * (1 - 
                         -R->n.dot(vector_velocity(igas, R)) / c_l));
                         
-                alpha_line += alpha_this_line;
                 tau_cell += s*alpha_this_line;
+                alpha_ext += alpha_this_line;
 
                 intensity_line += alpha_this_line * planck_function(R->nu[inu],
                         gas_temp[igas][R->l[0]][R->l[1]][R->l[2]]);
@@ -1043,10 +1042,12 @@ void Grid::propagate_ray(Ray *R) {
             double albedo = alpha_sca / alpha_ext;
 
             intensity_abs *= (1.0-exp(-tau_cell)) / alpha_ext;
+            intensity_line *= (1.0-exp(-tau_cell)) / alpha_ext;
             double intensity_sca = (1.0-exp(-tau_cell)) * albedo * 
                     scatt[0][R->l[0]][R->l[1]][R->l[2]][inu];
 
-            double intensity_cell = intensity_abs + intensity_sca;
+            double intensity_cell = intensity_abs + intensity_sca + 
+                intensity_line;
 
             if (Q->verbose) {
                 printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
