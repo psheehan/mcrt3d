@@ -1019,7 +1019,7 @@ void Grid::propagate_ray(Ray *R) {
             }
 
             double intensity_line = 0;
-            for (int itrans=0; itrans < include_lines.size(); itrans++) {
+            for (int itrans=0; itrans < include_lines.size(); itrans+=2) {
                 int igas = include_lines[itrans];
                 int iline = include_lines[itrans+1];
 
