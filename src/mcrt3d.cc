@@ -241,14 +241,20 @@ void MCRT::mc_iteration(int nthreads) {
 
 void MCRT::run_image(py::array_t<double> __lam, int nx, int ny, 
         double pixel_size, int nphot, double incl, double pa, double dpc, 
-        int nthreads) {
+        int nthreads, bool raytrace_dust, bool raytrace_gas) {
+
+    // Set the appropriate parameters.
+    Q->raytrace_dust = raytrace_dust;
+    Q->raytrace_gas = raytrace_gas;
 
     // Run a scattering simulation.
-    scattering_mc(__lam, nphot, false, false, nthreads);
+    if (raytrace_dust) scattering_mc(__lam, nphot, false, false, nthreads);
 
     // Make sure the lines are properly set.
-    G->set_tgas_eq_tdust();
-    G->select_lines(__lam);
+    if (raytrace_gas) {
+        G->set_tgas_eq_tdust();
+        G->select_lines(__lam);
+    }
 
     // Now, run the image through the camera.
     Image *I = C->make_image(nx, ny, pixel_size, __lam, incl, pa, dpc, 
@@ -257,23 +263,32 @@ void MCRT::run_image(py::array_t<double> __lam, int nx, int ny,
     images.append(I);
 
     // Clean up the appropriate grid parameters.
-    G->deallocate_scattering_array(0);
-    G->deselect_lines();
+    if (raytrace_dust) {
+        G->deallocate_scattering_array(0);
 
-    Q->nnu = 0;
-    delete[] Q->scattering_nu;
+        Q->nnu = 0;
+        delete[] Q->scattering_nu;
+    }
+
+    if (raytrace_gas) G->deselect_lines();
 }
 
 void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny, 
         double pixel_size, int nphot, double incl, double pa, double dpc, 
-        int nthreads) {
+        int nthreads, bool raytrace_dust, bool raytrace_gas) {
+
+    // Set the appropriate parameters.
+    Q->raytrace_dust = raytrace_dust;
+    Q->raytrace_gas = raytrace_gas;
 
     // Run a scattering simulation.
-    scattering_mc(__lam, nphot, false, false, nthreads);
+    if (raytrace_dust) scattering_mc(__lam, nphot, false, false, nthreads);
 
     // Make sure the lines are properly set.
-    G->set_tgas_eq_tdust();
-    G->select_lines(__lam);
+    if (raytrace_gas) {
+        G->set_tgas_eq_tdust();
+        G->select_lines(__lam);
+    }
 
     // Now, run the image through the camera.
     UnstructuredImage *I = C->make_unstructured_image(nx, ny, pixel_size, 
@@ -282,22 +297,32 @@ void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny,
     images.append(I);
 
     // Clean up the appropriate grid parameters.
-    G->deallocate_scattering_array(0);
-    G->deselect_lines();
+    if (raytrace_dust) {
+        G->deallocate_scattering_array(0);
 
-    Q->nnu = 0;
-    delete[] Q->scattering_nu;
+        Q->nnu = 0;
+        delete[] Q->scattering_nu;
+    }
+
+    if (raytrace_gas) G->deselect_lines();
 }
 
 void MCRT::run_circular_image(py::array_t<double> __lam, int nr, int nphi, 
-        int nphot, double incl, double pa, double dpc, int nthreads) {
+        int nphot, double incl, double pa, double dpc, int nthreads, 
+        bool raytrace_dust, bool raytrace_gas) {
+
+    // Set the appropriate parameters.
+    Q->raytrace_dust = raytrace_dust;
+    Q->raytrace_gas = raytrace_gas;
 
     // Run a scattering simulation.
-    scattering_mc(__lam, nphot, false, false, nthreads);
+    if (raytrace_dust) scattering_mc(__lam, nphot, false, false, nthreads);
 
     // Make sure the lines are properly set.
-    G->set_tgas_eq_tdust();
-    G->select_lines(__lam);
+    if (raytrace_gas) {
+        G->set_tgas_eq_tdust();
+        G->select_lines(__lam);
+    }
 
     // Now, run the image through the camera.
     UnstructuredImage *I = C->make_circular_image(nr, nphi, __lam, incl, 
@@ -306,22 +331,32 @@ void MCRT::run_circular_image(py::array_t<double> __lam, int nr, int nphi,
     images.append(I);
 
     // Clean up the appropriate grid parameters.
-    G->deallocate_scattering_array(0);
-    G->deselect_lines();
+    if (raytrace_dust) {
+        G->deallocate_scattering_array(0);
 
-    Q->nnu = 0;
-    delete[] Q->scattering_nu;
+        Q->nnu = 0;
+        delete[] Q->scattering_nu;
+    }
+
+    if (raytrace_gas) G->deselect_lines();
 }
 
 void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl, 
-            double pa, double dpc, int nthreads) {
+        double pa, double dpc, int nthreads, bool raytrace_dust, 
+        bool raytrace_gas) {
+
+    // Set the appropriate parameters.
+    Q->raytrace_dust = raytrace_dust;
+    Q->raytrace_gas = raytrace_gas;
 
     // Run a scattering simulation.
-    scattering_mc(__lam, nphot, false, false, nthreads);
+    if (raytrace_dust) scattering_mc(__lam, nphot, false, false, nthreads);
 
     // Make sure the lines are properly set.
-    G->set_tgas_eq_tdust();
-    G->select_lines(__lam);
+    if (raytrace_gas) {
+        G->set_tgas_eq_tdust();
+        G->select_lines(__lam);
+    }
 
     // Now, run the image through the camera.
     Spectrum *S = C->make_spectrum(__lam, incl, pa, dpc, nthreads);
@@ -329,11 +364,14 @@ void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl,
     spectra.append(S);
 
     // Clean up the appropriate grid parameters.
-    G->deallocate_scattering_array(0);
-    G->deselect_lines();
+    if (raytrace_dust) {
+        G->deallocate_scattering_array(0);
 
-    Q->nnu = 0;
-    delete[] Q->scattering_nu;
+        Q->nnu = 0;
+        delete[] Q->scattering_nu;
+    }
+
+    if (raytrace_gas) G->deselect_lines();
 }
 
 PYBIND11_MODULE(mcrt3d, m) {
@@ -451,19 +489,23 @@ PYBIND11_MODULE(mcrt3d, m) {
                 py::arg("lam"), py::arg("nx")=256, py::arg("ny")=256, 
                 py::arg("pixel_size")=0.1, py::arg("nphot")=100000, 
                 py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1., 
-                py::arg("nthreads")=1)
+                py::arg("nthreads")=1, py::arg("raytrace_dust")=true, 
+                py::arg("raytrace_gas")=false)
         .def("run_unstructured_image", &MCRT::run_unstructured_image, 
                 "Generate an unstructured image.", 
                 py::arg("lam"), py::arg("nx")=25, py::arg("ny")=25, 
                 py::arg("pixel_size")=1.0, py::arg("nphot")=100000, 
                 py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1., 
-                py::arg("nthreads")=1)
+                py::arg("nthreads")=1, py::arg("raytrace_dust")=true, 
+                py::arg("raytrace_gas")=false)
         .def("run_circular_image", &MCRT::run_circular_image, 
                 "Generate an unstructured image.", 
                 py::arg("lam"), py::arg("nr")=128, py::arg("ny")=128, 
                 py::arg("nphot")=100000, py::arg("incl")=0., py::arg("pa")=0., 
-                py::arg("dpc")=1., py::arg("nthreads")=1)
+                py::arg("dpc")=1., py::arg("nthreads")=1, 
+                py::arg("raytrace_dust")=true, py::arg("raytrace_gas")=false)
         .def("run_spectrum", &MCRT::run_spectrum, "Generate a spectrum.", 
                 py::arg("lam"), py::arg("nphot")=10000, py::arg("incl")=0,
-                py::arg("pa")=0, py::arg("dpc")=1., py::arg("nthreads")=1);
+                py::arg("pa")=0, py::arg("dpc")=1., py::arg("nthreads")=1, 
+                py::arg("raytrace_dust")=true, py::arg("raytrace_gas")=false);
 }

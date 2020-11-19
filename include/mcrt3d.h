@@ -51,12 +51,15 @@ struct MCRT {
     void mc_iteration(int nthreads);
 
     void run_image(py::array_t<double> lam, int nx, int ny, double pixel_size, 
-            int nphot, double incl, double pa, double dpc, int nthreads);
+            int nphot, double incl, double pa, double dpc, int nthreads, 
+            bool raytrace_dust, bool raytrace_gas);
     void run_unstructured_image(py::array_t<double> lam, int nx, int ny, 
             double pixel_size, int nphot, double incl, double pa, double dpc, 
-            int nthreads);
+            int nthreads, bool raytrace_dust, bool raytrace_gas);
     void run_circular_image(py::array_t<double> lam, int nr, int nphi, 
-            int nphot, double incl, double pa, double dpc, int nthreads);
+            int nphot, double incl, double pa, double dpc, int nthreads, 
+            bool raytrace_dust, bool raytrace_gas);
     void run_spectrum(py::array_t<double> lam, int nphot, double incl, 
-            double pa, double dpc, int nthreads);
+            double pa, double dpc, int nthreads, bool raytrace_dust, 
+            bool raytrace_gas);
 };

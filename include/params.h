@@ -21,6 +21,11 @@ struct Params {
     double dnu;
     double *scattering_nu;
 
+    // Parameters for imaging.
+
+    bool raytrace_dust;
+    bool raytrace_gas;
+
     // Functions to set various properties.
     void set_nphot(int _nphot);
     void set_bw(bool _bw);

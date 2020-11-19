@@ -7,6 +7,9 @@ Params::Params() {
     use_mrw = false;
     mrw_gamma = 4;
     scattering = false;
+
+    raytrace_dust = true;
+    raytrace_gas = false;
 }
 
 void Params::set_nphot(int _nphot) {

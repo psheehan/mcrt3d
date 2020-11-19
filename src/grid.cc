@@ -1001,50 +1001,57 @@ void Grid::propagate_ray(Ray *R) {
             double alpha_ext = 0;
             double alpha_sca = 0;
 
-            for (int idust=0; idust<nspecies; idust++) {
-                tau_cell += s*R->current_kext[idust][inu] *
-                        dens[idust][R->l[0]][R->l[1]][R->l[2]];
+            if (Q->raytrace_dust) {
+                for (int idust=0; idust<nspecies; idust++) {
+                    tau_cell += s*R->current_kext[idust][inu] *
+                            dens[idust][R->l[0]][R->l[1]][R->l[2]];
 
-                alpha_ext += R->current_kext[idust][inu] *
-                        dens[idust][R->l[0]][R->l[1]][R->l[2]];
-                alpha_sca += R->current_kext[idust][inu] *
-                        R->current_albedo[idust][inu] *
-                        dens[idust][R->l[0]][R->l[1]][R->l[2]];
+                    alpha_ext += R->current_kext[idust][inu] *
+                            dens[idust][R->l[0]][R->l[1]][R->l[2]];
+                    alpha_sca += R->current_kext[idust][inu] *
+                            R->current_albedo[idust][inu] *
+                            dens[idust][R->l[0]][R->l[1]][R->l[2]];
 
-                intensity_abs += R->current_kext[idust][inu] * 
-                        (1 - R->current_albedo[idust][inu]) *
-                        dens[idust][R->l[0]][R->l[1]][R->l[2]]
-                        * planck_function(R->nu[inu], 
-                        temp[idust][R->l[0]][R->l[1]][R->l[2]]);
+                    intensity_abs += R->current_kext[idust][inu] * 
+                            (1 - R->current_albedo[idust][inu]) *
+                            dens[idust][R->l[0]][R->l[1]][R->l[2]]
+                            * planck_function(R->nu[inu], 
+                            temp[idust][R->l[0]][R->l[1]][R->l[2]]);
+                }
             }
 
             double intensity_line = 0;
-            for (int itrans=0; itrans < include_lines.size(); itrans+=2) {
-                int igas = include_lines[itrans];
-                int iline = include_lines[itrans+1];
+            if (Q->raytrace_gas) {
+                for (int itrans=0; itrans < include_lines.size(); itrans+=2) {
+                    int igas = include_lines[itrans];
+                    int iline = include_lines[itrans+1];
 
-                double alpha_this_line = c_l*c_l / (8*pi*gas[igas]->nu[iline]*
-                        gas[igas]->nu[iline]) * gas[igas]->A[iline] * 
-                        number_dens[igas][R->l[0]][R->l[1]][R->l[2]] * 
-                        level_populations[itrans/2][R->l[0]][R->l[1]][R->l[2]] *
-                        (exp(h_p * gas[igas]->nu[iline] / (k_B * 
-                        gas_temp[igas][R->l[0]][R->l[1]][R->l[2]])) - 1) * 
-                        line_profile(igas, iline, R->l, R->nu[inu] * (1 - 
-                        -R->n.dot(vector_velocity(igas, R)) / c_l));
-                        
-                tau_cell += s*alpha_this_line;
-                alpha_ext += alpha_this_line;
+                    double alpha_this_line = c_l*c_l / (8*pi*
+                            gas[igas]->nu[iline]*gas[igas]->nu[iline]) * 
+                            gas[igas]->A[iline] * 
+                            number_dens[igas][R->l[0]][R->l[1]][R->l[2]] * 
+                            level_populations[itrans/2][R->l[0]][R->l[1]]
+                            [R->l[2]] * (exp(h_p * gas[igas]->nu[iline] / (k_B *
+                            gas_temp[igas][R->l[0]][R->l[1]][R->l[2]])) - 1) * 
+                            line_profile(igas, iline, R->l, R->nu[inu] * (1 - 
+                            -R->n.dot(vector_velocity(igas, R)) / c_l));
 
-                intensity_line += alpha_this_line * planck_function(R->nu[inu],
-                        gas_temp[igas][R->l[0]][R->l[1]][R->l[2]]);
+                    tau_cell += s*alpha_this_line;
+                    alpha_ext += alpha_this_line;
+
+                    intensity_line += alpha_this_line * 
+                            planck_function(R->nu[inu],
+                            gas_temp[igas][R->l[0]][R->l[1]][R->l[2]]);
+                }
             }
 
             double albedo = alpha_sca / alpha_ext;
 
             intensity_abs *= (1.0-exp(-tau_cell)) / alpha_ext;
             intensity_line *= (1.0-exp(-tau_cell)) / alpha_ext;
-            double intensity_sca = (1.0-exp(-tau_cell)) * albedo * 
-                    scatt[0][R->l[0]][R->l[1]][R->l[2]][inu];
+            double intensity_sca = 0;
+            if (Q->raytrace_dust) intensity_sca = (1.0-exp(-tau_cell)) * 
+                    albedo * scatt[0][R->l[0]][R->l[1]][R->l[2]][inu];
 
             double intensity_cell = intensity_abs + intensity_sca + 
                 intensity_line;
