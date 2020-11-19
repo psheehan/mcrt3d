@@ -381,11 +381,14 @@ PYBIND11_MODULE(mcrt3d, m) {
         .def_readonly("volume", &Grid::_volume)
         .def_readonly("density", &Grid::_dens)
         .def_readonly("temperature", &Grid::_temp)
+        .def_readonly("gas_temperature", &Grid::_gas_temp)
         .def_readonly("dust", &Grid::_dust)
         .def_readonly("scatt", &Grid::_scatt)
         .def_readonly("sources", &Grid::_sources)
         .def("add_density", &Grid::add_density, 
                 "Add a density layer to the Grid.")
+        .def("add_number_density", &Grid::add_number_density, 
+                "Add a gas density layer to the Grid.")
         .def("add_star", &Grid::add_star, "Add a star to the Grid.", 
                 py::arg("x")=0., py::arg("y")=0., py::arg("z")=0., 
                 py::arg("mass")=1.989e33, py::arg("radius")=69.634e9, 

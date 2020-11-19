@@ -505,9 +505,9 @@ Vector<double, 3> SphericalGrid::vector_velocity(int igas, Photon *P) {
             -sin(theta));
     Vector<double, 3> phihat(-sin(phi), cos(phi), 0.);
 
-    Vector<double, 3> v = velocity[igas][P->l[0]][P->l[1]][P->l[2]][0] * rhat + 
-        velocity[igas][P->l[0]][P->l[1]][P->l[2]][1] * thetahat + 
-        velocity[igas][P->l[0]][P->l[1]][P->l[2]][2] * phihat;
+    Vector<double, 3> v = velocity[igas][0][P->l[0]][P->l[1]][P->l[2]] * rhat + 
+        velocity[igas][1][P->l[0]][P->l[1]][P->l[2]] * thetahat + 
+        velocity[igas][2][P->l[0]][P->l[1]][P->l[2]] * phihat;
 
     return v;
 }

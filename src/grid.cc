@@ -35,7 +35,7 @@ Grid::Grid(py::array_t<double> __w1, py::array_t<double> __w2,
 
     // Make sure the number of species and sources are set correctly.
 
-    nspecies = 0; nsources = 0;
+    nspecies = 0; nsources = 0; ngases = 0;
 
     // Initialize the uses_mrw array.
 
@@ -214,7 +214,7 @@ void Grid::add_number_density(py::array_t<double> ___number_dens,
             (double *) _number_dens_buf.ptr);
     double ***__gas_temp = pymangle(n1, n2, n3, 
             (double *) _gas_temp_buf.ptr);
-    double ****__velocity = pymangle(n1, n2, n3, 3, 
+    double ****__velocity = pymangle(3, n1, n2, n3, 
             (double *) _velocity_buf.ptr);
     double ***__microturbulence = pymangle(n1, n2, n3, 
             (double *) _microturbulence_buf.ptr);
@@ -1255,9 +1255,9 @@ double Grid::maximum_velocity(int igas) {
     for (int ix = 0; ix < n1; ix++) {
         for (int iy = 0; iy < n2; iy++) {
             for (int iz = 0; iz < n3; iz++) {
-                Vector<double, 3> vcell(velocity[igas][ix][iy][iz][0],
-                        velocity[igas][ix][iy][iz][1], 
-                        velocity[igas][ix][iy][iz][2]);
+                Vector<double, 3> vcell(velocity[igas][0][ix][iy][iz],
+                        velocity[igas][1][ix][iy][iz], 
+                        velocity[igas][2][ix][iy][iz]);
                 double vnorm = vcell.norm();
 
                 if (vnorm > vmax) vmax = vnorm;
@@ -1323,7 +1323,7 @@ void Grid::set_tgas_eq_tdust() {
                 for (int idust = 0; idust < nspecies; idust++) {
                     dust_temperature += dens[idust][ix][iy][iz] * 
                         temp[idust][ix][iy][iz];
-                    dust_density += dens[idust][iy][iy][iz];
+                    dust_density += dens[idust][ix][iy][iz];
                 }
 
                 if (dust_density > 0)
@@ -1353,7 +1353,7 @@ void Grid::select_lines(py::array_t<double> _lam) {
     double max_nu = 0.;
     double min_nu = HUGE_VAL;
     for (int ilam = 0; ilam < nlam; ilam++) {
-        double nu = c_l / lam[ilam];
+        double nu = c_l / (lam[ilam]*1.0e-4);
 
         if (nu > max_nu) max_nu = nu;
         if (nu < min_nu) min_nu = nu;
@@ -1374,7 +1374,11 @@ void Grid::select_lines(py::array_t<double> _lam) {
             double min_frequency = gas[igas]->nu[iline] * (1. - max_v / c_l);
 
             if (((min_nu < min_frequency) && (min_frequency < max_nu)) || 
-                    ((min_nu < max_frequency) && (max_frequency < max_nu))) {
+                    ((min_nu < max_frequency) && (max_frequency < max_nu)) ||
+                    ((min_frequency < min_nu) && (max_nu < max_frequency))) {
+                printf("Including gas %d transition at %f GHz \n", igas, \
+                        gas[igas]->nu[iline]/1e9);
+
                 include_lines.push_back(igas);
                 include_lines.push_back(iline);
 
@@ -1397,11 +1401,13 @@ double*** Grid::calculate_level_populations(int igas, int iline) {
                     exp(-h_p * c_l * gas[igas]->energies[level] / (k_B *
                     gas_temp[igas][ix][iy][iz])) / 
                     gas[igas]->partition_function(gas_temp[igas][ix][iy][iz]);
+
+    return level_pop;
 }
 
 void Grid::deselect_lines() {
     for (int iline = 0; iline<level_populations.size(); iline++) {
         delete3DArr(level_populations[iline], n1, n2, n3);
     }
-    include_lines.clear();
+    include_lines.clear(); level_populations.clear();
 }

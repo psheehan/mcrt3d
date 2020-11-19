@@ -483,9 +483,9 @@ Vector<double, 3> CylindricalGrid::vector_velocity(int igas, Photon *P) {
     Vector<double, 3> phihat(-sin(phi), cos(phi), 0.);
     Vector<double, 3> zhat(0., 0., 1.);
 
-    Vector<double, 3> v = velocity[igas][P->l[0]][P->l[1]][P->l[2]][0] * rhat + 
-        velocity[igas][P->l[0]][P->l[1]][P->l[2]][1] * phihat + 
-        velocity[igas][P->l[0]][P->l[1]][P->l[2]][2] * zhat;
+    Vector<double, 3> v = velocity[igas][0][P->l[0]][P->l[1]][P->l[2]] * rhat + 
+        velocity[igas][1][P->l[0]][P->l[1]][P->l[2]] * phihat + 
+        velocity[igas][2][P->l[0]][P->l[1]][P->l[2]] * zhat;
 
     return v;
 }
