@@ -239,7 +239,7 @@ void MCRT::mc_iteration(int nthreads) {
             event_average / Q->nphot);
 }
 
-void MCRT::run_image(py::array_t<double> __lam, int nx, int ny, 
+void MCRT::run_image(py::str name, py::array_t<double> __lam, int nx, int ny, 
         double pixel_size, int nphot, double incl, double pa, double dpc, 
         int nthreads, bool raytrace_dust, bool raytrace_gas) {
 
@@ -260,7 +260,7 @@ void MCRT::run_image(py::array_t<double> __lam, int nx, int ny,
     Image *I = C->make_image(nx, ny, pixel_size, __lam, incl, pa, dpc, 
             nthreads);
 
-    images.append(I);
+    images[name] = I;
 
     // Clean up the appropriate grid parameters.
     if (raytrace_dust) {
@@ -273,9 +273,9 @@ void MCRT::run_image(py::array_t<double> __lam, int nx, int ny,
     if (raytrace_gas) G->deselect_lines();
 }
 
-void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny, 
-        double pixel_size, int nphot, double incl, double pa, double dpc, 
-        int nthreads, bool raytrace_dust, bool raytrace_gas) {
+void MCRT::run_unstructured_image(py::str name, py::array_t<double> __lam, 
+        int nx, int ny, double pixel_size, int nphot, double incl, double pa, 
+        double dpc, int nthreads, bool raytrace_dust, bool raytrace_gas) {
 
     // Set the appropriate parameters.
     Q->raytrace_dust = raytrace_dust;
@@ -294,7 +294,7 @@ void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny,
     UnstructuredImage *I = C->make_unstructured_image(nx, ny, pixel_size, 
             __lam, incl, pa, dpc, nthreads);
 
-    images.append(I);
+    images[name] = I;
 
     // Clean up the appropriate grid parameters.
     if (raytrace_dust) {
@@ -307,8 +307,8 @@ void MCRT::run_unstructured_image(py::array_t<double> __lam, int nx, int ny,
     if (raytrace_gas) G->deselect_lines();
 }
 
-void MCRT::run_circular_image(py::array_t<double> __lam, int nr, int nphi, 
-        int nphot, double incl, double pa, double dpc, int nthreads, 
+void MCRT::run_circular_image(py::str name, py::array_t<double> __lam, int nr, 
+        int nphi, int nphot, double incl, double pa, double dpc, int nthreads, 
         bool raytrace_dust, bool raytrace_gas) {
 
     // Set the appropriate parameters.
@@ -328,7 +328,7 @@ void MCRT::run_circular_image(py::array_t<double> __lam, int nr, int nphi,
     UnstructuredImage *I = C->make_circular_image(nr, nphi, __lam, incl, 
             pa, dpc, nthreads);
 
-    images.append(I);
+    images[name] = I;
 
     // Clean up the appropriate grid parameters.
     if (raytrace_dust) {
@@ -341,8 +341,8 @@ void MCRT::run_circular_image(py::array_t<double> __lam, int nr, int nphi,
     if (raytrace_gas) G->deselect_lines();
 }
 
-void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl, 
-        double pa, double dpc, int nthreads, bool raytrace_dust, 
+void MCRT::run_spectrum(py::str name, py::array_t<double> __lam, int nphot, 
+        double incl, double pa, double dpc, int nthreads, bool raytrace_dust, 
         bool raytrace_gas) {
 
     // Set the appropriate parameters.
@@ -361,7 +361,7 @@ void MCRT::run_spectrum(py::array_t<double> __lam, int nphot, double incl,
     // Now, run the image through the camera.
     Spectrum *S = C->make_spectrum(__lam, incl, pa, dpc, nthreads);
 
-    spectra.append(S);
+    spectra[name] = S;
 
     // Clean up the appropriate grid parameters.
     if (raytrace_dust) {
@@ -486,6 +486,7 @@ PYBIND11_MODULE(mcrt3d, m) {
                 py::arg("nphot")=100000, py::arg("verbose")=false, 
                 py::arg("save")=true, py::arg("nthreads")=1)
         .def("run_image", &MCRT::run_image, "Generate an image.", 
+                py::arg("name"),
                 py::arg("lam"), py::arg("nx")=256, py::arg("ny")=256, 
                 py::arg("pixel_size")=0.1, py::arg("nphot")=100000, 
                 py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1., 
@@ -493,6 +494,7 @@ PYBIND11_MODULE(mcrt3d, m) {
                 py::arg("raytrace_gas")=false)
         .def("run_unstructured_image", &MCRT::run_unstructured_image, 
                 "Generate an unstructured image.", 
+                py::arg("name"),
                 py::arg("lam"), py::arg("nx")=25, py::arg("ny")=25, 
                 py::arg("pixel_size")=1.0, py::arg("nphot")=100000, 
                 py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1., 
@@ -500,11 +502,13 @@ PYBIND11_MODULE(mcrt3d, m) {
                 py::arg("raytrace_gas")=false)
         .def("run_circular_image", &MCRT::run_circular_image, 
                 "Generate an unstructured image.", 
+                py::arg("name"),
                 py::arg("lam"), py::arg("nr")=128, py::arg("ny")=128, 
                 py::arg("nphot")=100000, py::arg("incl")=0., py::arg("pa")=0., 
                 py::arg("dpc")=1., py::arg("nthreads")=1, 
                 py::arg("raytrace_dust")=true, py::arg("raytrace_gas")=false)
         .def("run_spectrum", &MCRT::run_spectrum, "Generate a spectrum.", 
+                py::arg("name"),
                 py::arg("lam"), py::arg("nphot")=10000, py::arg("incl")=0,
                 py::arg("pa")=0, py::arg("dpc")=1., py::arg("nthreads")=1, 
                 py::arg("raytrace_dust")=true, py::arg("raytrace_gas")=false);

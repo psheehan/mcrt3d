@@ -409,18 +409,19 @@ model.scattering_mc(numpy.array([4.]), nphot=100000, verbose=False)
 
 # Run the images.
 
-model.run_image(numpy.array([4.]), 256, 256, 0.1, 100000, incl=0., pa=0, \
-        dpc=140.)
+model.run_image("image", numpy.array([4.]), 256, 256, 0.1, 100000, incl=0., 
+        pa=0, dpc=140.)
 
-model.run_unstructured_image(numpy.array([1300.]), 25, 25, 2.0, 100000, \
-        incl=0., pa=0., dpc=140.)
+model.run_unstructured_image("uimage", numpy.array([1300.]), 25, 25, 2.0, \
+        100000, incl=0., pa=0., dpc=140.)
 
-model.run_image(m.images["CO2-1"].wave/1.0e-4, 256, 256, 0.1, 10000, incl=45., \
-        pa=0, dpc=140., raytrace_dust=False, raytrace_gas=True)
+model.run_image("CO2-1", m.images["CO2-1"].wave/1.0e-4, 256, 256, 0.1, 10000, 
+        incl=45., pa=0, dpc=140., raytrace_dust=False, raytrace_gas=True)
 
 # Run the spectra.
 
-model.run_spectrum(numpy.logspace(-1,4,200), 10000, incl=0, pa=0, dpc=140.)
+model.run_spectrum("SED", numpy.logspace(-1,4,200), 10000, incl=0, pa=0, \
+        dpc=140.)
 
 ################################################################################
 #
@@ -520,16 +521,16 @@ fig, ax = plt.subplots(nrows=1, ncols=3, sharex=True, sharey=True, \
 
 with numpy.errstate(divide="ignore", invalid="ignore"):
     vmax = min(numpy.log10(numpy.nanmax(m.images["image"].image[:,:,0,0])), \
-            numpy.log10(numpy.nanmax(model.images[0].intensity[:,:,0])))
+            numpy.log10(numpy.nanmax(model.images["image"].intensity[:,:,0])))
     vmin = vmax - 10.
 
     diff = (numpy.log10(m.images["image"].image[:,:,0,0]) - \
-            numpy.log10(model.images[0].intensity[:,:,0]))
+            numpy.log10(model.images["image"].intensity[:,:,0]))
 
     im1 = ax[0].imshow(numpy.log10(m.images["image"].image[:,:,0,0]), \
             origin="lower", interpolation="none", vmin=vmin, vmax=vmax)
 
-    im2 = ax[1].imshow(numpy.log10(model.images[0].intensity[:,:,0]), \
+    im2 = ax[1].imshow(numpy.log10(model.images["image"].intensity[:,:,0]), \
             origin="lower", interpolation="none", vmin=vmin, vmax=vmax)
 
     im3 = ax[2].imshow(diff, origin="lower", interpolation="none")
@@ -544,9 +545,10 @@ plt.show()
 
 # Plot the unstructured image.
 
-triang = tri.Triangulation(model.images[1].x/AU, model.images[1].y/AU)
+triang = tri.Triangulation(model.images["uimage"].x/AU, \
+        model.images["uimage"].y/AU)
 
-plt.tripcolor(triang, model.images[1].intensity[:,0], "ko-")
+plt.tripcolor(triang, model.images["uimage"].intensity[:,0], "ko-")
 plt.triplot(triang, "k.-", linewidth=0.1, markersize=0.1)
 
 plt.axes().set_aspect("equal")
@@ -566,18 +568,19 @@ fig, ax = plt.subplots(nrows=3, ncols=10, sharex=True, sharey=True, \
 
 with numpy.errstate(divide="ignore", invalid="ignore"):
     vmax = min(numpy.log10(numpy.nanmax(m.images["CO2-1"].image[:,:,:,0])), \
-            numpy.log10(numpy.nanmax(model.images[2].intensity[:,:,:])))
+            numpy.log10(numpy.nanmax(model.images["CO2-1"].intensity[:,:,:])))
     vmin = vmax - 10.
 
     for i in range(ax[0,:].size):
         diff = (numpy.log10(m.images["CO2-1"].image[:,:,i,0]) - \
-                numpy.log10(model.images[2].intensity[:,:,i]))
+                numpy.log10(model.images["CO2-1"].intensity[:,:,i]))
 
         im1 = ax[0,i].imshow(numpy.log10(m.images["CO2-1"].image[:,:,i,0]), \
                 origin="lower", interpolation="none", vmin=vmin, vmax=vmax)
 
-        im2 = ax[1,i].imshow(numpy.log10(model.images[2].intensity[:,:,i]), \
-                origin="lower", interpolation="none", vmin=vmin, vmax=vmax)
+        im2 = ax[1,i].imshow(numpy.log10(model.images["CO2-1"].\
+                intensity[:,:,i]), origin="lower", interpolation="none", \
+                vmin=vmin, vmax=vmax)
 
         im3 = ax[2,i].imshow(diff, origin="lower", interpolation="none")
 
@@ -592,7 +595,7 @@ plt.show()
 fig, ax = plt.subplots(nrows=1, ncols=1)
 
 ax.loglog(m.spectra["SED"].wave, m.spectra["SED"].flux)
-ax.loglog(model.spectra[0].lam, model.spectra[0].intensity)
+ax.loglog(model.spectra["SED"].lam, model.spectra["SED"].intensity)
 
 ax.set_ylim(1.0e-6,1.0e1)
 
