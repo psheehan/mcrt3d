@@ -167,14 +167,12 @@ double CartesianGrid::smallest_wall_size(Photon *P) {
 
 double CartesianGrid::smallest_wall_size(Ray *R) {
 
-    double s = fabs(w1[R->l[0]+1] - w1[R->l[0]]);
-    
-    double sy = fabs(w2[R->l[0]+1] - w2[R->l[0]]);
-    if (sy < s) s = sy;
-    
-    double sz = fabs(w3[R->l[0]+1] - w3[R->l[0]]);
-    if (sz < s) s = sz;
-    
+    // Use the cell volume as an estimator of the average size of a cell.
+
+    double cell_volume = volume[R->l[0]][R->l[1]][R->l[2]];
+
+    double s = pow(cell_volume*phi_scale, 1./3);
+
     return s;
 }
 

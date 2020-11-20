@@ -261,19 +261,15 @@ double CylindricalGrid::smallest_wall_size(Photon *P) {
 
 double CylindricalGrid::smallest_wall_size(Ray *R) {
 
-    double s = fabs(w1[R->l[0]+1] - w1[R->l[0]]);
+    // Use the cell volume as an estimator of the average size of a cell.
 
-    if (nw2 != 2) {
-        double r = w1[R->l[0]];
-        if (w1[R->l[0]] == 0)
-            r = w1[R->l[0]+1]*0.5;
+    double cell_volume = volume[R->l[0]][R->l[1]][R->l[2]];
 
-        double sp = fabs(r*fmax(w2[R->l[0]+1] - w2[R->l[0]],0.05));
-        if (sp < s) s = sp;
-    }
+    // Scale by the size in the theta, if theta width > 0.3
+    
+    double phi_scale = fmin(0.3 / (w3[R->l[2]+1] - w3[R->l[2]]), 1.);
 
-    double sz = fabs(w3[R->l[0]+1] - w3[R->l[0]]);
-    if (sz < s) s = sz;
+    double s = pow(cell_volume*phi_scale, 1./3);
 
     return s;
 }
