@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
 from pdspy.constants.astronomy import AU, pc, Jy, M_sun, R_sun
+from pdspy.constants.physics import m_p, G
 import pdspy.modeling as modeling
 import pdspy.dust as dust
+import pdspy.gas as gas
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import scipy.optimize
@@ -11,6 +13,7 @@ import numpy
 
 from mcrt3d import MCRT
 from mcrt3d import IsotropicDust
+from mcrt3d import load_gas_properties_lamda
 from time import time
 
 ################################################################################
@@ -47,6 +50,42 @@ def disk_density(r, theta, phi):
     rho[R < 0.1] *= 1.0e-50
 
     return rho
+
+def disk_velocity(r, theta, phi, mstar=0.5):
+    rr = 0.5*(r[1:] + r[0:-1])
+    tt = 0.5*(theta[1:] + theta[0:-1])
+    pp = 0.5*(phi[1:] + phi[0:-1])
+
+    mstar *= M_sun
+
+    rt, tt, pp = numpy.meshgrid(rr*AU, tt, pp, indexing='ij')
+
+    rr = rt*numpy.sin(tt)
+    zz = rt*numpy.cos(tt)
+
+    v_r = numpy.zeros(rr.shape)
+    v_theta = numpy.zeros(rr.shape)
+    v_phi = numpy.sqrt(G*mstar*rr**2/rt**3)
+
+    return numpy.array((v_r, v_theta, v_phi))
+
+def disk_microturbulence(r, theta, phi):
+    rr = 0.5*(r[1:] + r[0:-1])
+    tt = 0.5*(theta[1:] + theta[0:-1])
+    pp = 0.5*(phi[1:] + phi[0:-1])
+
+    ##### Set up the coordinates
+
+    rt, tt, pp = numpy.meshgrid(rr*AU, tt, pp, indexing='ij')
+
+    rr = rt*numpy.sin(tt)
+    zz = rt*numpy.cos(tt)
+
+    ##### Make the dust density model for a protoplanetary disk.
+
+    aturb = numpy.ones(rr.shape)*0.05*1.0e5
+
+    return aturb
 
 def envelope_density(r, theta, phi):
     #numpy.seterr(all='ignore')
@@ -125,6 +164,58 @@ def envelope_density(r, theta, phi):
 
     return rho
 
+
+def envelope_velocity(r, theta, phi, mstar=0.5):
+    mstar *= M_sun
+    rcent = 150.*AU
+
+    # Set up the coordinates.
+
+    rr = 0.5*(r[1:] + r[0:-1])*AU
+    tt = 0.5*(theta[1:] + theta[0:-1])
+    pp = 0.5*(phi[1:] + phi[0:-1])
+
+    rr, tt, pp = numpy.meshgrid(rr, tt, pp, indexing='ij')
+
+    mu = numpy.cos(tt)
+
+    # Calculate mu0 at each r, theta combination.
+
+    def func(mu0,r,mu,R_c):
+        return mu0**3-mu0*(1-r/R_c)-mu*(r/R_c)
+
+    mu0 = mu*0.
+    for ir in range(rr.shape[0]):
+        for it in range(rr.shape[1]):
+            mu0[ir,it,0] = scipy.optimize.brenth(func, -1.0, 1.0, \
+                    args=(rr[ir,it,0], mu[ir,it,0], rcent))
+
+    v_r = -numpy.sqrt(G*mstar/rr)*numpy.sqrt(1 + mu/mu0)
+    v_theta = numpy.sqrt(G*mstar/rr) * (mu0 - mu) * \
+            numpy.sqrt((mu0 + mu) / (mu0 * numpy.sin(tt)**2))
+    v_phi = numpy.sqrt(G*mstar/rr) * numpy.sqrt((1 - mu0**2)/(1 - mu**2)) *\
+            numpy.sqrt(1 - mu/mu0)
+
+    return numpy.array((v_r, v_theta, v_phi))
+
+def envelope_microturbulence(r, theta, phi):
+    ##### Set up the coordinates
+
+    rr = 0.5*(r[1:] + r[0:-1])
+    tt = 0.5*(theta[1:] + theta[0:-1])
+    pp = 0.5*(phi[1:] + phi[0:-1])
+
+    rt, tt, pp = numpy.meshgrid(rr*AU, tt, pp, indexing='ij')
+
+    rr = rt*numpy.sin(tt)
+    zz = rt*numpy.cos(tt)
+
+    ##### Make the dust density model for a protoplanetary disk.
+
+    aturb = numpy.ones(rr.shape)*1.0e5*0.05
+
+    return aturb
+
 ################################################################################
 #
 # Run the model with RADMC3D
@@ -144,6 +235,12 @@ ksca = data[:,2].copy()
 d = dust.Dust()
 d.set_properties(lam, kabs, ksca)
 
+# Set up the gas.
+
+g = gas.Gas()
+g.set_properties_from_lambda("Data/co.dat")
+abundance = 1.0e-4
+
 # Set up the grid.
 
 nr = 100
@@ -162,13 +259,31 @@ m.grid.lam = lam * 1.0e4
 
 # Set the density.
 
-disk_dens = disk_density(r, t, p)
+density_disk = disk_density(r, t, p)
 
-m.grid.add_density(disk_dens, d)
+m.grid.add_density(density_disk, d)
 
-env_dens = envelope_density(r, t, p)
+density_envelope = envelope_density(r, t, p)
 
-m.grid.add_density(env_dens, d)
+m.grid.add_density(density_envelope, d)
+
+# Set up the gas density.
+
+gas_density_disk = density_disk * 100 / (2.37 * m_p) * abundance
+velocity_disk = disk_velocity(r, t, p)
+microturbulence_disk = disk_microturbulence(r, t, p)
+
+m.grid.add_number_density(gas_density_disk, g)
+m.grid.add_velocity(velocity_disk)
+m.grid.add_microturbulence(microturbulence_disk)
+
+gas_density_envelope = density_envelope * 100 / (2.37 * m_p) * abundance
+velocity_envelope = envelope_velocity(r, t, p)
+microturbulence_envelope = envelope_microturbulence(r, t, p)
+
+m.grid.add_number_density(gas_density_envelope, g)
+m.grid.add_velocity(velocity_envelope)
+m.grid.add_microturbulence(microturbulence_envelope)
 
 # Add a star.
 
@@ -187,19 +302,29 @@ print(t2-t1)
 
 m.set_camera_wavelength(numpy.array([4.]))
 
-m.run_scattering(code="radmc3d", nphot=1e5, verbose=False, loadlambda=True)
+m.run_scattering(code="radmc3d", nphot=1e5, verbose=False, loadlambda=True, \
+        tgas_eq_tdust=True)
 
 # Run the image.
 
 m.run_image(name="image", nphot=1e5, npix=256, pixelsize=0.1, lam="4", \
-        phi=0, incl=0, code="radmc3d", dpc=140., verbose=False)
+        phi=0, incl=0, code="radmc3d", dpc=140., tgas_eq_tdust=True, \
+        verbose=False)
+
+# Run a CO channel map.
+
+m.run_image(name="CO2-1", nphot=0, npix=256, pixelsize=0.1, lam=None, \
+        imolspec=1, iline=2, widthkms=2.5, linenlam=10, tgas_eq_tdust=True, \
+        scattering_mode_max=0, incl_dust=False, incl=45, pa=90, code="radmc3d",\
+        dpc=140, verbose=False, writeimage_unformatted=True)
 
 # Run the SED.
 
 m.set_camera_wavelength(numpy.logspace(-1,4,200))
 
 m.run_sed(name="SED", nphot=1e4, loadlambda=True, incl=0, pa=0, \
-        dpc=140., code="radmc3d", camera_scatsrc_allfreq=True, verbose=False)
+        dpc=140., code="radmc3d", camera_scatsrc_allfreq=True, \
+        tgas_eq_tdust=True, verbose=False)
 
 ################################################################################
 #
@@ -234,6 +359,11 @@ ksca = data[::-1,2].copy()
 
 d = IsotropicDust(lam, kabs, ksca)
 
+# Set up the gas.
+
+g = load_gas_properties_lamda("Data/co.dat")
+abundance = 1.0e-4
+
 # Set up the density.
 
 density_disk = disk_density(r, t, p)
@@ -243,6 +373,22 @@ model.grid.add_density(density_disk, d)
 density_envelope = envelope_density(r, t, p)
 
 model.grid.add_density(density_envelope, d)
+
+# Set up the gas density.
+
+gas_density_disk = density_disk * 100 / (2.37 * m_p) * abundance
+velocity_disk = disk_velocity(r, t, p)
+microturbulence_disk = disk_microturbulence(r, t, p)
+
+model.grid.add_number_density(gas_density_disk, velocity_disk, \
+        microturbulence_disk, g)
+
+gas_density_envelope = density_envelope * 100 / (2.37 * m_p) * abundance
+velocity_envelope = envelope_velocity(r, t, p)
+microturbulence_envelope = envelope_microturbulence(r, t, p)
+
+model.grid.add_number_density(gas_density_envelope, velocity_envelope, \
+        microturbulence_envelope, g)
 
 # Set up the star.
 
@@ -268,6 +414,9 @@ model.run_image(numpy.array([4.]), 256, 256, 0.1, 100000, incl=0., pa=0, \
 
 model.run_unstructured_image(numpy.array([1300.]), 25, 25, 2.0, 100000, \
         incl=0., pa=0., dpc=140.)
+
+model.run_image(m.images["CO2-1"].wave/1.0e-4, 256, 256, 0.1, 10000, incl=45., \
+        pa=0, dpc=140., raytrace_dust=False, raytrace_gas=True)
 
 # Run the spectra.
 
@@ -406,6 +555,35 @@ plt.xlabel("x", fontsize=14)
 plt.ylabel("y", fontsize=14)
 
 plt.axes().tick_params(labelsize=14)
+
+plt.show()
+
+# Plot the channel maps.
+
+fig, ax = plt.subplots(nrows=3, ncols=10, sharex=True, sharey=True, \
+        figsize=(15,5), gridspec_kw=dict(hspace=0, wspace=0, left=0.05, \
+        right=0.98, top=0.98, bottom=0.05))
+
+with numpy.errstate(divide="ignore", invalid="ignore"):
+    vmax = min(numpy.log10(numpy.nanmax(m.images["CO2-1"].image[:,:,:,0])), \
+            numpy.log10(numpy.nanmax(model.images[2].intensity[:,:,:])))
+    vmin = vmax - 10.
+
+    for i in range(ax[0,:].size):
+        diff = (numpy.log10(m.images["CO2-1"].image[:,:,i,0]) - \
+                numpy.log10(model.images[2].intensity[:,:,i]))
+
+        im1 = ax[0,i].imshow(numpy.log10(m.images["CO2-1"].image[:,:,i,0]), \
+                origin="lower", interpolation="none", vmin=vmin, vmax=vmax)
+
+        im2 = ax[1,i].imshow(numpy.log10(model.images[2].intensity[:,:,i]), \
+                origin="lower", interpolation="none", vmin=vmin, vmax=vmax)
+
+        im3 = ax[2,i].imshow(diff, origin="lower", interpolation="none")
+
+ax[0,0].set_ylabel("RADMC-3D")
+ax[1,0].set_ylabel("MCRT3D")
+ax[2,0].set_ylabel("RADMC-3D - MCRT3D")
 
 plt.show()
 
