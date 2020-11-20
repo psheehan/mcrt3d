@@ -171,7 +171,7 @@ double CartesianGrid::smallest_wall_size(Ray *R) {
 
     double cell_volume = volume[R->l[0]][R->l[1]][R->l[2]];
 
-    double s = pow(cell_volume*phi_scale, 1./3);
+    double s = pow(cell_volume, 1./3);
 
     return s;
 }
