@@ -14,6 +14,8 @@
 #include "photon.cc"
 #include "gas.cc"
 
+#include "timer.c"
+
 MCRT::MCRT() {
     Q = new Params();
 }
@@ -257,8 +259,11 @@ void MCRT::run_image(py::str name, py::array_t<double> __lam, int nx, int ny,
     }
 
     // Now, run the image through the camera.
+    TCREATE(moo); TCLEAR(moo); TSTART(moo);
     Image *I = C->make_image(nx, ny, pixel_size, __lam, incl, pa, dpc, 
             nthreads);
+    TSTOP(moo);
+    printf("Time to raytrace: %f \n", TGIVE(moo));
 
     images[name] = I;
 
@@ -291,8 +296,11 @@ void MCRT::run_unstructured_image(py::str name, py::array_t<double> __lam,
     }
 
     // Now, run the image through the camera.
+    TCREATE(moo); TCLEAR(moo); TSTART(moo);
     UnstructuredImage *I = C->make_unstructured_image(nx, ny, pixel_size, 
             __lam, incl, pa, dpc, nthreads);
+    TSTOP(moo);
+    printf("Time to raytrace: %f \n", TGIVE(moo));
 
     images[name] = I;
 
@@ -325,8 +333,11 @@ void MCRT::run_circular_image(py::str name, py::array_t<double> __lam, int nr,
     }
 
     // Now, run the image through the camera.
+    TCREATE(moo); TCLEAR(moo); TSTART(moo);
     UnstructuredImage *I = C->make_circular_image(nr, nphi, __lam, incl, 
             pa, dpc, nthreads);
+    TSTOP(moo);
+    printf("Time to raytrace: %f \n", TGIVE(moo));
 
     images[name] = I;
 
@@ -359,7 +370,10 @@ void MCRT::run_spectrum(py::str name, py::array_t<double> __lam, int nphot,
     }
 
     // Now, run the image through the camera.
+    TCREATE(moo); TCLEAR(moo); TSTART(moo);
     Spectrum *S = C->make_spectrum(__lam, incl, pa, dpc, nthreads);
+    TSTOP(moo);
+    printf("Time to raytrace: %f \n", TGIVE(moo));
 
     spectra[name] = S;
 
