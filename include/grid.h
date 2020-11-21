@@ -79,6 +79,7 @@ struct Grid {
     py::list _gas;
     std::vector<int> include_lines;
     std::vector<double***> level_populations;
+    std::vector<double***> gamma_thermal;
 
 
     int nsources;
@@ -156,12 +157,13 @@ struct Grid {
     double cell_lum(Vector<int, 3> l, double nu);
     double cell_lum(int idust, int ix, int iy, int iz, double nu);
 
-    virtual Vector<double, 3> vector_velocity(int igas, Photon *P);
+    Vector<double, 3> vector_velocity(int igas, Photon *P);
     double maximum_velocity(int igas);
     double maximum_gas_temperature(int igas);
     double maximum_microturbulence(int igas);
-    double line_profile(int igas, int iline, Vector<int, 3> l, double nu);
-    double*** calculate_level_populations(int igas, int iline);
+    double line_profile(int igas, int iline, int itrans, Vector<int, 3> l, 
+            double nu);
+    void calculate_level_populations(int igas, int iline);
     void set_tgas_eq_tdust();
     void select_lines(py::array_t<double> lam);
     void deselect_lines();

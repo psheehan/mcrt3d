@@ -9,6 +9,7 @@ struct Photon {
     Vector<double, 3> r;
     Vector<double, 3> n;
     Vector<double, 3> invn;
+    Vector<double, 3> nframe;
     double *current_kext, *current_albedo;
     Vector<int, 3> l;
 

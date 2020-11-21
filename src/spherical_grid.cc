@@ -449,6 +449,16 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
     P->theta = theta;
     P->phi = phi;
     
+    /* Also calculate n in the coordinate system frame. */
+
+    Vector<double, 3> xhat(sin(theta)*cos(phi), cos(theta)*cos(phi), 
+            -sin(phi));
+    Vector<double, 3> yhat(sin(theta)*sin(phi), cos(theta)*sin(phi), 
+            cos(phi));
+    Vector<double, 3> zhat(cos(theta), -sin(theta), 0.);
+
+    P->nframe = P->n[0]*xhat + P->n[1]*yhat + P->n[2]*zhat;
+
     return l;
 }
 
@@ -482,23 +492,3 @@ bool SphericalGrid::in_grid(Photon *P) {
     else
         return true;
 }
-
-/* Calculate the line profile of a spectral line. */
-
-Vector<double, 3> SphericalGrid::vector_velocity(int igas, Photon *P) {
-    double theta = P->theta;
-    double phi = P->phi;
-
-    Vector<double, 3> rhat(sin(theta)*cos(phi), sin(theta)*sin(phi), 
-            cos(theta));
-    Vector<double, 3> thetahat(cos(theta)*cos(phi), cos(theta)*sin(phi), 
-            -sin(theta));
-    Vector<double, 3> phihat(-sin(phi), cos(phi), 0.);
-
-    Vector<double, 3> v = velocity[igas][0][P->l[0]][P->l[1]][P->l[2]] * rhat + 
-        velocity[igas][1][P->l[0]][P->l[1]][P->l[2]] * thetahat + 
-        velocity[igas][2][P->l[0]][P->l[1]][P->l[2]] * phihat;
-
-    return v;
-}
-

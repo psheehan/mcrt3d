@@ -433,6 +433,14 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P) {
     else if ((P->r[2] == w3[l[2]+1]) && (P->n[2] > 0))
         l[2] += 1;
     
+    /* Also calculate n in the coordinate system frame. */
+
+    Vector<double, 3> xhat(cos(phi), sin(phi), 0.);
+    Vector<double, 3> yhat(-sin(phi), cos(phi), 0.);
+    Vector<double, 3> zhat(0., 0., 1.);
+
+    P->nframe = P->n[0]*xhat + P->n[1]*yhat + P->n[2]*zhat;
+
     return l;
 }
 
@@ -469,20 +477,5 @@ bool CylindricalGrid::in_grid(Photon *P) {
         return false;
     else
         return true;
-}
-
-/* Calculate the line profile of a spectral line. */
-
-Vector<double, 3> CylindricalGrid::vector_velocity(int igas, Photon *P) {
-    double phi = P->phi;
-    Vector<double, 3> rhat(cos(phi), sin(phi), 0.);
-    Vector<double, 3> phihat(-sin(phi), cos(phi), 0.);
-    Vector<double, 3> zhat(0., 0., 1.);
-
-    Vector<double, 3> v = velocity[igas][0][P->l[0]][P->l[1]][P->l[2]] * rhat + 
-        velocity[igas][1][P->l[0]][P->l[1]][P->l[2]] * phihat + 
-        velocity[igas][2][P->l[0]][P->l[1]][P->l[2]] * zhat;
-
-    return v;
 }
 

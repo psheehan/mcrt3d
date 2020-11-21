@@ -299,6 +299,10 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
     else if ((P->r[2] == w3[l[2]+1]) && (P->n[2] > 0))
         l[2] += 1;
     
+    /* Also calculate n in the coordinate system frame. */
+
+    P->nframe = P->n;
+
     return l;
 }
 
@@ -346,19 +350,5 @@ bool CartesianGrid::in_grid(Photon *P) {
         return false;
     else
         return true;
-}
-
-/* Calculate the line profile of a spectral line. */
-
-Vector<double, 3> CartesianGrid::vector_velocity(int igas, Photon *P) {
-    Vector<double, 3> xhat(1., 0., 0.);
-    Vector<double, 3> yhat(0., 1., 0.);
-    Vector<double, 3> zhat(0., 0., 1.);
-
-    Vector<double, 3> v = velocity[igas][0][P->l[0]][P->l[1]][P->l[2]] * xhat + 
-        velocity[igas][1][P->l[0]][P->l[1]][P->l[2]] * yhat + 
-        velocity[igas][2][P->l[0]][P->l[1]][P->l[2]] * zhat;
-
-    return v;
 }
 

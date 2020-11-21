@@ -1030,11 +1030,12 @@ void Grid::propagate_ray(Ray *R) {
                             gas[igas]->nu[iline]*gas[igas]->nu[iline]) * 
                             gas[igas]->A[iline] * 
                             number_dens[igas][R->l[0]][R->l[1]][R->l[2]] * 
-                            level_populations[itrans/2][R->l[0]][R->l[1]]
-                            [R->l[2]] * (exp(h_p * gas[igas]->nu[iline] / (k_B *
-                            gas_temp[igas][R->l[0]][R->l[1]][R->l[2]])) - 1) * 
-                            line_profile(igas, iline, R->l, R->nu[inu] * (1 - 
-                            -R->n.dot(vector_velocity(igas, R)) / c_l));
+                            (level_populations[itrans+1][R->l[0]][R->l[1]]
+                            [R->l[2]] - level_populations[itrans][R->l[0]]
+                            [R->l[1]][R->l[2]]) *
+                            line_profile(igas, iline, itrans/2, R->l, 
+                            R->nu[inu] * (1 - -R->nframe.dot(
+                            vector_velocity(igas, R)) / c_l));
 
                     tau_cell += s*alpha_this_line;
                     alpha_ext += alpha_this_line;
@@ -1253,7 +1254,9 @@ double Grid::cell_lum(int idust, int ix, int iy, int iz, double nu) {
 /* Calculate the line profile of a spectral line. */
 
 Vector<double, 3> Grid::vector_velocity(int igas, Photon *P) {
-    return Vector<double, 3>(0., 0., 0.);
+    return Vector<double, 3>(velocity[igas][0][P->l[0]][P->l[1]][P->l[2]], 
+            velocity[igas][1][P->l[0]][P->l[1]][P->l[2]], 
+            velocity[igas][2][P->l[0]][P->l[1]][P->l[2]]);
 }
 
 double Grid::maximum_velocity(int igas) {
@@ -1305,17 +1308,12 @@ double Grid::maximum_microturbulence(int igas) {
     return Mmax;
 }
 
-double Grid::line_profile(int igas, int iline, Vector<int, 3> l, double nu) {
-    double a_thermal = sqrt(2 * k_B * gas_temp[igas][l[0]][l[1]][l[2]] / 
-            (gas[igas]->mu * m_p));
-    double a_microturb = microturbulence[igas][l[0]][l[1]][l[2]];
-
-    double gamma_thermal = gas[igas]->nu[iline] / c_l * sqrt(
-            a_thermal*a_thermal + a_microturb*a_microturb);
+double Grid::line_profile(int igas, int iline, int itrans, Vector<int, 3> l, 
+        double nu) {
+    double gammat = gamma_thermal[itrans][l[0]][l[1]][l[2]];
 
     double profile = exp(-(nu - gas[igas]->nu[iline])*(nu - 
-            gas[igas]->nu[iline]) / (gamma_thermal * gamma_thermal)) / 
-            (gamma_thermal * sqrt(pi));
+            gas[igas]->nu[iline]) / (gammat * gammat)) / (gammat * sqrt(pi));
 
     return profile;
 }
@@ -1389,32 +1387,62 @@ void Grid::select_lines(py::array_t<double> _lam) {
                 include_lines.push_back(igas);
                 include_lines.push_back(iline);
 
-                level_populations.push_back(calculate_level_populations(
-                            igas, iline));
+                calculate_level_populations(igas, iline);
             }
         }
     }
 }
 
-double*** Grid::calculate_level_populations(int igas, int iline) {
-    double ***level_pop = create3DArr(n1, n2, n3);
+void Grid::calculate_level_populations(int igas, int iline) {
+    double ***level_pop_up = create3DArr(n1, n2, n3);
+    double ***level_pop_low = create3DArr(n1, n2, n3);
+    double ***gamma_therm = create3DArr(n1, n2, n3);
 
-    int level = gas[igas]->up[iline]-1;
+    int level_up = gas[igas]->up[iline]-1;
+    int level_low = gas[igas]->low[iline]-1;
 
-    for (int ix = 0; ix < n1; ix++)
-        for (int iy = 0; iy < n2; iy++)
-            for (int iz = 0; iz < n3; iz++)
-                level_pop[ix][iy][iz] = gas[igas]->weights[level] * 
-                    exp(-h_p * c_l * gas[igas]->energies[level] / (k_B *
+    for (int ix = 0; ix < n1; ix++) {
+        for (int iy = 0; iy < n2; iy++) {
+            for (int iz = 0; iz < n3; iz++) {
+                level_pop_up[ix][iy][iz] = gas[igas]->weights[level_up] * 
+                    exp(-h_p * c_l * gas[igas]->energies[level_up] / (k_B *
                     gas_temp[igas][ix][iy][iz])) / 
                     gas[igas]->partition_function(gas_temp[igas][ix][iy][iz]);
 
-    return level_pop;
+                level_pop_low[ix][iy][iz] = gas[igas]->weights[level_low] * 
+                    exp(-h_p * c_l * gas[igas]->energies[level_low] / (k_B *
+                    gas_temp[igas][ix][iy][iz])) / 
+                    gas[igas]->partition_function(gas_temp[igas][ix][iy][iz]);
+
+                // Multipliy by the ratio of weights so we don't have to do
+                // this on the fly.
+
+                level_pop_low[ix][iy][iz] *= gas[igas]->weights[level_up] * 
+                        gas[igas]->weights[level_low];
+
+                // Also calculate gamma_thermal so we don't have to do it
+                // on the fly.
+
+                double a_thermal = sqrt(2 * k_B * gas_temp[igas][ix][iy][iz] / 
+                        (gas[igas]->mu * m_p));
+                double a_microturb = microturbulence[igas][ix][iy][iz];
+
+                gamma_therm[ix][iy][iz] = gas[igas]->nu[iline] / c_l * sqrt(
+                        a_thermal*a_thermal + a_microturb*a_microturb);
+            }
+        }
+    }
+
+    level_populations.push_back(level_pop_up);
+    level_populations.push_back(level_pop_low);
+    gamma_thermal.push_back(gamma_therm);
 }
 
 void Grid::deselect_lines() {
     for (int iline = 0; iline<level_populations.size(); iline++) {
         delete3DArr(level_populations[iline], n1, n2, n3);
+        if (iline%2 == 0)
+            delete3DArr(gamma_thermal[iline/2], n1, n2, n3);
     }
-    include_lines.clear(); level_populations.clear();
+    include_lines.clear(); level_populations.clear(); gamma_thermal.clear();
 }
