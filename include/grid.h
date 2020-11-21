@@ -79,7 +79,8 @@ struct Grid {
     py::list _gas;
     std::vector<int> include_lines;
     std::vector<double***> level_populations;
-    std::vector<double***> gamma_thermal;
+    std::vector<double***> alpha_line;
+    std::vector<double***> inv_gamma_thermal;
 
 
     int nsources;

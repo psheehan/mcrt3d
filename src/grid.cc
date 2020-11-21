@@ -1026,13 +1026,8 @@ void Grid::propagate_ray(Ray *R) {
                     int igas = include_lines[itrans];
                     int iline = include_lines[itrans+1];
 
-                    double alpha_this_line = c_l*c_l / (8*pi*
-                            gas[igas]->nu[iline]*gas[igas]->nu[iline]) * 
-                            gas[igas]->A[iline] * 
-                            number_dens[igas][R->l[0]][R->l[1]][R->l[2]] * 
-                            (level_populations[itrans+1][R->l[0]][R->l[1]]
-                            [R->l[2]] - level_populations[itrans][R->l[0]]
-                            [R->l[1]][R->l[2]]) *
+                    double alpha_this_line = 
+                            alpha_line[itrans/2][R->l[0]][R->l[1]][R->l[2]] *
                             line_profile(igas, iline, itrans/2, R->l, 
                             R->nu[inu] * (1 - -R->nframe.dot(
                             vector_velocity(igas, R)) / c_l));
@@ -1310,10 +1305,10 @@ double Grid::maximum_microturbulence(int igas) {
 
 double Grid::line_profile(int igas, int iline, int itrans, Vector<int, 3> l, 
         double nu) {
-    double gammat = gamma_thermal[itrans][l[0]][l[1]][l[2]];
+    double inv_gammat = inv_gamma_thermal[itrans][l[0]][l[1]][l[2]];
 
     double profile = exp(-(nu - gas[igas]->nu[iline])*(nu - 
-            gas[igas]->nu[iline]) / (gammat * gammat)) / (gammat * sqrt(pi));
+            gas[igas]->nu[iline]) * (inv_gammat * inv_gammat));
 
     return profile;
 }
@@ -1396,7 +1391,8 @@ void Grid::select_lines(py::array_t<double> _lam) {
 void Grid::calculate_level_populations(int igas, int iline) {
     double ***level_pop_up = create3DArr(n1, n2, n3);
     double ***level_pop_low = create3DArr(n1, n2, n3);
-    double ***gamma_therm = create3DArr(n1, n2, n3);
+    double ***alpha = create3DArr(n1, n2, n3);
+    double ***inv_gamma_therm = create3DArr(n1, n2, n3);
 
     int level_up = gas[igas]->up[iline]-1;
     int level_low = gas[igas]->low[iline]-1;
@@ -1420,29 +1416,43 @@ void Grid::calculate_level_populations(int igas, int iline) {
                 level_pop_low[ix][iy][iz] *= gas[igas]->weights[level_up] * 
                         gas[igas]->weights[level_low];
 
-                // Also calculate gamma_thermal so we don't have to do it
+                // Also calculate inv_gamma_thermal so we don't have to do it
                 // on the fly.
 
                 double a_thermal = sqrt(2 * k_B * gas_temp[igas][ix][iy][iz] / 
                         (gas[igas]->mu * m_p));
                 double a_microturb = microturbulence[igas][ix][iy][iz];
 
-                gamma_therm[ix][iy][iz] = gas[igas]->nu[iline] / c_l * sqrt(
-                        a_thermal*a_thermal + a_microturb*a_microturb);
+                inv_gamma_therm[ix][iy][iz] = 1./(gas[igas]->nu[iline] / c_l * 
+                        sqrt(a_thermal*a_thermal + a_microturb*a_microturb));
+
+                // Divide level populations by inv_gamma_thermal so this doesn't
+                // have to be done on the fly, either.
+
+                alpha[ix][iy][iz] = c_l*c_l / (8*pi*
+                        gas[igas]->nu[iline]*gas[igas]->nu[iline]) * 
+                        gas[igas]->A[iline] * 
+                        number_dens[igas][ix][iy][iz] * 
+                        (level_pop_low[ix][iy][iz] - level_pop_up[ix][iy][iz]) *
+                        inv_gamma_therm[ix][iy][iz] / sqrt(pi);
             }
         }
     }
 
     level_populations.push_back(level_pop_up);
     level_populations.push_back(level_pop_low);
-    gamma_thermal.push_back(gamma_therm);
+    alpha_line.push_back(alpha);
+    inv_gamma_thermal.push_back(inv_gamma_therm);
 }
 
 void Grid::deselect_lines() {
     for (int iline = 0; iline<level_populations.size(); iline++) {
         delete3DArr(level_populations[iline], n1, n2, n3);
-        if (iline%2 == 0)
-            delete3DArr(gamma_thermal[iline/2], n1, n2, n3);
+        if (iline%2 == 0) {
+            delete3DArr(inv_gamma_thermal[iline/2], n1, n2, n3);
+            delete3DArr(alpha_line[iline/2], n1, n2, n3);
+        }
     }
-    include_lines.clear(); level_populations.clear(); gamma_thermal.clear();
+    include_lines.clear(); level_populations.clear(); inv_gamma_thermal.clear();
+    alpha_line.clear();
 }
