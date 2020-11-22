@@ -1413,12 +1413,6 @@ void Grid::calculate_level_populations(int igas, int iline) {
                     gas_temp[igas][ix][iy][iz])) / 
                     gas[igas]->partition_function(gas_temp[igas][ix][iy][iz]);
 
-                // Multipliy by the ratio of weights so we don't have to do
-                // this on the fly.
-
-                level_pop_low[ix][iy][iz] *= gas[igas]->weights[level_up] * 
-                        gas[igas]->weights[level_low];
-
                 // Also calculate inv_gamma_thermal so we don't have to do it
                 // on the fly.
 
@@ -1429,14 +1423,17 @@ void Grid::calculate_level_populations(int igas, int iline) {
                 inv_gamma_therm[ix][iy][iz] = 1./(gas[igas]->nu[iline] / c_l * 
                         sqrt(a_thermal*a_thermal + a_microturb*a_microturb));
 
-                // Divide level populations by inv_gamma_thermal so this doesn't
-                // have to be done on the fly, either.
+                // Calculate the alpha value for the line in this cell, so this
+                // doesn't have to be done on the fly, either.
 
                 alpha[ix][iy][iz] = c_l*c_l / (8*pi*
                         gas[igas]->nu[iline]*gas[igas]->nu[iline]) * 
                         gas[igas]->A[iline] * 
                         number_dens[igas][ix][iy][iz] * 
-                        (level_pop_low[ix][iy][iz] - level_pop_up[ix][iy][iz]) *
+                        (level_pop_low[ix][iy][iz]*
+                        gas[igas]->weights[level_up] / 
+                        gas[igas]->weights[level_low] - 
+                        level_pop_up[ix][iy][iz]) *
                         inv_gamma_therm[ix][iy][iz] / sqrt(pi);
             }
         }
