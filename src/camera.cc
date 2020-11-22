@@ -238,7 +238,7 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
                     image->pixel_size, image->nu, image->nnu, 0);
 
             for (int i = 0; i < image->nnu; i++)
-                image->intensity[j][k][i] = intensity[i] * 
+                image->intensity[k][j][i] = intensity[i] * 
                     image->pixel_size * image->pixel_size / (r * r)/ Jy;
 
             delete[] intensity;
