@@ -315,7 +315,7 @@ m.run_image(name="image", nphot=1e5, npix=256, pixelsize=0.1, lam="4", \
 
 m.run_image(name="CO2-1", nphot=0, npix=256, pixelsize=0.1, lam=None, \
         imolspec=1, iline=2, widthkms=2.5, linenlam=10, tgas_eq_tdust=True, \
-        scattering_mode_max=0, incl_dust=False, incl=45, pa=90, code="radmc3d",\
+        scattering_mode_max=0, incl_dust=False, incl=45, pa=0, code="radmc3d",\
         dpc=140, verbose=False, writeimage_unformatted=True)
 
 # Run the SED.
@@ -380,14 +380,18 @@ gas_density_disk = density_disk * 100 / (2.37 * m_p) * abundance
 velocity_disk = disk_velocity(r, t, p)
 microturbulence_disk = disk_microturbulence(r, t, p)
 
-model.grid.add_number_density(gas_density_disk, velocity_disk, \
-        microturbulence_disk, g)
-
 gas_density_envelope = density_envelope * 100 / (2.37 * m_p) * abundance
 velocity_envelope = envelope_velocity(r, t, p)
 microturbulence_envelope = envelope_microturbulence(r, t, p)
 
-model.grid.add_number_density(gas_density_envelope, velocity_envelope, \
+velocity = numpy.where(gas_density_disk + gas_density_envelope > 0, 
+        (velocity_disk * gas_density_disk + velocity_envelope * \
+        gas_density_envelope) / (gas_density_disk + gas_density_envelope), 0.)
+
+model.grid.add_number_density(gas_density_disk, velocity, \
+        microturbulence_disk, g)
+
+model.grid.add_number_density(gas_density_envelope, velocity, \
         microturbulence_envelope, g)
 
 # Set up the star.
@@ -569,7 +573,7 @@ fig, ax = plt.subplots(nrows=3, ncols=10, sharex=True, sharey=True, \
 with numpy.errstate(divide="ignore", invalid="ignore"):
     vmax = min(numpy.log10(numpy.nanmax(m.images["CO2-1"].image[:,:,:,0])), \
             numpy.log10(numpy.nanmax(model.images["CO2-1"].intensity[:,:,:])))
-    vmin = vmax - 10.
+    vmin = vmax - 0.75
 
     for i in range(ax[0,:].size):
         diff = (numpy.log10(m.images["CO2-1"].image[:,:,i,0]) - \
