@@ -1043,8 +1043,11 @@ void Grid::propagate_ray(Ray *R) {
 
             double albedo = alpha_sca / alpha_ext;
 
-            intensity_abs *= (1.0-exp(-tau_cell)) / alpha_ext;
-            intensity_line *= (1.0-exp(-tau_cell)) / alpha_ext;
+            if (alpha_ext > 0) {
+                intensity_abs *= (1.0-exp(-tau_cell)) / alpha_ext;
+                intensity_line *= (1.0-exp(-tau_cell)) / alpha_ext;
+            }
+
             double intensity_sca = 0;
             if (Q->raytrace_dust) intensity_sca = (1.0-exp(-tau_cell)) * 
                     albedo * scatt[0][R->l[0]][R->l[1]][R->l[2]][inu];
