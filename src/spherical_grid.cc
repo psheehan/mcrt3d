@@ -170,24 +170,24 @@ double SphericalGrid::outer_wall_distance(Photon *P) {
 /* Calculate the smallest absolute distance to the nearest wall. */
 
 double SphericalGrid::minimum_wall_distance(Photon *P) {
-    double r = P->rad;
-
     // Calculate the distance to the nearest radial wall.
     
     double s = HUGE_VAL;
     for (int i=P->l[0]; i <= P->l[0]+1; i++) {
-        double sr = fabs(r - w1[i]);
+        double sr = fabs(P->rad - w1[i]);
         if (sr < s) s = sr;
     }
 
     // Calculate the distance to the nearest theta wall.
     
     if (nw2 != 2) {
-        //double theta = P->theta;
-        double rho = sqrt(P->r[0]*P->r[0] + P->r[1]*P->r[1]);
-        
         for (int i=P->l[1]; i <= P->l[1]+1; i++) {
-            double st = fabs(P->r[3]*sin(w2[i]) - rho*cos(w3[i]));
+            Vector<double, 3> r_hat(sin(w2[i])*cos(P->phi), 
+                    sin(w2[i])*sin(P->phi), cos(w2[i]));
+
+            double rho = P->r.dot(r_hat);
+
+            double st = (rho*r_hat - P->r).norm();
             if (st < s) s = st;
         }
     }
@@ -195,13 +195,14 @@ double SphericalGrid::minimum_wall_distance(Photon *P) {
     // Calculate the distance to the nearest phi wall.
     
     if (nw3 != 2) {
-        //double phi = P->phi;
-        
         for (int i=P->l[2]; i <= P->l[2]+1; i++) {
-            Vector<double, 3> phi_hat = Vector<double, 3>(-sin(w3[i]), 
-                    cos(w3[i]), 0);
+            Vector<double, 3> r_hat = Vector<double, 3>(cos(w3[i]),
+                    sin(w3[i]), 0);
+            Vector<double, 3> z_hat = Vector<double, 3>(0.,0.,1.);
 
-            double sp = fabs(phi_hat * P->r);
+            double rho = P->r.dot(r_hat);
+
+            double sp = (rho*r_hat+P->r[2]*z_hat - P->r).norm();
             if (sp < s) s = sp;
         }
     }
@@ -460,6 +461,26 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
     P->nframe = P->n[0]*xhat + P->n[1]*yhat + P->n[2]*zhat;
 
     return l;
+}
+
+/* Update extra position parameters like rad and theta during MRW. */
+
+void SphericalGrid::photon_loc_mrw(Photon *P) {
+    /* Calculate the radial location of the photon. */
+    P->rad = P->r.norm();
+
+    /* If P->rad = 0 we need to be careful about how we calculate theta and 
+     * phi. */
+    if (P->rad == 0) {
+        P->theta = pi - P->theta;
+        P->l[1] = -1;
+        P->phi = fmod(P->phi + pi, 2*pi);
+        P->l[2] = -1;
+    }
+    else {
+        P->theta = acos(P->r[2]/P->rad);
+        P->phi = fmod(atan2(P->r[1],P->r[0])+2*pi,2*pi);
+    }
 }
 
 /* Randomly generate a photon location within a cell. */

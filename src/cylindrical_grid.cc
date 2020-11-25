@@ -228,6 +228,19 @@ double CylindricalGrid::minimum_wall_distance(Photon *P) {
         }
     }
 
+    if (nw2 != 2) {
+        for (int i=P->l[1]; i <= P->l[1]+1; i++) {
+            Vector<double, 3> r_hat = Vector<double, 3>(cos(w2[i]), 
+                    sin(w2[i]), 0);
+            Vector<double, 3> z_hat = Vector<double, 3>(0.,0.,1.);
+
+            double rho = P->r.dot(r_hat);
+
+            double sp = (rho*r_hat+P->r[2]*z_hat - P->r).norm();
+            if (sp < s) s = sp;
+        }
+    }
+    
     // Calculate the distance to the nearest z wall.
     
     double sz1 = fabs(w3[P->l[2]] - P->r[2]);
@@ -442,6 +455,21 @@ Vector<int, 3> CylindricalGrid::photon_loc(Photon *P) {
     P->nframe = P->n[0]*xhat + P->n[1]*yhat + P->n[2]*zhat;
 
     return l;
+}
+
+/* Update extra position parameters like rad and theta during MRW. */
+
+void CylindricalGrid::photon_loc_mrw(Photon *P) {
+    /* Calculate the radius location of the photon. */
+    P->rad = sqrt(P->r[0]*P->r[0]+P->r[1]*P->r[1]);
+
+    /* If P->rad = 0 we need to be careful about how we calculate phi. */
+    if (P->rad == 0) {
+        P->phi = fmod(P->phi+pi,2*pi);
+        P->l[1] = -1;
+    }
+    else
+        P->phi = fmod(atan2(P->r[1],P->r[0])+2*pi,2*pi);
 }
 
 /* Check whether a photon is on a wall and going parallel to it. */

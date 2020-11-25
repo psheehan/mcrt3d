@@ -8,6 +8,8 @@
 #include <omp.h>
 #endif
 
+#include <signal.h>
+
 #include <cmath>
 #include <vector>
 #include <algorithm>
@@ -147,6 +149,7 @@ struct Grid {
     void random_dir_mrw(Photon *P);
 
     virtual Vector<int, 3> photon_loc(Photon *P);
+    virtual void photon_loc_mrw(Photon *P);
     virtual bool in_grid(Photon *P);
     virtual bool on_and_parallel_to_wall(Photon *P);
 

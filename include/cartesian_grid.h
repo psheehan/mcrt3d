@@ -31,6 +31,7 @@ struct CartesianGrid : public Grid {
     double smallest_wall_size(Ray *R);
     double grid_size();
     Vector<int, 3> photon_loc(Photon *P);
+    void photon_loc_mrw(Photon *P);
     Vector<double, 3> random_location_in_cell(int ix, int iy, int iz);
     bool in_grid(Photon *P);
     bool on_and_parallel_to_wall(Photon *P);

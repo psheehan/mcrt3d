@@ -974,6 +974,9 @@ void Grid::propagate_photon_mrw(Photon *P) {
                 random_dir_mrw(P);
         }
 
+        /* Make sure we update the rad, theta, phi values for P. */
+        photon_loc_mrw(P);
+
         double energy_tot = 0.;
         for (int ithread = 0; ithread < (int) energy.size(); ithread++)
             for (int idust=0; idust<nspecies; idust++)
@@ -1149,6 +1152,11 @@ double Grid::grid_size() {
 
 Vector<int, 3> Grid::photon_loc(Photon *P) {
     return Vector<int, 3>();
+}
+
+/* Update extra position parameters like rad and theta during MRW. */
+
+void Grid::photon_loc_mrw(Photon *P) {
 }
 
 /* Randomly generate a photon location within a cell. */

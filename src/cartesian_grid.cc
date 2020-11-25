@@ -306,6 +306,13 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
     return l;
 }
 
+/* Update extra position parameters like rad and theta during MRW. */
+
+void CartesianGrid::photon_loc_mrw(Photon *P) {
+    /* Nothing needed here because we don't use rad, theta, or phi in
+     * cartesian coordinates. */
+}
+
 /* Check whether a photon is on a wall and going parallel to it. */
 
 bool CartesianGrid::on_and_parallel_to_wall(Photon *P) {
