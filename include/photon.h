@@ -17,6 +17,8 @@ struct Photon {
     double same_cell_count;
 
     double rad, phi, theta;
+    double sin_theta, cos_theta;
+    double sin_phi, cos_phi;
 
     int ithread;
 

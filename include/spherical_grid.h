@@ -18,9 +18,18 @@ struct SphericalGrid : public Grid {
         Grid(_n1, _n2, _n3, _nw1, _nw2, _nw3, _w1, _w2, _w3, _volume, 
                 _mirror_symmetry) {};
 
+    ~SphericalGrid();
+
     py::array_t<double> r;
     py::array_t<double> theta;
     py::array_t<double> phi;
+
+    double *sin_w2;
+    double *cos_w2;
+    double *neg_mu;
+    double *tan_w2;
+    double *sin_w3;
+    double *cos_w3;
 
     double next_wall_distance(Photon *P);
     double outer_wall_distance(Photon *P);

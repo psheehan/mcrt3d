@@ -26,10 +26,33 @@ SphericalGrid::SphericalGrid(py::array_t<double> _r,
     double *__phi = (double *) phi_buf.ptr;
     for (int i = 0; i < n3; i++) __phi[i] = 0.5 * (w3[i+1] + w3[i]);
     
+    // Also precompute trig functions of the walls.
+
+    sin_w2 = new double[nw2];
+    cos_w2 = new double[nw2];
+    neg_mu = new double[nw2];
+    tan_w2 = new double[nw2];
+
+    for (int iy = 0; iy < nw2; iy++) {
+        sin_w2[iy] = sin(w2[iy]);
+        cos_w2[iy] = cos(w2[iy]);
+        tan_w2[iy] = tan(w2[iy]);
+
+        neg_mu[iy] = -cos_w2[iy];
+    }
+
+    sin_w3 = new double[nw3];
+    cos_w3 = new double[nw3];
+
+    for (int iz = 0; iz < nw2; iz++) {
+        sin_w3[iz] = sin(w3[iz]);
+        cos_w3[iz] = cos(w3[iz]);
+    }
+
     // Check for mirror symmetry.
 
     int volume_scale = 1;
-    if (equal_zero(cos(w2[nw2-1]), EPSILON))
+    if (equal_zero(cos_w2[nw2-1], EPSILON))
     {
         mirror_symmetry = true;
         volume_scale = 2;
@@ -46,14 +69,18 @@ SphericalGrid::SphericalGrid(py::array_t<double> _r,
         for (int j = 0; j < n2; j++)
             for (int k = 0; k < n3; k++)
                 __volume[i*n2*n3 + j*n3 + k] = (w1[i+1]*w1[i+1]*w1[i+1] - 
-                        w1[i]*w1[i]*w1[i]) * (cos(w2[j]) - cos(w2[j+1])) * 
+                        w1[i]*w1[i]*w1[i]) * (cos_w2[j] - cos_w2[j+1]) * 
                         (w3[k+1] - w3[k]) / 3 * volume_scale;
+}
+
+SphericalGrid::~SphericalGrid() {
+    delete[] sin_w2; delete[] cos_w2; delete[] tan_w2; delete[] neg_mu;
+    delete[] sin_w3; delete[] cos_w3;
 }
 
 /* Calculate the distance between the photon and the nearest wall. */
 
 double SphericalGrid::next_wall_distance(Photon *P) {
-
     //double r = P->r.norm();
     double r = P->rad;
 
@@ -90,7 +117,7 @@ double SphericalGrid::next_wall_distance(Photon *P) {
         double theta = P->theta;
         
         for (int i=P->l[1]; i <= P->l[1]+1; i++) {
-            if (equal_zero(cos(w2[i]),1.0e-10)) {
+            if (equal_zero(cos_w2[i],1.0e-10)) {
                 double st1 = -P->r[2]*P->invn[2];
                 if (equal_zero(st1/(P->rad*(w2[P->l[1]+1]-w2[P->l[1]])),
                         EPSILON)) st1 = 0;
@@ -98,12 +125,12 @@ double SphericalGrid::next_wall_distance(Photon *P) {
             }
             else {
                 double a = P->n[0]*P->n[0]+P->n[1]*P->n[1]-P->n[2]*P->n[2]*
-                    pow(tan(w2[i]),2);
+                    tan_w2[i]*tan_w2[i];
                 double b = 2*(P->r[0]*P->n[0]+P->r[1]*P->n[1]-P->r[2]*P->n[2]*
-                    pow(tan(w2[i]),2));
+                    tan_w2[i]*tan_w2[i]);
 
                 //if (theta == w2[i]) {
-                if (equal(sin(theta),sin(w2[i]),1.0e-10)) {
+                if (equal(P->sin_theta,sin_w2[i],1.0e-10)) {
                     double st1 = (-b + fabs(b))/(2*a);
                     if ((st1 < s) && (st1 > 0)) s = st1;
                     double st2 = (-b - fabs(b))/(2*a);
@@ -111,7 +138,7 @@ double SphericalGrid::next_wall_distance(Photon *P) {
                 }
                 else {
                     double c = P->r[0]*P->r[0]+P->r[1]*P->r[1]-P->r[2]*P->r[2]*
-                        pow(tan(w2[i]),2);
+                        tan_w2[i]*tan_w2[i];
                     double d = b*b-4*a*c;
 
                     if (d >= 0) {
@@ -132,8 +159,8 @@ double SphericalGrid::next_wall_distance(Photon *P) {
         
         for (int i=P->l[2]; i <= P->l[2]+1; i++) {
             if (phi != w3[i]) {
-                double c = P->r[0]*sin(w3[i])-P->r[1]*cos(w3[i]);
-                double d = P->n[0]*sin(w3[i])-P->n[1]*cos(w3[i]);
+                double c = P->r[0]*sin_w3[i]-P->r[1]*cos_w3[i];
+                double d = P->n[0]*sin_w3[i]-P->n[1]*cos_w3[i];
 
                 double sp = -c/d;
 
@@ -141,7 +168,7 @@ double SphericalGrid::next_wall_distance(Photon *P) {
             }
         }
     }
-    
+
     return s;
 }
 
@@ -182,8 +209,8 @@ double SphericalGrid::minimum_wall_distance(Photon *P) {
     
     if (nw2 != 2) {
         for (int i=P->l[1]; i <= P->l[1]+1; i++) {
-            Vector<double, 3> r_hat(sin(w2[i])*cos(P->phi), 
-                    sin(w2[i])*sin(P->phi), cos(w2[i]));
+            Vector<double, 3> r_hat(sin_w2[i]*P->cos_phi, 
+                    sin_w2[i]*P->sin_phi, cos_w2[i]);
 
             double rho = P->r.dot(r_hat);
 
@@ -196,8 +223,8 @@ double SphericalGrid::minimum_wall_distance(Photon *P) {
     
     if (nw3 != 2) {
         for (int i=P->l[2]; i <= P->l[2]+1; i++) {
-            Vector<double, 3> r_hat = Vector<double, 3>(cos(w3[i]),
-                    sin(w3[i]), 0);
+            Vector<double, 3> r_hat = Vector<double, 3>(cos_w3[i],
+                    sin_w3[i], 0);
             Vector<double, 3> z_hat = Vector<double, 3>(0.,0.,1.);
 
             double rho = P->r.dot(r_hat);
@@ -230,7 +257,7 @@ double SphericalGrid::smallest_wall_size(Photon *P) {
         if (w1[P->l[0]] == 0)
             r = w1[P->l[0]+1]*0.5;
 
-        double sint = fmin(sin(w2[P->l[1]]), sin(w2[P->l[1]+1]));
+        double sint = fmin(sin_w2[P->l[1]], sin_w2[P->l[1]+1]);
         if (equal_zero(sint, EPSILON))
             sint = sin(0.5*(w2[P->l[1]] + w2[P->l[1]+1]));
 
@@ -273,37 +300,50 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
     /* If P->rad = 0 we need to be careful about how we calculate theta and 
      * phi. */
     if (P->rad == 0) {
-        P->theta = pi - P->theta;
+        //P->theta = pi - P->theta;
+        P->cos_theta *= -1;
         P->l[1] = -1;
-        P->phi = fmod(P->phi + pi, 2*pi);
+        if (nw3 != 2) P->phi = fmod(P->phi + pi, 2*pi);
         P->l[2] = -1;
     }
     else {
-        P->theta = acos(P->r[2]/P->rad);
-        P->phi = fmod(atan2(P->r[1],P->r[0])+2*pi,2*pi);
+        double R = sqrt(P->r[0]*P->r[0] + P->r[1]*P->r[1]);
+        //P->theta = acos(P->r[2]/P->rad);
+        if (nw3 != 2) P->phi = fmod(atan2(P->r[1],P->r[0])+2*pi,2*pi);
+
+        P->cos_theta = P->r[2] / P->rad;
+        P->sin_theta = R / P->rad;
+        P->cos_phi = P->r[0] / R;
+        P->sin_phi = P->r[1] / R;
     }
     double r = P->rad;
-    double theta = P->theta;
+    //double theta = P->theta;
     double phi = P->phi;
+
+    double cos_theta = P->cos_theta;
+    double sin_theta = P->sin_theta;
+    double cos_phi = P->cos_phi;
+    double sin_phi = P->sin_phi;
 
     // Check if we are using mirror symmetry and we're in the southern
     // hemisphere. If so, we need to flip.
     
     if (mirror_symmetry) {
-        if (theta > pi/2) {
-            theta = pi - theta;
+        if (cos_theta < 0) {
+            //theta = pi - theta;
             P->n[2] *= -1;
+            cos_theta *= -1;
         }
 
-        if (equal_zero(cos(theta), EPSILON) and P->n[2] < 0)
+        if (equal_zero(cos_theta, EPSILON) and P->n[2] < 0)
             P->n[2] *= -1;
     }
 
     // Find the location in the radial grid.
     
-    double gnx = sin(theta)*cos(phi);
-    double gny = sin(theta)*sin(phi);
-    double gnz = cos(theta);
+    double gnx = sin_theta*cos_phi;
+    double gny = sin_theta*sin_phi;
+    double gnz = cos_theta;
     if (equal_zero(gnx, EPSILON)) gnx = 0.;
     if (equal_zero(gny, EPSILON)) gny = 0.;
     if (equal_zero(gnz, EPSILON)) gnz = 0.;
@@ -346,20 +386,20 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
     if (nw2 == 2)
         l[1] = 0;
     else {
-        if (theta >= w2[nw2-1])
+        if (-cos_theta >= neg_mu[nw2-1])
             l[1] = n2-1;
-        else if (theta <= w2[0])
+        else if (-cos_theta <= neg_mu[0])
             l[1] = 0;
         else {
             if (P->l[1] == -1)
-                l[1] = find_in_arr(theta,w2,nw2);
+                l[1] = find_in_arr(-cos_theta,neg_mu,nw2);
             else {
                 int lower = P->l[1]-1;
                 if (lower < 0) lower = 0;
                 int upper = P->l[1]+1;
                 if (upper > n2-1) upper = n2-1;
                 
-                l[1] = find_in_arr(theta,w2,lower,upper);
+                l[1] = find_in_arr(-cos_theta,neg_mu,lower,upper);
             }
             if (l[1] == n2) l[1] = n2-1;
         }
@@ -368,24 +408,30 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
          * should be on the wall exactly, but is not exactly on the wall. We
          * need to put the photon exactly on the wall. */
 
-        if (equal(theta,w2[l[1]],EPSILON))
-            theta = w2[l[1]];
-        else if (equal(theta,w2[l[1]+1],EPSILON))
-            theta = w2[l[1]+1];
+        if (equal(cos_theta,cos_w2[l[1]],EPSILON)) {
+            //theta = w2[l[1]];
+            cos_theta = cos_w2[l[1]];
+            sin_theta = sin_w2[l[1]];
+        }
+        else if (equal(cos_theta,cos_w2[l[1]+1],EPSILON)) {
+            //theta = w2[l[1]+1];
+            cos_theta = cos_w2[l[1]+1];
+            sin_theta = sin_w2[l[1]+1];
+        }
 
         /* Update which cell the photon is in based on the direction it
          * is going. */
 
-        double gnx = cos(theta)*cos(phi);
-        double gny = cos(theta)*sin(phi);
-        double gnz = -sin(theta);
+        double gnx = cos_theta*cos_phi;
+        double gny = cos_theta*sin_phi;
+        double gnz = -sin_theta;
         if (equal_zero(gnx, EPSILON)) gnx = 0.;
         if (equal_zero(gny, EPSILON)) gny = 0.;
         if (equal_zero(gnz, EPSILON)) gnz = 0.;
         
-        if ((theta == w2[l[1]]) && (P->n[0]*gnx+P->n[1]*gny+P->n[2]*gnz < 0))
+        if ((cos_theta == cos_w2[l[1]]) && (P->n[0]*gnx+P->n[1]*gny+P->n[2]*gnz < 0))
             l[1] -= 1;
-        else if ((theta == w2[l[1]+1]) && (P->n[0]*gnx+P->n[1]*gny+P->n[2]*gnz >= 0))
+        else if ((cos_theta == cos_w2[l[1]+1]) && (P->n[0]*gnx+P->n[1]*gny+P->n[2]*gnz >= 0))
             l[1] += 1;
 
         /* Finally, if you somehow end up with l[1] = -1 or l[1] = n2, change
@@ -412,16 +458,22 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
          * wall. Floating point errors may keep it from being exactly on the
          * wall, and we need to fix that. */
 
-        if (equal(phi,w3[l[2]],EPSILON))
+        if (equal(phi,w3[l[2]],EPSILON)) {
             phi = w3[l[2]];
-        else if (equal(phi,w3[l[2]+1],EPSILON))
+            sin_phi = sin_w3[l[2]];
+            cos_phi = cos_w3[l[2]];
+        }
+        else if (equal(phi,w3[l[2]+1],EPSILON)) {
             phi = w3[l[2]+1];
+            sin_phi = sin_w3[l[2]+1];
+            cos_phi = cos_w3[l[2]+1];
+        }
 
         /* Update which cell the photon is in depending on the 
          * direction it is going. */
 
-        double gnx = -sin(phi);
-        double gny = cos(phi);
+        double gnx = -sin_phi;
+        double gny = cos_phi;
         double gnz = 0.0;
         if (equal_zero(gnx, EPSILON)) gnx = 0.;
         if (equal_zero(gny, EPSILON)) gny = 0.;
@@ -443,20 +495,23 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
     /* Since we may have updated r, theta and phi to be exactly on the grid 
      * cell walls, change the photon position slightly to reflect this. */
 
-    P->r[0] = r * sin(theta) * cos(phi);
-    P->r[1] = r * sin(theta) * sin(phi);
-    P->r[2] = r * cos(theta);
+    P->r[0] = r * sin_theta * cos_phi;
+    P->r[1] = r * sin_theta * sin_phi;
+    P->r[2] = r * cos_theta;
     P->rad = r;
-    P->theta = theta;
+    //P->theta = theta;
     P->phi = phi;
+
+    P->sin_theta = sin_theta;
+    P->cos_theta = cos_theta;
+    P->sin_phi = sin_phi;
+    P->cos_phi = cos_phi;
     
     /* Also calculate n in the coordinate system frame. */
 
-    Vector<double, 3> xhat(sin(theta)*cos(phi), cos(theta)*cos(phi), 
-            -sin(phi));
-    Vector<double, 3> yhat(sin(theta)*sin(phi), cos(theta)*sin(phi), 
-            cos(phi));
-    Vector<double, 3> zhat(cos(theta), -sin(theta), 0.);
+    Vector<double, 3> xhat(sin_theta*cos_phi, cos_theta*cos_phi, -sin_phi);
+    Vector<double, 3> yhat(sin_theta*sin_phi, cos_theta*sin_phi, cos_phi);
+    Vector<double, 3> zhat(cos_theta, -sin_theta, 0.);
 
     P->nframe = P->n[0]*xhat + P->n[1]*yhat + P->n[2]*zhat;
 
@@ -472,14 +527,21 @@ void SphericalGrid::photon_loc_mrw(Photon *P) {
     /* If P->rad = 0 we need to be careful about how we calculate theta and 
      * phi. */
     if (P->rad == 0) {
-        P->theta = pi - P->theta;
+        //P->theta = pi - P->theta;
+        P->cos_theta *= -1;
         P->l[1] = -1;
-        P->phi = fmod(P->phi + pi, 2*pi);
+        if (nw3 != 2) P->phi = fmod(P->phi + pi, 2*pi);
         P->l[2] = -1;
     }
     else {
-        P->theta = acos(P->r[2]/P->rad);
-        P->phi = fmod(atan2(P->r[1],P->r[0])+2*pi,2*pi);
+        double R = sqrt(P->r[0]*P->r[0] + P->r[1]*P->r[1]);
+        //P->theta = acos(P->r[2]/P->rad);
+        if (nw3 != 2) P->phi = fmod(atan2(P->r[1],P->r[0])+2*pi,2*pi);
+
+        P->cos_theta = P->r[2] / P->rad;
+        P->sin_theta = R / P->rad;
+        P->cos_phi = P->r[0] / R;
+        P->sin_phi = P->r[1] / R;
     }
 }
 
