@@ -313,8 +313,14 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
 
         P->cos_theta = P->r[2] / P->rad;
         P->sin_theta = R / P->rad;
-        P->cos_phi = P->r[0] / R;
-        P->sin_phi = P->r[1] / R;
+        if (R == 0) {
+            P->cos_phi = 1.0;
+            P->sin_phi = 0.0;
+        } 
+        else {
+            P->cos_phi = P->r[0] / R;
+            P->sin_phi = P->r[1] / R;
+        }
     }
     double r = P->rad;
     //double theta = P->theta;
@@ -408,12 +414,12 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
          * should be on the wall exactly, but is not exactly on the wall. We
          * need to put the photon exactly on the wall. */
 
-        if (equal(cos_theta,cos_w2[l[1]],EPSILON)) {
+        if (equal(cos_theta,cos_w2[l[1]],1.0e-10)) {
             //theta = w2[l[1]];
             cos_theta = cos_w2[l[1]];
             sin_theta = sin_w2[l[1]];
         }
-        else if (equal(cos_theta,cos_w2[l[1]+1],EPSILON)) {
+        else if (equal(cos_theta,cos_w2[l[1]+1],1.0e-10)) {
             //theta = w2[l[1]+1];
             cos_theta = cos_w2[l[1]+1];
             sin_theta = sin_w2[l[1]+1];
