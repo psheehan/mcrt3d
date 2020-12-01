@@ -904,9 +904,15 @@ void Grid::propagate_photon_mrw(Photon *P) {
         omp_unset_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
         #endif
     }
-    energy_threshold *= (1. + 0.3);
+    energy_threshold *= 0.3;
+
+    /* Now calculate how that translates into path traveled. */
+    double path_threshold = energy_threshold / (alpha*P->energy);
 
     // Start walking the photon.
+
+    double path_accumulated = 0.;
+
     while (true) {
         double dmin = minimum_wall_distance(P);
 
@@ -931,10 +937,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
                 printf("%f\n", s/au);
             }
             // Add the energy absorbed into the grid.
-            for (int idust=0; idust<nspecies; idust++)
-                energy[P->ithread][idust][P->l[0]][P->l[1]][P->l[2]] += 
-                        P->energy*s*planck_mean_opacity[idust][P->l[0]][P->l[1]]
-                        [P->l[2]]*dens[idust][P->l[0]][P->l[1]][P->l[2]];
+            path_accumulated += s;
 
             // Move the photon to the edge of the sphere.
             P->move(R_0);
@@ -957,10 +960,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
 
             // Continuously absorb the photon's energy, if the end result of the
             // current trajectory is absorption.
-            for (int idust=0; idust<nspecies; idust++)
-                energy[P->ithread][idust][P->l[0]][P->l[1]][P->l[2]] += 
-                        P->energy*s*planck_mean_opacity[idust][P->l[0]][P->l[1]]
-                        [P->l[2]]*dens[idust][P->l[0]][P->l[1]][P->l[2]];
+            path_accumulated += s;
 
             // Move the photon to it's new position.
             P->move(s);
@@ -977,14 +977,15 @@ void Grid::propagate_photon_mrw(Photon *P) {
         /* Make sure we update the rad, theta, phi values for P. */
         photon_loc_mrw(P);
 
-        double energy_tot = 0.;
-        for (int ithread = 0; ithread < (int) energy.size(); ithread++)
-            for (int idust=0; idust<nspecies; idust++)
-                energy_tot += energy[ithread][idust][P->l[0]][P->l[1]][P->l[2]];
-
-        if (energy_tot > energy_threshold)
+        if (path_accumulated > path_threshold)
             break;
     }
+
+    // Add the energy absorbed into the grid.
+    for (int idust=0; idust<nspecies; idust++)
+        energy[P->ithread][idust][P->l[0]][P->l[1]][P->l[2]] += 
+                P->energy*path_accumulated*planck_mean_opacity[idust][P->l[0]]
+                [P->l[1]][P->l[2]]*dens[idust][P->l[0]][P->l[1]][P->l[2]];
 }
 
 /* Propagate a ray through the grid for raytracing. */
