@@ -31,6 +31,9 @@ struct SphericalGrid : public Grid {
     double *sin_w3;
     double *cos_w3;
 
+    double *sin_tol_w2;
+    double *cos_tol_w2;
+
     double next_wall_distance(Photon *P);
     double outer_wall_distance(Photon *P);
     double minimum_wall_distance(Photon *P);

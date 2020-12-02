@@ -33,12 +33,18 @@ SphericalGrid::SphericalGrid(py::array_t<double> _r,
     neg_mu = new double[nw2];
     tan_w2 = new double[nw2];
 
+    sin_tol_w2 = new double[nw2];
+    cos_tol_w2 = new double[nw2];
+
     for (int iy = 0; iy < nw2; iy++) {
         sin_w2[iy] = sin(w2[iy]);
         cos_w2[iy] = cos(w2[iy]);
         tan_w2[iy] = tan(w2[iy]);
 
         neg_mu[iy] = -cos_w2[iy];
+
+        sin_tol_w2[iy] = fabs(sin(w2[iy] * (1.0 - EPSILON)) - sin(w2[iy]));
+        cos_tol_w2[iy] = fabs(cos(w2[iy] * (1.0 - EPSILON)) - cos(w2[iy]));
     }
 
     sin_w3 = new double[nw3];
@@ -76,6 +82,8 @@ SphericalGrid::SphericalGrid(py::array_t<double> _r,
 SphericalGrid::~SphericalGrid() {
     delete[] sin_w2; delete[] cos_w2; delete[] tan_w2; delete[] neg_mu;
     delete[] sin_w3; delete[] cos_w3;
+
+    delete[] sin_tol_w2; delete[] cos_tol_w2;
 }
 
 /* Calculate the distance between the photon and the nearest wall. */
@@ -130,7 +138,7 @@ double SphericalGrid::next_wall_distance(Photon *P) {
                     tan_w2[i]*tan_w2[i]);
 
                 //if (theta == w2[i]) {
-                if (equal(P->sin_theta,sin_w2[i],1.0e-10)) {
+                if (equal(P->sin_theta,sin_w2[i],sin_tol_w2[i])) {
                     double st1 = (-b + fabs(b))/(2*a);
                     if ((st1 < s) && (st1 > 0)) s = st1;
                     double st2 = (-b - fabs(b))/(2*a);
@@ -414,12 +422,12 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
          * should be on the wall exactly, but is not exactly on the wall. We
          * need to put the photon exactly on the wall. */
 
-        if (equal(cos_theta,cos_w2[l[1]],1.0e-10)) {
+        if (equal(cos_theta,cos_w2[l[1]],cos_tol_w2[l[1]])) {
             //theta = w2[l[1]];
             cos_theta = cos_w2[l[1]];
             sin_theta = sin_w2[l[1]];
         }
-        else if (equal(cos_theta,cos_w2[l[1]+1],1.0e-10)) {
+        else if (equal(cos_theta,cos_w2[l[1]+1],cos_tol_w2[l[1]+1])) {
             //theta = w2[l[1]+1];
             cos_theta = cos_w2[l[1]+1];
             sin_theta = sin_w2[l[1]+1];
