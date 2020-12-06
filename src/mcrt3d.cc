@@ -51,8 +51,15 @@ void MCRT::set_spherical_grid(py::array_t<double> r,
 /* Run a Monte Carlo simulation to calculate the temperature throughout the 
  * grid. */
 
+void signalHandler(int signum) {
+    exit(signum);
+}
+
 void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma, 
         bool verbose, int nthreads) {
+    // Add a signal handler.
+    signal(SIGINT, signalHandler);
+
     // Make sure parameters are set properly.
 
     Q->nphot = nphot; 

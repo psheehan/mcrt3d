@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <cmath>
 
+#include <signal.h>
+
 #include "params.h"
 #include "dust.h"
 #include "isotropic_dust.h"
