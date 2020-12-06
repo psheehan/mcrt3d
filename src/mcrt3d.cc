@@ -120,6 +120,8 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
 
 void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose, 
         bool save, int nthreads) {
+    // Add a signal handler.
+    signal(SIGINT, signalHandler);
 
     // Make sure parameters are set properly.
     Q->nphot = nphot; 
@@ -251,6 +253,8 @@ void MCRT::mc_iteration(int nthreads) {
 void MCRT::run_image(py::str name, py::array_t<double> __lam, int nx, int ny, 
         double pixel_size, int nphot, double incl, double pa, double dpc, 
         int nthreads, bool raytrace_dust, bool raytrace_gas) {
+    // Add a signal handler.
+    signal(SIGINT, signalHandler);
 
     // Set the appropriate parameters.
     Q->raytrace_dust = raytrace_dust;
@@ -288,6 +292,8 @@ void MCRT::run_image(py::str name, py::array_t<double> __lam, int nx, int ny,
 void MCRT::run_unstructured_image(py::str name, py::array_t<double> __lam, 
         int nx, int ny, double pixel_size, int nphot, double incl, double pa, 
         double dpc, int nthreads, bool raytrace_dust, bool raytrace_gas) {
+    // Add a signal handler.
+    signal(SIGINT, signalHandler);
 
     // Set the appropriate parameters.
     Q->raytrace_dust = raytrace_dust;
@@ -325,6 +331,8 @@ void MCRT::run_unstructured_image(py::str name, py::array_t<double> __lam,
 void MCRT::run_circular_image(py::str name, py::array_t<double> __lam, int nr, 
         int nphi, int nphot, double incl, double pa, double dpc, int nthreads, 
         bool raytrace_dust, bool raytrace_gas) {
+    // Add a signal handler.
+    signal(SIGINT, signalHandler);
 
     // Set the appropriate parameters.
     Q->raytrace_dust = raytrace_dust;
@@ -362,6 +370,8 @@ void MCRT::run_circular_image(py::str name, py::array_t<double> __lam, int nr,
 void MCRT::run_spectrum(py::str name, py::array_t<double> __lam, int nphot, 
         double incl, double pa, double dpc, int nthreads, bool raytrace_dust, 
         bool raytrace_gas) {
+    // Add a signal handler.
+    signal(SIGINT, signalHandler);
 
     // Set the appropriate parameters.
     Q->raytrace_dust = raytrace_dust;
