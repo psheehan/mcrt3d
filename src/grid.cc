@@ -459,6 +459,12 @@ Photon *Grid::emit(double _nu, double _dnu, int nphot) {
 /* Linker function to the dust absorb function. */
 
 void Grid::absorb(Photon *P, int idust) {
+    // If we're doing a Bjorkman & Wood simulation, update the cell to
+    // find its new temperature before continuing.
+    if (Q->bw) {
+        update_grid(P->l);
+    }
+
     // Determine which dust species should do the absorption.
     idust = 0;
     if (nspecies == 1) {
@@ -507,6 +513,9 @@ void Grid::absorb(Photon *P, int idust) {
 }
 
 void Grid::absorb_mrw(Photon *P, int idust) {
+    // Update the temperature after absorbing all that energy.
+    if (Q->bw) update_grid(P->l);
+
     // Determine which dust species should do the absorption.
     idust = 0;
     if (nspecies == 1) {
@@ -631,7 +640,9 @@ void Grid::propagate_photon_full(Photon *P) {
         // If the photon is still in the grid when it reaches it's 
         // destination...
         if (in_grid(P)) {
+            // Increase the event counter.
             P->event_count += 1;
+
             // If the next interaction is absorption...
             if (absorb_photon) {
                 absorb(P, 0);
@@ -665,6 +676,12 @@ void Grid::propagate_photon_full(Photon *P) {
             // it outside of the grid.
             if (Q->use_mrw && in_grid(P) && ((P->same_cell_count > 400) || 
                         (uses_mrw[P->l[0]][P->l[1]][P->l[2]] > 0))) {
+                // First check whether we need to update the cell properties,
+                // i.e. the last event was scattering.
+                if (Q->bw and not absorb_photon) update_grid(P->l);
+
+                // Check whether the cell is thick enough for MRW.
+
                 double alpha = 0.0;
                 for (int idust = 0; idust<nspecies; idust++)
                     alpha += rosseland_mean_extinction[idust][P->l[0]][P->l[1]]
@@ -677,9 +694,6 @@ void Grid::propagate_photon_full(Photon *P) {
 
                     // Propagate the photon.
                     propagate_photon_mrw(P);
-
-                    // Update the temperature after absorbing all that energy.
-                    if (Q->bw) update_grid(P->l);
 
                     // Absorb the photon
                     absorb_mrw(P, 0);
@@ -734,11 +748,6 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
                 energy[P->ithread][idust][P->l[0]][P->l[1]][P->l[2]] += 
                     P->energy*s*P->current_kext[idust]*
                     dens[idust][P->l[0]][P->l[1]][P->l[2]];
-            // If we're doing a Bjorkman & Wood simulation, update the cell to
-            // find its new temperature.
-            if (Q->bw) {
-                update_grid(P->l);
-            }
         }
 
         // Remvove the tau we've used up with this stepl

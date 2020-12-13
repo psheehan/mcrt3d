@@ -95,8 +95,6 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
 
             mc_iteration(nthreads);
 
-            G->update_grid();
-
             for (int ithread=0; ithread < (int) G->energy.size(); ithread++)
                 set4DArrValue(G->energy[ithread], 0.0, G->nspecies, G->n1, 
                         G->n2, G->n3);
@@ -248,6 +246,9 @@ void MCRT::mc_iteration(int nthreads) {
 
     printf("Average number of abs/scat events per photon package = %f \n", 
             event_average / Q->nphot);
+
+    // Make sure all of the cells are properly updated.
+    if (not Q->scattering) G->update_grid();
 }
 
 void MCRT::run_image(py::str name, py::array_t<double> __lam, int nx, int ny, 
