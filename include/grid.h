@@ -13,7 +13,6 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
-#include "pymangle.h"
 #include "vector.h"
 #include "dust.h"
 #include "isotropic_dust.h"

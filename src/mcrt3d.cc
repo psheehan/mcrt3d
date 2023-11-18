@@ -181,7 +181,6 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
     // Clean up the appropriate grid parameters.
     if (save) {
         for (int i = 0; i < (int) G->scatt.size(); i++)
-            //freepymangle(G->scatt[i]);
             delete[] G->scatt[i];
         G->scatt.clear();
 

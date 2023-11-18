@@ -6,7 +6,6 @@
 
 #include <stdlib.h>
 #include <cmath>
-#include "pymangle.h"
 #include "misc.h"
 #include "photon.h"
 

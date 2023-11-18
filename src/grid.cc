@@ -67,11 +67,6 @@ Grid::~Grid() {
     // Free the physical parameters;
 
     for (int i = 0; i < nspecies; i++) {
-        //freepymangle(dens[i]);
-        //freepymangle(temp[i]);
-        //delete3DArr(mass[i], n1, n2, n3);
-        //delete3DArr(rosseland_mean_extinction[i], n1, n2, n3);
-        //delete3DArr(planck_mean_opacity[i], n1, n2, n3);
         delete[] mass[i]; delete[] rosseland_mean_extinction[i];
         delete[] planck_mean_opacity[i];
         #ifdef _OPENMP
@@ -81,7 +76,6 @@ Grid::~Grid() {
     }
     for (int i = 0; i < (int) energy.size(); i++) {
         for (int j = 0; j < nspecies; j++)
-            //delete3DArr(energy[i][j], n1, n2, n3);
             delete[] energy[i][j];
         energy[i].clear();
     }
@@ -135,12 +129,7 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
 
     // Now send to C++ useful things.
 
-    //double ***__dens = pymangle(n1, n2, n3, (double *) _dens_buf.ptr);
-    //double ***__temp = pymangle(n1, n2, n3, (double *) _temp_buf.ptr);
-    //double ***__mass = create3DArrValue(n1, n2, n3, 0);
     double *__energy = new double [n1*n2*n3];
-    //double ***__rosseland_mean_extinction = create3DArrValue(n1, n2, n3, 0);
-    //double ***__planck_mean_opacity = create3DArrValue(n1, n2, n3, 0);
     double *__mass = new double[n1*n2*n3];
     double *__rosseland_mean_extinction = new double[n1*n2*n3];
     double *__planck_mean_opacity = new double[n1*n2*n3];
@@ -214,15 +203,6 @@ void Grid::add_number_density(py::array_t<double> ___number_dens,
     auto _gas_temp_buf = ___gas_temp.request();
 
     // Now send to C++ useful things.
-
-    /*double ***__number_dens = pymangle(n1, n2, n3, 
-            (double *) _number_dens_buf.ptr);
-    double ***__gas_temp = pymangle(n1, n2, n3, 
-            (double *) _gas_temp_buf.ptr);
-    double ****__velocity = pymangle(3, n1, n2, n3, 
-            (double *) _velocity_buf.ptr);
-    double ***__microturbulence = pymangle(n1, n2, n3, 
-            (double *) _microturbulence_buf.ptr);*/
 
     number_dens.push_back((double *) _number_dens_buf.ptr);
     gas_temp.push_back((double *) _gas_temp_buf.ptr);
