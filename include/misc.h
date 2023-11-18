@@ -106,57 +106,7 @@ void equate2DVecArrs(std::vector<double*> arr1, std::vector<double*> arr2,
 
 void equate2DArrs(double *arr1, double *arr2, int nx);
 
-/* Create an empty 3-dimensional array. */
-
-double ***create3DArr(int nx, int ny, int nz);
-
-#ifdef _OPENMP
-omp_lock_t ***create3DLock(int nx, int ny, int nz);
-#endif
-
-/* Create a 3-dimensional array filled with a particular value. */
-
-double ***create3DArrValue(int nx, int ny, int nz, int value);
-
-void delete3DArr(double ***arr, int nx, int ny, int nz);
-
-#ifdef _OPENMP
-void delete3DLock(omp_lock_t ***arr, int nx, int ny, int nz);
-#endif
-
-/* Set the value of a 3-dimensional array to a constant value. */
-
-void set3DArrValue(double ***arr, double value, int nx, int ny, int nz);
-
-/* Set one 3-dimensional array equal to another 3-dimensional array, element
- * by element. */
-
-void equate3DArrs(double ***arr1, double ***arr2, int nx, int ny, int nz);
-
-/* Create an empty 4-dimensional array. */
-
-std::vector<double***> create4DArr(int nx, int ny, int nz, int nq);
-
-void delete4DArr(std::vector<double***> arr, int nx, int ny, int nz, int nq);
-void delete4DArr(double**** arr, int nx, int ny, int nz, int nq);
-
-/* Create a 4-dimensional array filled with a particular value. */
-
-double ****create4DArrValue(int nx, int ny, int nz, int nq, double value);
-
-/* Set the value of a 4-dimensional array to a constant value. */
-
-void set4DArrValue(std::vector<double***> arr, double value, int nx, int ny, 
-        int nz, int nq);
-
-void set4DArrValue(double**** arr, double value, int nx, int ny, 
-        int nz, int nq);
-
-/* Set one 4-dimensional array equal to another 4-dimensional array, element
- * by element. */
-
-void equate4DArrs(std::vector<double***> arr1, std::vector<double***> arr2, 
-        int nx, int ny, int nz, int nq);
+/* Functions to assess the convergence of a Lucy iteration. */
 
 double delta(double x1, double x2);
 

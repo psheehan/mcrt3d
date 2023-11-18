@@ -224,174 +224,6 @@ void equate2DVecArrs(std::vector<double*> arr1, std::vector<double*> arr2,
             arr1[i][j] = arr2[i][j];
 }
 
-/* Create an empty 3-dimensional array. */
-
-double ***create3DArr(int nx, int ny, int nz) {
-    double ***arr = new double**[nx];
-    for (int i=0; i<nx; i++) {
-        arr[i] = new double*[ny];
-        for (int j=0; j<ny; j++)
-            arr[i][j] = new double[nz];
-    }
-
-    return arr;
-};
-
-#ifdef _OPENMP
-omp_lock_t ***create3DLock(int nx, int ny, int nz) {
-    omp_lock_t ***arr = new omp_lock_t**[nx];
-    for (int i=0; i<nx; i++) {
-        arr[i] = new omp_lock_t*[ny];
-        for (int j=0; j<ny; j++) {
-            arr[i][j] = new omp_lock_t[nz];
-            for (int k=0; k<nz; k++)
-                omp_init_lock(&(arr[i][j][k]));
-        }
-    }
-
-    return arr;
-};
-#endif
-
-/* Create a 3-dimensional array filled with a particular value. */
-
-double ***create3DArrValue(int nx, int ny, int nz, int value) {
-    double ***arr = new double**[nx];
-    for (int i=0; i<nx; i++) {
-        arr[i] = new double*[ny];
-        for (int j=0; j<ny; j++) {
-            arr[i][j] = new double[nz];
-            for (int k=0; k<nz; k++)
-                arr[i][j][k] = value;
-        }
-    }
-
-    return arr;
-};
-
-/* Delete a 3-dimensional array. */
-
-void delete3DArr(double ***arr, int nx, int ny, int nz) {
-    for (int i=0; i<nx; i++) {
-        for (int j=0; j<ny; j++)
-            delete[] arr[i][j];
-        delete[] arr[i];
-    }
-    delete[] arr;
-};
-
-#ifdef _OPENMP
-void delete3DLock(omp_lock_t ***arr, int nx, int ny, int nz) {
-    for (int i=0; i<nx; i++) {
-        for (int j=0; j<ny; j++) {
-            for (int k=0; k<nz; k++)
-                omp_destroy_lock(&(arr[i][j][k]));
-            delete[] arr[i][j];
-        }
-        delete[] arr[i];
-    }
-    delete[] arr;
-};
-#endif
-
-/* Set the value of a 3-dimensional array to a constant value. */
-
-void set3DArrValue(double ***arr, double value, int nx, int ny, int nz) {
-    for (int i=0; i<nx; i++)
-        for (int j=0; j<ny; j++)
-            for (int k=0; k<nz; k++)
-                arr[i][j][k] = value;
-}
-
-/* Set one 3-dimensional array equal to another 3-dimensional array, element
- * by element. */
-
-void equate3DArrs(double ***arr1, double ***arr2, int nx, int ny, int nz) {
-    for (int i=0; i<nx; i++)
-        for (int j=0; j<ny; j++)
-            for (int k=0; k<nz; k++)
-                arr1[i][j][k] = arr2[i][j][k];
-}
-
-/* Create an empty 4-dimensional array. */
-
-std::vector<double***> create4DArr(int nx, int ny, int nz, int nq) {
-    std::vector<double***> arr;
-    for (int i=0; i<nx; i++)
-        arr.push_back(create3DArr(ny, nz, nq));
-
-    return arr;
-};
-
-void delete4DArr(std::vector<double***> arr, int nx, int ny, int nz, int nq) {
-    for (int i = 0; i < nx; i++)
-        delete3DArr(arr[i], ny, nz, nq);
-    arr.clear();
-}
-
-void delete4DArr(double ****arr, int nx, int ny, int nz, int nq) {
-    for (int i=0; i<nx; i++) {
-        for (int j=0; j<ny; j++) {
-            for (int k=0; k<nz; k++)
-                delete[] arr[i][j][k];
-            delete[] arr[i][j];
-        }
-        delete[] arr[i];
-    }
-    delete[] arr;
-};
-
-/* Create a 4-dimensional array filled with a particular value. */
-
-double ****create4DArrValue(int nx, int ny, int nz, int nq, double value) {
-    double ****arr = new double***[nx];
-    for (int i=0; i<nx; i++) {
-        arr[i] = new double**[ny];
-        for (int j=0; j<ny; j++) {
-            arr[i][j] = new double*[nz];
-            for (int k=0; k<nz; k++) {
-                arr[i][j][k] = new double[nq];
-                for (int l=0; l<nq; l++)
-                    arr[i][j][k][l] = value;
-            }
-        }
-    }
-
-    return arr;
-};
-
-/* Set the value of a 4-dimensional array to a constant value. */
-
-void set4DArrValue(std::vector<double***> arr, double value, int nx, int ny, 
-        int nz, int nq) {
-    for (int i=0; i<nx; i++)
-        for (int j=0; j<ny; j++)
-            for (int k=0; k<nz; k++)
-                for (int l=0; l<nq; l++)
-                    arr[i][j][k][l] = value;
-}
-
-void set4DArrValue(double**** arr, double value, int nx, int ny, int nz, 
-        int nq) {
-    for (int i=0; i<nx; i++)
-        for (int j=0; j<ny; j++)
-            for (int k=0; k<nz; k++)
-                for (int l=0; l<nq; l++)
-                    arr[i][j][k][l] = value;
-}
-
-/* Set one 4-dimensional array equal to another 4-dimensional array, element
- * by element. */
-
-void equate4DArrs(std::vector<double***> arr1, std::vector<double***> arr2, 
-        int nx, int ny, int nz, int nq) {
-    for (int i=0; i<nx; i++)
-        for (int j=0; j<ny; j++)
-            for (int k=0; k<nz; k++)
-                for (int l=0; l<nq; l++)
-                    arr1[i][j][k][l] = arr2[i][j][k][l];
-}
-
 double delta(double x1, double x2) {
     double d1 = x1/x2;
     double d2 = x2/x1;
@@ -402,15 +234,11 @@ double delta(double x1, double x2) {
     return delt;
 }
 
-double quantile(std::vector<double***> R, double p, int nx, int ny, int nz, 
-        int nq) {
+double quantile(double* R, double p, int nx, int ny, int nz, int nq) {
     double *Rline = new double[nx*ny*nz*nq];
 
-    for (int i=0; i<nx; i++)
-        for (int j=0; j<ny; j++)
-            for (int k=0; k<nz; k++)
-                for (int l=0; l<nq; l++)
-                    Rline[i*ny*nz*nq+j*nz*nq+k*nq+l] = R[i][j][k][l];
+    for (int i=0; i<nx*ny*nz*nq; i++)
+        Rline[i] = R[i];
 
     bubbleSort(Rline, nx*ny*nz*nq);
 
@@ -427,19 +255,13 @@ bool converged(std::vector<double*> newArr, std::vector<double*> oldArr,
     double Delthresh = 1.1;
     double p = 0.99;
 
-    std::vector<double***> R = create4DArr(n1, n2, n3, n4);
-    std::vector<double***> Rold = create4DArr(n1, n2, n3, n4);
+    double* R = new double[n1*n2*n3*n4];
+    double* Rold = new double[n1*n2*n3*n4];
 
     for (int i=0; i<n1; i++) {
-        for (int j=0; j<n2; j++) {
-            for (int k=0; k<n3; k++) {
-                for (int l=0; l<n4; l++) {
-                    R[i][j][k][l] = delta(oldArr[i][j*n3*n4 + k*n4 + l], 
-                            newArr[i][j*n3*n4 + k*n4 + l]);
-                    Rold[i][j][k][l] = delta(reallyoldArr[i][j*n3*n4 + k*n4 + l],
-                            newArr[i][j*n3*n4 + k*n4 + l]);
-                }
-            }
+        for (int j=0; j<n2*n3*n4; j++) {
+            R[i*n2*n3*n4 + j] = delta(oldArr[i][j], newArr[i][j]);
+            Rold[i*n2*n3*n4 + j] = delta(reallyoldArr[i][j], newArr[i][j]);
         }
     }
 
@@ -452,8 +274,7 @@ bool converged(std::vector<double*> newArr, std::vector<double*> oldArr,
 
     bool conv = ((Q < Qthresh) && (Del < Delthresh));
 
-    delete4DArr(R, n1, n2, n3, n4);
-    delete4DArr(Rold, n1, n2, n3, n4);
+    delete[] R; delete[] Rold;
 
     return conv;
 }
