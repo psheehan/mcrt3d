@@ -24,7 +24,7 @@ struct Image {
     double *y;
     double *lam;
     double *nu;
-    double ***intensity;
+    double *intensity;
 
     double pixel_size;
     int nx;

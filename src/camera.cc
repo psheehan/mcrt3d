@@ -47,13 +47,12 @@ Image::Image(int _nx, int _ny, double _pixel_size, py::array_t<double> __lam) {
     _intensity.resize({nx, ny, nnu});
 
     auto _intensity_buf = _intensity.request();
-    intensity = pymangle(nx, ny, nnu, (double *) _intensity_buf.ptr);
-
-    set3DArrValue(intensity, 0., nx, ny, nnu);
+    intensity = (double *) _intensity_buf.ptr;
+    for (int i = 0; i < nx*ny*nnu; i++)
+        intensity[i] = 0.;
 }
 
 Image::~Image() {
-    freepymangle(intensity);
 }
 
 UnstructuredImage::UnstructuredImage(int _nx, int _ny, double _pixel_size, 
@@ -238,8 +237,9 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
                     image->pixel_size, image->nu, image->nnu, 0);
 
             for (int i = 0; i < image->nnu; i++)
-                image->intensity[k][j][i] = intensity[i] * 
-                    image->pixel_size * image->pixel_size / (r * r)/ Jy;
+                image->intensity[k*image->ny*image->nnu + j*image->nnu + i] = 
+                    intensity[i] * image->pixel_size * image->pixel_size / 
+                    (r * r)/ Jy;
 
             delete[] intensity;
         }
@@ -398,7 +398,8 @@ Spectrum *Camera::make_spectrum(py::array_t<double> lam, double incl,
     for (int i=0; i<image->nnu; i++)
         for (int j=0; j<image->nx; j++)
             for (int k=0; k<image->ny; k++) {
-                S->intensity[i] += image->intensity[j][k][i];
+                S->intensity[i] += image->intensity[j*image->nnu*image->ny 
+                    + k*image->nnu + i];
             }
 
     // Delete the parts of the image we no longer need.
@@ -653,8 +654,9 @@ void Camera::raytrace_sources(Image *image, int nthreads) {
             #pragma omp critical
             {
             for (int inu=0; inu < image->nnu; inu++) {
-                image->intensity[ix][iy][inu] += R->intensity[inu] *
-                    image->pixel_size * image->pixel_size / (r * r)/ Jy;
+                image->intensity[ix*image->ny*image->nnu + iy*image->nnu + inu] 
+                    += R->intensity[inu] * image->pixel_size * 
+                    image->pixel_size / (r * r)/ Jy;
             }
             }
 
