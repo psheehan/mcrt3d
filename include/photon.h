@@ -12,6 +12,7 @@ struct Photon {
     Vector<double, 3> nframe;
     double *current_kext, *current_albedo;
     Vector<int, 3> l;
+    int cell_index;
 
     double event_count;
     double same_cell_count;

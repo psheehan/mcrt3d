@@ -29,9 +29,7 @@ Grid::Grid(py::array_t<double> __w1, py::array_t<double> __w2,
     _volume.resize({n1, n2, n3});
 
     auto _volume_buf = _volume.request();
-    double *__volume = (double *) _volume_buf.ptr;
-
-    volume = pymangle(n1, n2, n3, __volume);
+    volume = (double *) _volume_buf.ptr;
 
     // Make sure the number of species and sources are set correctly.
 
@@ -39,7 +37,9 @@ Grid::Grid(py::array_t<double> __w1, py::array_t<double> __w2,
 
     // Initialize the uses_mrw array.
 
-    uses_mrw = create3DArrValue(n1, n2, n3, -1);
+    double *uses_mrw = new double[n1*n2*n3];
+    for (int i=0; i<n1*n2*n3; i++)
+        uses_mrw[i] = -1;
 }
 
 /* Functions to set up the grid. */
@@ -60,37 +60,35 @@ Grid::Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3,
 
     mirror_symmetry = _mirror_symmetry;
 
-    volume = pymangle(n1, n2, n3, _volume);
+    volume = _volume;
 }
 
 Grid::~Grid() {
     // Free the physical parameters;
 
-    freepymangle(volume);
-
     for (int i = 0; i < nspecies; i++) {
-        freepymangle(dens[i]);
-        freepymangle(temp[i]);
-        delete3DArr(mass[i], n1, n2, n3);
-        delete3DArr(rosseland_mean_extinction[i], n1, n2, n3);
-        delete3DArr(planck_mean_opacity[i], n1, n2, n3);
+        //freepymangle(dens[i]);
+        //freepymangle(temp[i]);
+        //delete3DArr(mass[i], n1, n2, n3);
+        //delete3DArr(rosseland_mean_extinction[i], n1, n2, n3);
+        //delete3DArr(planck_mean_opacity[i], n1, n2, n3);
+        delete[] mass[i]; delete[] rosseland_mean_extinction[i];
+        delete[] planck_mean_opacity[i];
         #ifdef _OPENMP
-        delete3DLock(lock[i], n1, n2, n3);
+        for (int j=0; j<n1*n2*n3; j++)
+            omp_destroy_lock(&(lock[i][j]));
         #endif
     }
     for (int i = 0; i < (int) energy.size(); i++) {
         for (int j = 0; j < nspecies; j++)
-            delete3DArr(energy[i][j], n1, n2, n3);
+            //delete3DArr(energy[i][j], n1, n2, n3);
+            delete[] energy[i][j];
         energy[i].clear();
     }
     dens.clear(); temp.clear(); mass.clear(); energy.clear(); dust.clear();
     #ifdef _OPENMP
     lock.clear();
     #endif
-
-    // Deallocate the uses_mrw array.
-
-    delete3DArr(uses_mrw, n1, n2, n3);
 
     // Make sure the scattering array is deallocated.
 
@@ -100,10 +98,10 @@ Grid::~Grid() {
     // Clear the gas.
     
     for (int i = 0; i < ngases; i++) {
-        freepymangle(number_dens[i]);
-        freepymangle(gas_temp[i]);
-        freepymangle(velocity[i]);
-        freepymangle(microturbulence[i]);
+        delete[] number_dens[i];
+        delete[] gas_temp[i];
+        delete[] microturbulence[i];
+        delete[] velocity[i];
     }
     number_dens.clear(); gas_temp.clear(); velocity.clear(); 
     microturbulence.clear(); gas.clear();
@@ -137,24 +135,34 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
 
     // Now send to C++ useful things.
 
-    double ***__dens = pymangle(n1, n2, n3, (double *) _dens_buf.ptr);
-    double ***__temp = pymangle(n1, n2, n3, (double *) _temp_buf.ptr);
-    double ***__mass = create3DArrValue(n1, n2, n3, 0);
-    double ***__energy = create3DArrValue(n1, n2, n3, 0);
-    double ***__rosseland_mean_extinction = create3DArrValue(n1, n2, n3, 0);
-    double ***__planck_mean_opacity = create3DArrValue(n1, n2, n3, 0);
+    //double ***__dens = pymangle(n1, n2, n3, (double *) _dens_buf.ptr);
+    //double ***__temp = pymangle(n1, n2, n3, (double *) _temp_buf.ptr);
+    //double ***__mass = create3DArrValue(n1, n2, n3, 0);
+    double *__energy = new double [n1*n2*n3];
+    //double ***__rosseland_mean_extinction = create3DArrValue(n1, n2, n3, 0);
+    //double ***__planck_mean_opacity = create3DArrValue(n1, n2, n3, 0);
+    double *__mass = new double[n1*n2*n3];
+    double *__rosseland_mean_extinction = new double[n1*n2*n3];
+    double *__planck_mean_opacity = new double[n1*n2*n3];
+    //for (int i=0; i<n1*n2*n3; i++) {
+    //    __mass[i] = 0;
+    //    __rosseland_mean_opacity[i] = 0;
+    //    __planck_mean_opacity[i] = 0;
+    //}
     #ifdef _OPENMP
-    omp_lock_t*** __lock = create3DLock(n1, n2, n3);
+    omp_lock_t*** __lock = new omp_lock_t**[n1*n2*n3];
+    for (int i=0; i<n1*n2*n3; i++)
+        omp_init_lock(&(__lock[i]));
     #endif
 
-    dens.push_back(__dens);
-    temp.push_back(__temp);
+    dens.push_back((double *) _dens_buf.ptr);
+    temp.push_back((double *) _temp_buf.ptr);
     mass.push_back(__mass);
     #ifdef _OPENMP
     lock.push_back(__lock);
     #endif
     if (energy.empty()) { 
-        std::vector<double***> ___energy = {__energy};
+        std::vector<double*> ___energy = {__energy};
         energy.push_back(___energy);
     } else
         energy[0].push_back(__energy);
@@ -164,18 +172,15 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
 
     // Initialize their values.
 
-    for (int i = 0; i < n1; i++) {
-        for (int j = 0; j < n2; j++) {
-            for (int k = 0; k < n3; k++) {
-                if (__dens[i][j][k] < 1.0e-99) __dens[i][j][k] = 1.0e-99;
-                __temp[i][j][k] = 0.1;
-                __mass[i][j][k] = __dens[i][j][k] * volume[i][j][k];
-                __rosseland_mean_extinction[i][j][k] = 
-                    D->rosseland_mean_extinction(__temp[i][j][k]);
-                __planck_mean_opacity[i][j][k] = D->planck_mean_opacity(
-                        __temp[i][j][k]);
-            }
-        }
+    for (int icell = 0; icell < n1*n2*n3; icell++) {
+        if (dens[nspecies][icell] < 1.0e-99) dens[nspecies][icell] = 1.0e-99;
+        temp[nspecies][icell] = 0.1;
+        __mass[icell] = dens[nspecies][icell] * volume[icell];
+        __rosseland_mean_extinction[icell] = 
+                D->rosseland_mean_extinction(temp[nspecies][icell]);
+        __planck_mean_opacity[icell] = D->planck_mean_opacity(
+                temp[nspecies][icell]);
+        energy[0][nspecies][icell] = 0;
     }
 
     // Add the dust to the list of dust classes.
@@ -210,19 +215,19 @@ void Grid::add_number_density(py::array_t<double> ___number_dens,
 
     // Now send to C++ useful things.
 
-    double ***__number_dens = pymangle(n1, n2, n3, 
+    /*double ***__number_dens = pymangle(n1, n2, n3, 
             (double *) _number_dens_buf.ptr);
     double ***__gas_temp = pymangle(n1, n2, n3, 
             (double *) _gas_temp_buf.ptr);
     double ****__velocity = pymangle(3, n1, n2, n3, 
             (double *) _velocity_buf.ptr);
     double ***__microturbulence = pymangle(n1, n2, n3, 
-            (double *) _microturbulence_buf.ptr);
+            (double *) _microturbulence_buf.ptr);*/
 
-    number_dens.push_back(__number_dens);
-    gas_temp.push_back(__gas_temp);
-    velocity.push_back(__velocity);
-    microturbulence.push_back(__microturbulence);
+    number_dens.push_back((double *) _number_dens_buf.ptr);
+    gas_temp.push_back((double *) _gas_temp_buf.ptr);
+    velocity.push_back((double *) _velocity_buf.ptr);
+    microturbulence.push_back((double *) _microturbulence_buf.ptr);
 
     // Add the dust to the list of dust classes.
 
@@ -255,12 +260,14 @@ void Grid::add_scattering_array(py::array_t<double> ___scatt, int nthreads) {
 
     auto _scatt_buf = ___scatt.request();
 
-    scatt.push_back(pymangle(n1, n2, n3, Q->nnu, (double *) _scatt_buf.ptr));
+    scatt.push_back((double *) _scatt_buf.ptr);
 
     // If we are using more than one thread, add additional arrays.
 
     for (int ithread = 1; ithread < nthreads; ithread++) {
-        scatt.push_back(create4DArrValue(n1, n2, n3, Q->nnu, 0.));
+        scatt.push_back(new double[n1*n2*n3*Q->nnu]);
+        for (int i = 0; i < n1*n2*n3*Q->nnu; i++)
+            scatt[ithread][i] = 0.;
     }
 }
 
@@ -268,25 +275,23 @@ void Grid::initialize_scattering_array(int nthreads) {
     // Create a 4D scattering array for each of the separate threads.
 
     for (int ithread = 0; ithread < nthreads; ithread++) {
-        scatt.push_back(create4DArrValue(n1, n2, n3, Q->nnu, 0.));
+        scatt.push_back(new double[n1*n2*n3*Q->nnu]);
+        for (int i = 0; i < n1*n2*n3*Q->nnu; i++)
+            scatt[ithread][i] = 0.;
     }
 }
 
 void Grid::collapse_scattering_array() {
     for (int ithread = 1; ithread < (int) scatt.size(); ithread++)
-        for (int ix=0; ix < n1; ix++)
-            for (int iy=0; iy < n2; iy++)
-                for (int iz=0; iz < n3; iz++)
-                    for (int iq=0; iq < Q->nnu; iq++)
-                        scatt[0][ix][iy][iz][iq] += 
-                            scatt[ithread][ix][iy][iz][iq];
+        for (int icell=0; icell < n1*n2*n3*Q->nnu; icell++)
+            scatt[0][icell] += scatt[ithread][icell];
 
     deallocate_scattering_array(1);
 }
 
 void Grid::deallocate_scattering_array(int start) {
     for (int ithread = start; ithread < (int) scatt.size(); ithread++)
-        delete4DArr(scatt[ithread], n1, n2, n3, Q->nnu);
+        delete[] scatt[ithread];
     scatt.erase(scatt.begin()+start, scatt.end());
 }
 
@@ -296,17 +301,20 @@ void Grid::add_energy_arrays(int nthreads) {
     // Create a 3D energy array for each of the separate threads.
 
     for (int ithread = 1; ithread < nthreads; ithread++) {
-        std::vector<double***> _energy = {};
+        std::vector<double*> _energy = {};
         energy.push_back(_energy);
-        for (int idust = 0; idust < nspecies; idust++)
-            energy[ithread].push_back(create3DArrValue(n1, n2, n3, 0.));
+        for (int idust = 0; idust < nspecies; idust++) {
+            energy[ithread].push_back(new double[n1*n2*n3]);
+            for (int icell = 0; icell < n1*n2*n3; icell++)
+                energy[ithread][idust][icell] = 0.;
+        }
     }
 }
 
 void Grid::deallocate_energy_arrays() {
     for (int ithread = 1; ithread < (int) energy.size(); ithread++) {
         for (int idust = 0; idust < nspecies; idust++)
-            delete3DArr(energy[ithread][idust], n1, n2, n3);
+            delete[] energy[ithread][idust];
         energy[ithread].clear();
     }
     energy.erase(energy.begin()+1, energy.end());
@@ -318,16 +326,12 @@ void Grid::initialize_luminosity_array() {
     total_lum = 0.;
 
     for (int idust = 0; idust<nspecies; idust++) {
-        luminosity.push_back(create3DArrValue(n1, n2, n3, 0.));
+        luminosity.push_back(new double[n1*n2*n3]);
 
-        for (int ix = 0; ix<n1; ix++) {
-            for (int iy = 0; iy<n2; iy++) {
-                for (int iz = 0; iz<n3; iz++) {
-                    luminosity[idust][ix][iy][iz] = cell_lum(idust, ix, iy, iz);
+        for (int icell = 0; icell<n1*n2*n3; icell++) {
+            luminosity[idust][icell] = cell_lum(idust, icell);
 
-                    total_lum += luminosity[idust][ix][iy][iz];
-                }
-            }
+            total_lum += luminosity[idust][icell];
         }
     }
 }
@@ -336,24 +340,19 @@ void Grid::initialize_luminosity_array(double nu) {
     total_lum = 0.;
 
     for (int idust = 0; idust<nspecies; idust++) {
-        luminosity.push_back(create3DArrValue(n1, n2, n3, 0.));
+        luminosity.push_back(new double[n1*n2*n3]);
 
-        for (int ix = 0; ix<n1; ix++) {
-            for (int iy = 0; iy<n2; iy++) {
-                for (int iz = 0; iz<n3; iz++) {
-                    luminosity[idust][ix][iy][iz] = cell_lum(idust, ix, iy, 
-                            iz, nu);
+        for (int icell = 0; icell<n1; icell++) {
+            luminosity[idust][icell] = cell_lum(idust, icell, nu);
 
-                    total_lum += luminosity[idust][ix][iy][iz];
-                }
-            }
+            total_lum += luminosity[idust][icell];
         }
     }
 }
 
 void Grid::deallocate_luminosity_array() {
     for (int idust = 0; idust<nspecies; idust++) {
-        delete3DArr(luminosity[idust], n1, n2, n3);
+        delete[] luminosity[idust];
     }
     luminosity.clear();
 }
@@ -416,7 +415,7 @@ Photon *Grid::emit(double _nu, double _dnu, int nphot) {
         for (ix = 0; ix<n1; ix++) {
             for (iy = 0; iy<n2; iy++) {
                 for (iz = 0; iz<n3; iz++) {
-                    cum_lum += luminosity[idust][ix][iy][iz] / total_lum;
+                    cum_lum += luminosity[idust][ix*n2*n3 + iy*n3 + iz] / total_lum;
 
                     if (cum_lum >= rand)
                         break;
@@ -462,7 +461,7 @@ void Grid::absorb(Photon *P, int idust) {
     // If we're doing a Bjorkman & Wood simulation, update the cell to
     // find its new temperature before continuing.
     if (Q->bw) {
-        update_grid(P->l);
+        update_grid(P->l, P->cell_index);
     }
 
     // Determine which dust species should do the absorption.
@@ -475,7 +474,7 @@ void Grid::absorb(Photon *P, int idust) {
         double *kabs_cum = new double[nspecies];
         for (int i=0; i<nspecies; i++) {
             kabs_tot += (1 - P->current_albedo[i])*P->current_kext[i]*
-                dens[i][P->l[0]][P->l[1]][P->l[2]];
+                dens[i][P->cell_index];
             kabs_cum[i] = kabs_tot;
         }
 
@@ -492,11 +491,11 @@ void Grid::absorb(Photon *P, int idust) {
     // Now do the absorption.
 
     #ifdef _OPENMP
-    omp_set_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
+    omp_set_lock(&(lock[idust][P->cell_index]));
     #endif
-    dust[idust]->absorb(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw);
+    dust[idust]->absorb(P, temp[idust][P->cell_index], Q->bw);
     #ifdef _OPENMP
-    omp_unset_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
+    omp_unset_lock(&(lock[idust][P->cell_index]));
     #endif
 
     // Update the photon's arrays of kext and albedo since P->nu has changed
@@ -514,7 +513,7 @@ void Grid::absorb(Photon *P, int idust) {
 
 void Grid::absorb_mrw(Photon *P, int idust) {
     // Update the temperature after absorbing all that energy.
-    if (Q->bw) update_grid(P->l);
+    if (Q->bw) update_grid(P->l, P->cell_index);
 
     // Determine which dust species should do the absorption.
     idust = 0;
@@ -526,7 +525,7 @@ void Grid::absorb_mrw(Photon *P, int idust) {
         double *kabs_cum = new double[nspecies];
         for (int i=0; i<nspecies; i++) {
             kabs_tot += (1 - P->current_albedo[i])*P->current_kext[i]*
-                dens[i][P->l[0]][P->l[1]][P->l[2]];
+                dens[i][P->cell_index];
             kabs_cum[i] = kabs_tot;
         }
 
@@ -543,11 +542,11 @@ void Grid::absorb_mrw(Photon *P, int idust) {
     // Now do the absorption.
 
     #ifdef _OPENMP
-    omp_set_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
+    omp_set_lock(&(lock[idust][P->cell_index]));
     #endif
-    dust[idust]->absorb_mrw(P, temp[idust][P->l[0]][P->l[1]][P->l[2]], Q->bw);
+    dust[idust]->absorb_mrw(P, temp[idust][P->cell_index], Q->bw);
     #ifdef _OPENMP
-    omp_unset_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
+    omp_unset_lock(&(lock[idust][P->cell_index]));
     #endif
 
     // Update the photon's arrays of kext and albedo since P->nu has changed
@@ -576,7 +575,7 @@ void Grid::scatter(Photon *P, int idust) {
         double *ksca_cum = new double[nspecies];
         for (int i=0; i<nspecies; i++) {
             ksca_tot += P->current_albedo[i]*P->current_kext[i]*
-                dens[i][P->l[0]][P->l[1]][P->l[2]];
+                dens[i][P->cell_index];
             ksca_cum[i] = ksca_tot;
         }
 
@@ -622,9 +621,9 @@ void Grid::propagate_photon_full(Photon *P) {
             double kext_tot = 0;
             for (int i=0; i<nspecies; i++) {
                 ksca_tot += P->current_albedo[i]*P->current_kext[i]*
-                    dens[i][P->l[0]][P->l[1]][P->l[2]];
+                    dens[i][P->cell_index];
                 kext_tot += P->current_kext[i]*
-                    dens[i][P->l[0]][P->l[1]][P->l[2]];
+                    dens[i][P->cell_index];
             }
             albedo = ksca_tot / kext_tot;
         }
@@ -651,7 +650,7 @@ void Grid::propagate_photon_full(Photon *P) {
                     printf("Absorbing photon at %i  %i  %i\n", P->l[0],
                             P->l[1], P->l[2]);
                     printf("Absorbed in a cell with temperature: %f\n",
-                            temp[0][P->l[0]][P->l[1]][P->l[2]]);
+                            temp[0][P->cell_index]);
                     printf("Re-emitted with direction: %f  %f  %f\n",
                             P->n[0], P->n[1], P->n[2]);
                     printf("Re-emitted with frequency: %e\n", P->nu);
@@ -675,22 +674,22 @@ void Grid::propagate_photon_full(Photon *P) {
             // or scattering may have been on the outermost wall, putting
             // it outside of the grid.
             if (Q->use_mrw && in_grid(P) && ((P->same_cell_count > 400) || 
-                        (uses_mrw[P->l[0]][P->l[1]][P->l[2]] > 0))) {
+                        (uses_mrw[P->cell_index] > 0))) {
                 // First check whether we need to update the cell properties,
                 // i.e. the last event was scattering.
-                if (Q->bw and not absorb_photon) update_grid(P->l);
+                if (Q->bw and not absorb_photon) update_grid(P->l, P->cell_index);
 
                 // Check whether the cell is thick enough for MRW.
 
                 double alpha = 0.0;
                 for (int idust = 0; idust<nspecies; idust++)
-                    alpha += rosseland_mean_extinction[idust][P->l[0]][P->l[1]]
-                            [P->l[2]] * dens[idust][P->l[0]][P->l[1]][P->l[2]];
+                    alpha += rosseland_mean_extinction[idust][P->cell_index] * 
+                        dens[idust][P->cell_index];
 
                 double dmin = smallest_wall_size(P);
 
                 if (alpha * dmin > 20) {
-                    uses_mrw[P->l[0]][P->l[1]][P->l[2]] = 1.0;
+                    uses_mrw[P->cell_index] = 1.0;
 
                     // Propagate the photon.
                     propagate_photon_mrw(P);
@@ -717,7 +716,7 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
         double alpha = 0;
         for (int idust = 0; idust<nspecies; idust++)
             alpha += P->current_kext[idust]*
-                dens[idust][P->l[0]][P->l[1]][P->l[2]];
+                dens[idust][P->cell_index];
 
         double s2 = tau/alpha;
 
@@ -745,9 +744,9 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
         // current trajectory is absorption.
         if (absorb) {
             for (int idust=0; idust<nspecies; idust++)
-                energy[P->ithread][idust][P->l[0]][P->l[1]][P->l[2]] += 
+                energy[P->ithread][idust][P->cell_index] += 
                     P->energy*s*P->current_kext[idust]*
-                    dens[idust][P->l[0]][P->l[1]][P->l[2]];
+                    dens[idust][P->cell_index];
         }
 
         // Remvove the tau we've used up with this stepl
@@ -810,9 +809,9 @@ void Grid::propagate_photon_scattering(Photon *P) {
             for (int idust = 0; idust<nspecies; idust++) {
                 alpha_abs += P->current_kext[idust]* 
                     (1.-P->current_albedo[idust])*
-                    dens[idust][P->l[0]][P->l[1]][P->l[2]];
+                    dens[idust][P->cell_index];
                 alpha_scat += P->current_kext[idust]*P->current_albedo[idust]*
-                    dens[idust][P->l[0]][P->l[1]][P->l[2]];
+                    dens[idust][P->cell_index];
             }
 
             double s2 = tau/alpha_scat;
@@ -832,9 +831,9 @@ void Grid::propagate_photon_scattering(Photon *P) {
                 average_energy = (1.0 - 0.5*tau_abs) * P->energy;
 
             // Add some of the energy to the scattering array.
-            scatt[P->ithread][P->l[0]][P->l[1]][P->l[2]][Q->inu] += 
+            scatt[P->ithread][P->cell_index*Q->nnu + Q->inu] += 
                     average_energy * s / (4*pi * 
-                    volume[P->l[0]][P->l[1]][P->l[2]]);
+                    volume[P->cell_index]);
 
             // Absorb some of the photon's energy.
             P->energy *= exp(-tau_abs);
@@ -891,26 +890,25 @@ void Grid::propagate_photon_mrw(Photon *P) {
     // Calculate the Rosseland mean opacity.
     double alpha = 0.0;
     for (int idust = 0; idust<nspecies; idust++)
-        alpha += rosseland_mean_extinction[idust][P->l[0]][P->l[1]][P->l[2]] * 
-                dens[idust][P->l[0]][P->l[1]][P->l[2]];
+        alpha += rosseland_mean_extinction[idust][P->cell_index] * 
+                dens[idust][P->cell_index];
 
     // Calculate the energy threshold at which to stop and re-calculate the
     // Rosseland mean opacity.
     double energy_threshold = 0.;
     for (int idust = 0; idust<nspecies; idust++) {
         #ifdef _OPENMP
-        omp_set_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
+        omp_set_lock(&(lock[idust][P->cell_index]));
         #endif
-        if (temp[idust][P->l[0]][P->l[1]][P->l[2]] > 3.) {
+        if (temp[idust][P->cell_index] > 3.) {
             for (int ithread = 0; ithread < (int) energy.size(); ithread++)
-                energy_threshold += energy[ithread][idust][P->l[0]]
-                        [P->l[1]][P->l[2]];
+                energy_threshold += energy[ithread][idust][P->cell_index];
         } else {
             energy_threshold = HUGE_VAL;
             break;
         }
         #ifdef _OPENMP
-        omp_unset_lock(&(lock[idust][P->l[0]][P->l[1]][P->l[2]]));
+        omp_unset_lock(&(lock[idust][P->cell_index]));
         #endif
     }
     energy_threshold *= 0.3;
@@ -992,9 +990,10 @@ void Grid::propagate_photon_mrw(Photon *P) {
 
     // Add the energy absorbed into the grid.
     for (int idust=0; idust<nspecies; idust++)
-        energy[P->ithread][idust][P->l[0]][P->l[1]][P->l[2]] += 
-                P->energy*path_accumulated*planck_mean_opacity[idust][P->l[0]]
-                [P->l[1]][P->l[2]]*dens[idust][P->l[0]][P->l[1]][P->l[2]];
+        energy[P->ithread][idust][P->cell_index] += 
+                P->energy*path_accumulated*
+                planck_mean_opacity[idust][P->cell_index]*
+                dens[idust][P->cell_index];
 }
 
 /* Propagate a ray through the grid for raytracing. */
@@ -1017,19 +1016,19 @@ void Grid::propagate_ray(Ray *R) {
             if (Q->raytrace_dust) {
                 for (int idust=0; idust<nspecies; idust++) {
                     tau_cell += s*R->current_kext[idust][inu] *
-                            dens[idust][R->l[0]][R->l[1]][R->l[2]];
+                            dens[idust][R->cell_index];
 
                     alpha_ext += R->current_kext[idust][inu] *
-                            dens[idust][R->l[0]][R->l[1]][R->l[2]];
+                            dens[idust][R->cell_index];
                     alpha_sca += R->current_kext[idust][inu] *
                             R->current_albedo[idust][inu] *
-                            dens[idust][R->l[0]][R->l[1]][R->l[2]];
+                            dens[idust][R->cell_index];
 
                     intensity_abs += R->current_kext[idust][inu] * 
                             (1 - R->current_albedo[idust][inu]) *
-                            dens[idust][R->l[0]][R->l[1]][R->l[2]]
+                            dens[idust][R->cell_index]
                             * planck_function(R->nu[inu], 
-                            temp[idust][R->l[0]][R->l[1]][R->l[2]]);
+                            temp[idust][R->cell_index]);
                 }
             }
 
@@ -1040,8 +1039,8 @@ void Grid::propagate_ray(Ray *R) {
                     int iline = include_lines[itrans+1];
 
                     double alpha_this_line = 
-                            alpha_line[itrans/2][R->l[0]][R->l[1]][R->l[2]] *
-                            line_profile(igas, iline, itrans/2, R->l, 
+                            alpha_line[itrans/2][R->cell_index] *
+                            line_profile(igas, iline, itrans/2, R->cell_index, 
                             R->nu[inu] * (1 - -R->nframe.dot(
                             vector_velocity(igas, R)) / c_l));
 
@@ -1050,7 +1049,7 @@ void Grid::propagate_ray(Ray *R) {
 
                     intensity_line += alpha_this_line * 
                             planck_function(R->nu[inu],
-                            gas_temp[igas][R->l[0]][R->l[1]][R->l[2]]);
+                            gas_temp[igas][R->cell_index]);
                 }
             }
 
@@ -1063,7 +1062,7 @@ void Grid::propagate_ray(Ray *R) {
 
             double intensity_sca = 0;
             if (Q->raytrace_dust) intensity_sca = (1.0-exp(-tau_cell)) * 
-                    albedo * scatt[0][R->l[0]][R->l[1]][R->l[2]][inu];
+                    albedo * scatt[0][R->cell_index*Q->nnu + inu];
 
             double intensity_cell = intensity_abs + intensity_sca + 
                 intensity_line;
@@ -1102,7 +1101,7 @@ void Grid::propagate_ray_from_source(Ray *R) {
             double tau_cell = 0;
             for (int idust=0; idust<nspecies; idust++)
                 tau_cell += s*R->current_kext[idust][inu]*
-                    dens[idust][R->l[0]][R->l[1]][R->l[2]];
+                    dens[idust][R->cell_index];
 
             if (Q->verbose) {
                 printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
@@ -1190,46 +1189,46 @@ bool Grid::in_grid(Photon *P) {
 /* Update the temperature in a cell given the number of photons that have 
  * been absorbed in the cell. */
 
-void Grid::update_grid(Vector<int, 3> l) {
+void Grid::update_grid(Vector<int, 3> l, int cell_index) {
     for (int idust=0; idust<nspecies; idust++) {
         #ifdef _OPENMP
-        omp_set_lock(&(lock[idust][l[0]][l[1]][l[2]]));
+        omp_set_lock(&(lock[idust][cell_index]));
         #endif
 
         bool not_converged = true;
 
         double total_energy = 0;
         for (int ithread = 0; ithread < (int) energy.size(); ithread++)
-            total_energy += energy[ithread][idust][l[0]][l[1]][l[2]];
+            total_energy += energy[ithread][idust][cell_index];
 
         while (not_converged) {
-            double T_old = temp[idust][l[0]][l[1]][l[2]];
+            double T_old = temp[idust][cell_index];
 
-            temp[idust][l[0]][l[1]][l[2]]=pow(total_energy/
+            temp[idust][cell_index]=pow(total_energy/
                 (4*sigma*dust[idust]->
-                planck_mean_opacity(temp[idust][l[0]][l[1]][l[2]])*
-                mass[idust][l[0]][l[1]][l[2]]),0.25);
+                planck_mean_opacity(temp[idust][cell_index])*
+                mass[idust][cell_index]),0.25);
 
             // Make sure that there is a minimum temperature that the grid can
             // get to.
-            if (temp[idust][l[0]][l[1]][l[2]] < 0.1) 
-                temp[idust][l[0]][l[1]][l[2]] = 0.1;
+            if (temp[idust][cell_index] < 0.1) 
+                temp[idust][cell_index] = 0.1;
 
-            if ((fabs(T_old-temp[idust][l[0]][l[1]][l[2]])/T_old < 1.0e-2))
+            if ((fabs(T_old-temp[idust][cell_index])/T_old < 1.0e-2))
                 not_converged = false;
         }
 
         if (Q->use_mrw) {
-            rosseland_mean_extinction[idust][l[0]][l[1]][l[2]] = 
+            rosseland_mean_extinction[idust][cell_index] = 
                     dust[idust]->rosseland_mean_extinction(
-                    temp[idust][l[0]][l[1]][l[2]]);
-            planck_mean_opacity[idust][l[0]][l[1]][l[2]] = 
+                    temp[idust][cell_index]);
+            planck_mean_opacity[idust][cell_index] = 
                     dust[idust]->planck_mean_opacity(
-                    temp[idust][l[0]][l[1]][l[2]]);
+                    temp[idust][cell_index]);
         }
 
         #ifdef _OPENMP
-        omp_unset_lock(&(lock[idust][l[0]][l[1]][l[2]]));
+        omp_unset_lock(&(lock[idust][cell_index]));
         #endif
     }
 }
@@ -1238,57 +1237,53 @@ void Grid::update_grid() {
     for (int i=0; i<nw1-1; i++)
         for (int j=0; j<nw2-1; j++)
             for (int k=0; k<nw3-1; k++)
-                update_grid(Vector<int, 3>(i,j,k));
+                update_grid(Vector<int, 3>(i,j,k), i*n2*n3 + j*n3 + k);
 }
 
 /* Calculate the luminosity of the cell indicated by l. */
 
-double Grid::cell_lum(Vector<int, 3> l) {
+/*double Grid::cell_lum(Vector<int, 3> l) {
     return 4*mass[0][l[0]][l[1]][l[2]]*dust[0]->
         planck_mean_opacity(temp[0][l[0]][l[1]][l[2]])*sigma*
         pow(temp[0][l[0]][l[1]][l[2]],4);
+}*/
+
+double Grid::cell_lum(int idust, int cell_index) {
+    return 4*mass[idust][cell_index]*dust[idust]->
+        planck_mean_opacity(temp[idust][cell_index])*sigma*
+        pow(temp[idust][cell_index],4);
 }
 
-double Grid::cell_lum(int idust, int ix, int iy, int iz) {
-    return 4*mass[idust][ix][iy][iz]*dust[idust]->
-        planck_mean_opacity(temp[idust][ix][iy][iz])*sigma*
-        pow(temp[idust][ix][iy][iz],4);
-}
-
-double Grid::cell_lum(Vector<int, 3> l, double nu) {
+/*double Grid::cell_lum(Vector<int, 3> l, double nu) {
     return 4*pi*mass[0][l[0]][l[1]][l[2]]*
         dust[0]->opacity(nu)*(1. - dust[0]->albdo(nu))*
         planck_function(nu, temp[0][l[0]][l[1]][l[2]]);
-}
+}*/
 
-double Grid::cell_lum(int idust, int ix, int iy, int iz, double nu) {
-    return 4*pi*mass[idust][ix][iy][iz]*
+double Grid::cell_lum(int idust, int cell_index, double nu) {
+    return 4*pi*mass[idust][cell_index]*
         dust[idust]->opacity(nu)*(1. - dust[idust]->albdo(nu))*
-        planck_function(nu, temp[idust][ix][iy][iz]);
+        planck_function(nu, temp[idust][cell_index]);
 }
 
 /* Calculate the line profile of a spectral line. */
 
 Vector<double, 3> Grid::vector_velocity(int igas, Photon *P) {
-    return Vector<double, 3>(velocity[igas][0][P->l[0]][P->l[1]][P->l[2]], 
-            velocity[igas][1][P->l[0]][P->l[1]][P->l[2]], 
-            velocity[igas][2][P->l[0]][P->l[1]][P->l[2]]);
+    return Vector<double, 3>(velocity[igas][P->cell_index], 
+            velocity[igas][1*n1*n2*n3+P->cell_index], 
+            velocity[igas][2*n1*n2*n3+P->cell_index]);
 }
 
 double Grid::maximum_velocity(int igas) {
     double vmax = 0;
 
-    for (int ix = 0; ix < n1; ix++) {
-        for (int iy = 0; iy < n2; iy++) {
-            for (int iz = 0; iz < n3; iz++) {
-                Vector<double, 3> vcell(velocity[igas][0][ix][iy][iz],
-                        velocity[igas][1][ix][iy][iz], 
-                        velocity[igas][2][ix][iy][iz]);
-                double vnorm = vcell.norm();
+    for (int icell = 0; icell < n1*n2*n3; icell++) {
+        Vector<double, 3> vcell(velocity[igas][icell],
+                velocity[igas][1*n1*n2*n3+icell], 
+                velocity[igas][2*n1*n2*n3+icell]);
+        double vnorm = vcell.norm();
 
-                if (vnorm > vmax) vmax = vnorm;
-            }
-        }
+        if (vnorm > vmax) vmax = vnorm;
     }
 
     return vmax;
@@ -1297,13 +1292,9 @@ double Grid::maximum_velocity(int igas) {
 double Grid::maximum_gas_temperature(int igas) {
     double Tmax = 0;
 
-    for (int ix = 0; ix < n1; ix++) {
-        for (int iy = 0; iy < n2; iy++) {
-            for (int iz = 0; iz < n3; iz++) {
-                if (gas_temp[igas][ix][iy][iz] > Tmax) Tmax = 
-                        gas_temp[igas][ix][iy][iz];
-            }
-        }
+    for (int icell = 0; icell < n1*n2*n3; icell++) {
+        if (gas_temp[igas][icell] > Tmax) Tmax = 
+                gas_temp[igas][icell];
     }
 
     return Tmax;
@@ -1312,21 +1303,17 @@ double Grid::maximum_gas_temperature(int igas) {
 double Grid::maximum_microturbulence(int igas) {
     double Mmax = 0;
 
-    for (int ix = 0; ix < n1; ix++) {
-        for (int iy = 0; iy < n2; iy++) {
-            for (int iz = 0; iz < n3; iz++) {
-                if (microturbulence[igas][ix][iy][iz] > Mmax) Mmax = 
-                        microturbulence[igas][ix][iy][iz];
-            }
-        }
+    for (int icell = 0; icell < n1*n2*n3; icell++) {
+        if (microturbulence[igas][icell] > Mmax) Mmax = 
+                microturbulence[igas][icell];
     }
 
     return Mmax;
 }
 
-double Grid::line_profile(int igas, int iline, int itrans, Vector<int, 3> l, 
+double Grid::line_profile(int igas, int iline, int itrans, int cell_index, 
         double nu) {
-    double inv_gammat = inv_gamma_thermal[itrans][l[0]][l[1]][l[2]];
+    double inv_gammat = inv_gamma_thermal[itrans][cell_index];
 
     double profile = exp(-(nu - gas[igas]->nu[iline])*(nu - 
             gas[igas]->nu[iline]) * (inv_gammat * inv_gammat));
@@ -1335,27 +1322,23 @@ double Grid::line_profile(int igas, int iline, int itrans, Vector<int, 3> l,
 }
 
 void Grid::set_tgas_eq_tdust() {
-    for (int ix = 0; ix < n1; ix++) {
-        for (int iy = 0; iy < n2; iy++) {
-            for (int iz = 0; iz < n3; iz++) {
-                double dust_temperature = 0;
-                double dust_density = 0;
+    for (int icell = 0; icell < n1*n2*n3; icell++) {
+        double dust_temperature = 0;
+        double dust_density = 0;
 
-                for (int idust = 0; idust < nspecies; idust++) {
-                    dust_temperature += dens[idust][ix][iy][iz] * 
-                        temp[idust][ix][iy][iz];
-                    dust_density += dens[idust][ix][iy][iz];
-                }
-
-                if (dust_density > 0)
-                    dust_temperature /= dust_density;
-                else
-                    dust_temperature = 0.1;
-
-                for (int igas = 0; igas < ngases; igas++)
-                    gas_temp[igas][ix][iy][iz] = dust_temperature;
-            }
+        for (int idust = 0; idust < nspecies; idust++) {
+            dust_temperature += dens[idust][icell] * 
+                temp[idust][icell];
+            dust_density += dens[idust][icell];
         }
+
+        if (dust_density > 0)
+            dust_temperature /= dust_density;
+        else
+            dust_temperature = 0.1;
+
+        for (int igas = 0; igas < ngases; igas++)
+            gas_temp[igas][icell] = dust_temperature;
     }
 }
 
@@ -1410,10 +1393,10 @@ void Grid::select_lines(py::array_t<double> _lam) {
 }
 
 void Grid::calculate_level_populations(int igas, int iline) {
-    double ***level_pop_up = create3DArr(n1, n2, n3);
-    double ***level_pop_low = create3DArr(n1, n2, n3);
-    double ***alpha = create3DArr(n1, n2, n3);
-    double ***inv_gamma_therm = create3DArr(n1, n2, n3);
+    double *level_pop_up = new double[n1*n2*n3];
+    double *level_pop_low = new double[n1*n2*n3];
+    double *alpha = new double[n1*n2*n3];
+    double *inv_gamma_therm = new double[n1*n2*n3];
 
     int level_up = gas[igas]->up[iline]-1;
     int level_low = gas[igas]->low[iline]-1;
@@ -1421,38 +1404,40 @@ void Grid::calculate_level_populations(int igas, int iline) {
     for (int ix = 0; ix < n1; ix++) {
         for (int iy = 0; iy < n2; iy++) {
             for (int iz = 0; iz < n3; iz++) {
-                level_pop_up[ix][iy][iz] = gas[igas]->weights[level_up] * 
-                    exp(-h_p * c_l * gas[igas]->energies[level_up] / (k_B *
-                    gas_temp[igas][ix][iy][iz])) / 
-                    gas[igas]->partition_function(gas_temp[igas][ix][iy][iz]);
+                int icell = n3*n2*ix + n3*iy + iz;
 
-                level_pop_low[ix][iy][iz] = gas[igas]->weights[level_low] * 
+                level_pop_up[icell] = gas[igas]->weights[level_up] * 
+                    exp(-h_p * c_l * gas[igas]->energies[level_up] / (k_B *
+                    gas_temp[igas][icell])) / 
+                    gas[igas]->partition_function(gas_temp[igas][icell]);
+
+                level_pop_low[icell] = gas[igas]->weights[level_low] * 
                     exp(-h_p * c_l * gas[igas]->energies[level_low] / (k_B *
-                    gas_temp[igas][ix][iy][iz])) / 
-                    gas[igas]->partition_function(gas_temp[igas][ix][iy][iz]);
+                    gas_temp[igas][icell])) / 
+                    gas[igas]->partition_function(gas_temp[igas][icell]);
 
                 // Also calculate inv_gamma_thermal so we don't have to do it
                 // on the fly.
 
-                double a_thermal = sqrt(2 * k_B * gas_temp[igas][ix][iy][iz] / 
+                double a_thermal = sqrt(2 * k_B * gas_temp[igas][icell] / 
                         (gas[igas]->mu * m_p));
-                double a_microturb = microturbulence[igas][ix][iy][iz];
+                double a_microturb = microturbulence[igas][icell];
 
-                inv_gamma_therm[ix][iy][iz] = 1./(gas[igas]->nu[iline] / c_l * 
+                inv_gamma_therm[icell] = 1./(gas[igas]->nu[iline] / c_l * 
                         sqrt(a_thermal*a_thermal + a_microturb*a_microturb));
 
                 // Calculate the alpha value for the line in this cell, so this
                 // doesn't have to be done on the fly, either.
 
-                alpha[ix][iy][iz] = c_l*c_l / (8*pi*
+                alpha[icell] = c_l*c_l / (8*pi*
                         gas[igas]->nu[iline]*gas[igas]->nu[iline]) * 
                         gas[igas]->A[iline] * 
-                        number_dens[igas][ix][iy][iz] * 
-                        (level_pop_low[ix][iy][iz]*
+                        number_dens[igas][icell] * 
+                        (level_pop_low[icell]*
                         gas[igas]->weights[level_up] / 
                         gas[igas]->weights[level_low] - 
-                        level_pop_up[ix][iy][iz]) *
-                        inv_gamma_therm[ix][iy][iz] / sqrt(pi);
+                        level_pop_up[icell]) *
+                        inv_gamma_therm[icell] / sqrt(pi);
             }
         }
     }
@@ -1465,10 +1450,10 @@ void Grid::calculate_level_populations(int igas, int iline) {
 
 void Grid::deselect_lines() {
     for (int iline = 0; iline<level_populations.size(); iline++) {
-        delete3DArr(level_populations[iline], n1, n2, n3);
+        delete[] level_populations[iline];
         if (iline%2 == 0) {
-            delete3DArr(inv_gamma_thermal[iline/2], n1, n2, n3);
-            delete3DArr(alpha_line[iline/2], n1, n2, n3);
+            delete[] inv_gamma_thermal[iline/2];
+            delete[] alpha_line[iline/2];
         }
     }
     include_lines.clear(); level_populations.clear(); inv_gamma_thermal.clear();

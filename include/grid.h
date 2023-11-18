@@ -36,6 +36,7 @@ struct Grid {
     double *w1;
     double *w2;
     double *w3;
+
     bool mirror_symmetry;
 
     py::array_t<double> _w1;
@@ -47,21 +48,21 @@ struct Grid {
     py::list _temp;
     py::list _scatt;
 
-    std::vector<double***> dens;
-    std::vector<std::vector<double***>> energy;
-    std::vector<double***> temp;
-    std::vector<double***> mass;
-    std::vector<double***> rosseland_mean_extinction;
-    std::vector<double***> planck_mean_opacity;
-    std::vector<double***> luminosity;
-    std::vector<double****> scatt;
-    double ***volume;
-    double ***uses_mrw;
+    std::vector<double*> dens;
+    std::vector<std::vector<double*>> energy;
+    std::vector<double*> temp;
+    std::vector<double*> mass;
+    std::vector<double*> rosseland_mean_extinction;
+    std::vector<double*> planck_mean_opacity;
+    std::vector<double*> luminosity;
+    std::vector<double*> scatt;
+    double *volume;
+    double *uses_mrw;
 
-    std::vector<double***> number_dens;
-    std::vector<double***> gas_temp;
-    std::vector<double****> velocity;
-    std::vector<double***> microturbulence;
+    std::vector<double*> number_dens;
+    std::vector<double*> gas_temp;
+    std::vector<double*> velocity;
+    std::vector<double*> microturbulence;
 
     py::list _number_dens;
     py::list _gas_temp;
@@ -69,7 +70,7 @@ struct Grid {
     py::list _velocity;
 
     #ifdef _OPENMP
-    std::vector<omp_lock_t***> lock;
+    std::vector<omp_lock_t*> lock;
     #endif
 
     int nspecies;
@@ -80,9 +81,9 @@ struct Grid {
     std::vector<Gas *> gas;
     py::list _gas;
     std::vector<int> include_lines;
-    std::vector<double***> level_populations;
-    std::vector<double***> alpha_line;
-    std::vector<double***> inv_gamma_thermal;
+    std::vector<double*> level_populations;
+    std::vector<double*> alpha_line;
+    std::vector<double*> inv_gamma_thermal;
 
 
     int nsources;
@@ -153,19 +154,17 @@ struct Grid {
     virtual bool in_grid(Photon *P);
     virtual bool on_and_parallel_to_wall(Photon *P);
 
-    void update_grid(Vector<int, 3> l);
+    void update_grid(Vector<int, 3> l, int cell_index);
     void update_grid();
 
-    double cell_lum(Vector<int, 3> l);
-    double cell_lum(int idust, int ix, int iy, int iz);
-    double cell_lum(Vector<int, 3> l, double nu);
-    double cell_lum(int idust, int ix, int iy, int iz, double nu);
+    double cell_lum(int idust, int cell_index);
+    double cell_lum(int idust, int cell_index, double nu);
 
     Vector<double, 3> vector_velocity(int igas, Photon *P);
     double maximum_velocity(int igas);
     double maximum_gas_temperature(int igas);
     double maximum_microturbulence(int igas);
-    double line_profile(int igas, int iline, int itrans, Vector<int, 3> l, 
+    double line_profile(int igas, int iline, int itrans, int cell_index, 
             double nu);
     void calculate_level_populations(int igas, int iline);
     void set_tgas_eq_tdust();

@@ -280,7 +280,7 @@ double SphericalGrid::smallest_wall_size(Ray *R) {
 
     // Use the cell volume as an estimator of the average size of a cell.
 
-    double cell_volume = volume[R->l[0]][R->l[1]][R->l[2]];
+    double cell_volume = volume[R->l[0]*n2*n3 + R->l[1]*n3 + R->l[2]];
 
     // Scale by the size in the theta, if theta width > 0.3
     
@@ -528,6 +528,8 @@ Vector<int, 3> SphericalGrid::photon_loc(Photon *P) {
     Vector<double, 3> zhat(cos_theta, -sin_theta, 0.);
 
     P->nframe = P->n[0]*xhat + P->n[1]*yhat + P->n[2]*zhat;
+
+    P->cell_index = l[0]*n2*n3 + l[1]*n3 + l[2];
 
     return l;
 }

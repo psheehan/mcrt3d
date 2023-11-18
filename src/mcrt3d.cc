@@ -77,27 +77,27 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
     if (Q->bw)
         mc_iteration(nthreads);
     else {
-        std::vector<double***> told = create4DArr(G->nspecies, G->n1,
-                G->n2, G->n3);
-        std::vector<double***> treallyold = create4DArr(G->nspecies, G->n1,
-                G->n2, G->n3);
+        std::vector<double*> told = create2DVecArr(G->nspecies, G->n1*G->n2*G->n3);
+        std::vector<double*> treallyold = create2DVecArr(G->nspecies, 
+                G->n1*G->n2*G->n3);
 
         int maxniter = 10;
 
-        equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
+        equate2DVecArrs(told, G->temp, G->nspecies, G->n1*G->n2*G->n3);
 
         int i = 1;
         while (i <= maxniter) {
             printf("Starting iteration # %i \n\n", i);
 
-            equate4DArrs(treallyold, told, G->nspecies, G->n1, G->n2, G->n3);
-            equate4DArrs(told, G->temp, G->nspecies, G->n1, G->n2, G->n3);
+            equate2DVecArrs(treallyold, told, G->nspecies, G->n1*G->n2*G->n3);
+            equate2DVecArrs(told, G->temp, G->nspecies, G->n1*G->n2*G->n3);
 
             mc_iteration(nthreads);
 
             for (int ithread=0; ithread < (int) G->energy.size(); ithread++)
-                set4DArrValue(G->energy[ithread], 0.0, G->nspecies, G->n1, 
-                        G->n2, G->n3);
+                for (int idust=0; idust < G->nspecies; idust++)
+                    for (int icell=0; icell < G->n1*G->n2*G->n3; icell++)
+                        G->energy[ithread][idust][icell] = 0.;
 
             if (i > 2)
                 if (converged(G->temp, told, treallyold, G->nspecies, G->n1, 
@@ -108,8 +108,8 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
             printf("\n");
         }
 
-        delete4DArr(told, G->nspecies, G->n1, G->n2, G->n3);
-        delete4DArr(treallyold, G->nspecies, G->n1, G->n2, G->n3);
+        delete2DVecArr(told, G->nspecies, G->n1*G->n2*G->n3);
+        delete2DVecArr(treallyold, G->nspecies, G->n1*G->n2*G->n3);
     }
 
     // Clean up the energy arrays that were calculated.
@@ -154,11 +154,8 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
         G->add_scattering_array(scatt, nthreads);
 
         // Make sure the scattering array is zeroed out.
-        for (int i = 0; i < G->n1; i++)
-            for (int j = 0; j < G->n2; j++)
-                for (int k = 0; k < G->n3; k++)
-                    for (int l = 0; l < Q->nnu; l++)
-                        G->scatt[0][i][j][k][l] = 0.;
+        for (int i = 0; i < G->n1*G->n2*G->n3*Q->nnu; i++)
+            G->scatt[0][i] = 0.;
     } else
         G->initialize_scattering_array(nthreads);
 
@@ -184,7 +181,8 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
     // Clean up the appropriate grid parameters.
     if (save) {
         for (int i = 0; i < (int) G->scatt.size(); i++)
-            freepymangle(G->scatt[i]);
+            //freepymangle(G->scatt[i]);
+            delete[] G->scatt[i];
         G->scatt.clear();
 
         Q->nnu = 0;
@@ -222,7 +220,7 @@ void MCRT::mc_iteration(int nthreads) {
             printf("Emitted with direction: %f  %f  %f\n", P->n[0], P->n[1], 
                     P->n[2]);
             printf("Emitted from a cell with temperature: %f\n", 
-                    G->temp[0][P->l[0]][P->l[1]][P->l[2]]);
+                    G->temp[0][P->cell_index]);
             printf("Emitted with frequency: %e\n", P->nu);
         }
 

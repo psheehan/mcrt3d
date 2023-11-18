@@ -96,6 +96,16 @@ double **create2DArr(int nx, int ny);
 
 void delete2DArr(double **arr, int nx, int ny);
 
+std::vector<double*> create2DVecArr(int nx, int ny);
+void delete2DVecArr(std::vector<double*> arr, int nx, int ny);
+
+void equate2DVecArrs(std::vector<double*> arr1, std::vector<double*> arr2, 
+        int nx, int ny);
+
+/* Copy the values in one 2D array into another array. */
+
+void equate2DArrs(double *arr1, double *arr2, int nx);
+
 /* Create an empty 3-dimensional array. */
 
 double ***create3DArr(int nx, int ny, int nz);

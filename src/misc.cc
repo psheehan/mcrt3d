@@ -203,6 +203,27 @@ void delete2DArr(double **arr, int nx, int ny) {
     delete[] arr;
 }
 
+std::vector<double*> create2DVecArr(int nx, int ny) {
+    std::vector<double*> arr;
+    for (int i=0; i<nx; i++)
+        arr.push_back(new double[ny]);
+
+    return arr;
+};
+
+void delete2DVecArr(std::vector<double*> arr, int nx, int ny) {
+    for (int i = 0; i < nx; i++)
+        delete[] arr[i];
+    arr.clear();
+}
+
+void equate2DVecArrs(std::vector<double*> arr1, std::vector<double*> arr2, 
+        int nx, int ny) {
+    for (int i=0; i<nx; i++)
+        for (int j=0; j<ny; j++)
+            arr1[i][j] = arr2[i][j];
+}
+
 /* Create an empty 3-dimensional array. */
 
 double ***create3DArr(int nx, int ny, int nz) {
@@ -400,8 +421,8 @@ double quantile(std::vector<double***> R, double p, int nx, int ny, int nz,
     return quant;
 }
 
-bool converged(std::vector<double***> newArr, std::vector<double***> oldArr, 
-        std::vector<double***> reallyoldArr, int n1, int n2, int n3, int n4) {
+bool converged(std::vector<double*> newArr, std::vector<double*> oldArr, 
+        std::vector<double*> reallyoldArr, int n1, int n2, int n3, int n4) {
     double Qthresh = 2.0;
     double Delthresh = 1.1;
     double p = 0.99;
@@ -413,10 +434,10 @@ bool converged(std::vector<double***> newArr, std::vector<double***> oldArr,
         for (int j=0; j<n2; j++) {
             for (int k=0; k<n3; k++) {
                 for (int l=0; l<n4; l++) {
-                    R[i][j][k][l] = delta(oldArr[i][j][k][l], 
-                            newArr[i][j][k][l]);
-                    Rold[i][j][k][l] = delta(reallyoldArr[i][j][k][l],
-                            newArr[i][j][k][l]);
+                    R[i][j][k][l] = delta(oldArr[i][j*n3*n4 + k*n4 + l], 
+                            newArr[i][j*n3*n4 + k*n4 + l]);
+                    Rold[i][j][k][l] = delta(reallyoldArr[i][j*n3*n4 + k*n4 + l],
+                            newArr[i][j*n3*n4 + k*n4 + l]);
                 }
             }
         }

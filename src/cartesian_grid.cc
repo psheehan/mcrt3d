@@ -169,7 +169,7 @@ double CartesianGrid::smallest_wall_size(Ray *R) {
 
     // Use the cell volume as an estimator of the average size of a cell.
 
-    double cell_volume = volume[R->l[0]][R->l[1]][R->l[2]];
+    double cell_volume = volume[R->l[0]*n2*n3 + R->l[1]*n3 + R->l[2]];
 
     double s = pow(cell_volume, 1./3);
 
@@ -302,6 +302,10 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
     /* Also calculate n in the coordinate system frame. */
 
     P->nframe = P->n;
+
+    /* And the cell index. */
+
+    P->cell_index = l[0]*n2*n3 + l[1]*n3 + l[2];
 
     return l;
 }
