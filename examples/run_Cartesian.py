@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 
 
+from scipy.constants import au as AU
+from astropy.constants import M_sun, R_sun
 import matplotlib.pyplot as plt
-from mcrt3d import MCRT, Params
-from mcrt3d.grid import CartesianGrid
-from mcrt3d.dust import Dust
-from mcrt3d.sources import Star
-from mcrt3d.camera import Image, Spectrum
-from mcrt3d.constants.astronomy import M_sun, R_sun, AU
-from mcrt3d.constants.physics import c
-from numpy import array, arange, pi, zeros, logspace
+from mcrt3d import MCRT
+from mcrt3d import IsotropicDust
 from time import time
+import numpy
+import sys
 
 # Create a model class.
 
@@ -18,12 +16,13 @@ model = MCRT()
 
 # Set up the dust.
 
-dust = Dust(filename="dustkappa_yso.inp", radmc3d=True)
+data = numpy.loadtxt('dustkappa_yso.inp', skiprows=2)
 
-# Set up the star.
+lam = data[::-1,0].copy() * 1.0e-4
+kabs = data[::-1,1].copy()
+ksca = data[::-1,2].copy()
 
-star = Star(0.0,0.0,0.0,M_sun,R_sun,4000.0)
-star.set_blackbody_spectrum(dust.nu)
+d = IsotropicDust(lam, kabs, ksca)
 
 # Set up the grid.
 
@@ -31,47 +30,44 @@ nx = 10
 ny = 10
 nz = 10
 
-x = (arange(nx)-(float(nx)-1)/2)*AU/1
-y = (arange(ny)-(float(ny)-1)/2)*AU/1
-z = (arange(nz)-(float(nz)-1)/2)*AU/1
-
-density = zeros((nx-1,ny-1,nz-1)) + 1.0e-16
+x = (numpy.arange(nx)-(float(nx)-1)/2)*AU/1
+y = (numpy.arange(ny)-(float(ny)-1)/2)*AU/1
+z = (numpy.arange(nz)-(float(nz)-1)/2)*AU/1
 
 model.set_cartesian_grid(x,y,z)
-model.grid.add_density(density, dust)
-model.grid.add_source(star)
 
-# Set the parameters for the run.
+#sys.exit(0)
 
-model.params.nphot = 100000
-model.params.bw = True
-model.params.scattering = False
-model.params.verbose = False
-model.params.use_mrw = False
-model.params.mrw_gamma = 2
+# Set up the density.
+
+density = numpy.zeros((nx-1,ny-1,nz-1)) + 1.0e-16
+
+model.grid.add_density(density, d)
+
+# Set up the star.
+
+model.grid.add_star(mass=M_sun.value, radius=R_sun.value, temperature=4000.)
+model.grid.sources[-1].set_blackbody_spectrum(lam)
 
 # Run the thermal simulation.
 
 t1 = time()
-model.run_thermal_mc()
+model.thermal_mc(nphot=1000000, bw=True, use_mrw=False, mrw_gamma=2, \
+        verbose=False)
 t2 = time()
 print(t2-t1)
 
 # Run the images.
 
-model.camera.nx = 256
-model.camera.ny = 256
-model.camera.pixel_size = AU/10
-model.camera.lam = array([1300.])
+model.run_image("image", numpy.array([1.]), 256, 256, 0.1, 100000, incl=0., \
+        pa=0, dpc=1.)
 
-image = model.run_image(incl=pi/4, pa=pi/4)
+model.run_unstructured_image("uimage", numpy.array([1300.]), 10, 10, 2.5, \
+        100000, incl=0., pa=0., dpc=1.)
 
 # Run the spectra.
 
-model.camera.pixel_size = 10*AU/100
-model.camera.lam = logspace(-1,4,200)
-
-spectrum = model.run_spectrum(incl=0, pa=0)
+model.run_spectrum("SED", numpy.logspace(-1,4,200), 10000, incl=0, pa=0, dpc=1.)
 
 # Plot the temperature structure.
 
@@ -84,11 +80,19 @@ for i in range(9):
 
 # Plot the images.
 
-plt.imshow(image.intensity[:,:,0],origin="lower",interpolation="none")
+fig, ax = plt.subplots(nrows=1, ncols=1)
+
+ax.imshow(model.images["image"].intensity[:,:,0], origin="lower", \
+        interpolation="none")
+
 plt.show()
 
 # Plot the spectra.
 
-plt.loglog(spectrum.lam, spectrum.intensity)
-plt.axis([1e-1,1e4,1e-15,1e-5])
+fig, ax = plt.subplots(nrows=1, ncols=1)
+
+ax.loglog(model.spectra["SED"].lam, model.spectra["SED"].intensity)
+
+ax.set_ylim([1.0e-23,1.0e7])
+
 plt.show()
