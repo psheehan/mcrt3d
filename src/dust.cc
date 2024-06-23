@@ -5,6 +5,8 @@
 Dust::Dust(py::array_t<double> __lam, py::array_t<double> __kabs,
             py::array_t<double> __ksca) {
 
+    random_pool = new Kokkos::Random_XorShift64_Pool<>(/*seed=*/12345);
+
     _lam = __lam; _kabs = __kabs; _ksca = __ksca;
 
     // Load the array buffers to get the proper setup info.
@@ -155,9 +157,9 @@ void Dust::scatter(Photon *P) {
 /* Absorb and then re-emit a photon from dust. */
 
 void Dust::absorb(Photon *P, double T, bool bw) {
-    double cost = -1+2*random_number();
+    double cost = -1+2*random_number(random_pool);
     double sint = sqrt(1-pow(cost,2));
-    double phi = 2*pi*random_number();
+    double phi = 2*pi*random_number(random_pool);
 
     P->n[0] = sint*cos(phi);
     P->n[1] = sint*sin(phi);
@@ -180,7 +182,7 @@ double Dust::random_nu(double T, bool bw) {
 
     int i = find_in_arr(T,temp,ntemp);
 
-    double ksi = random_number();
+    double ksi = random_number(random_pool);
 
     for (int j=1; j < nlam; j++) {
         if (bw)
@@ -191,7 +193,7 @@ double Dust::random_nu(double T, bool bw) {
                 random_nu_CPD[i][j];
 
         if (CPD > ksi) {
-            freq = random_number() * (nu[j] - nu[j-1]) + nu[j-1];
+            freq = random_number(random_pool) * (nu[j] - nu[j-1]) + nu[j-1];
             break;
         }
     }

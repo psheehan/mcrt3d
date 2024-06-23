@@ -20,6 +20,13 @@ double random_number() {
     return result * (double) RAND_SCALE1;
 };
 
+double random_number(Kokkos::Random_XorShift64_Pool<> *random_pool) {
+    auto generator = random_pool->get_state();
+    double x = generator.drand(0., 1.);
+    random_pool->free_state(generator);
+    return x;
+};
+
 /* Calculate the blackbody function for a given frequency and temperature. */
 
 double planck_function(double nu, double T) {

@@ -5,6 +5,8 @@
 Star::Star(double x, double y, double z, double _mass, double _radius, \
         double _temperature) {
 
+    random_pool = new Kokkos::Random_XorShift64_Pool<>(/*seed=*/12345);
+
     r[0] = x;
     r[1] = y;
     r[2] = z;
@@ -66,8 +68,8 @@ void Star::set_blackbody_spectrum(py::array_t<double> __lam) {
 Photon *Star::emit(int nphot) {
     Photon *P = new Photon();
 
-    double theta = pi*random_number();
-    double phi = 2*pi*random_number();
+    double theta = pi*random_number(random_pool);
+    double phi = 2*pi*random_number(random_pool);
 
     P->r[0] = radius*sin(theta)*cos(phi);
     P->r[1] = radius*sin(theta)*sin(phi);
@@ -85,9 +87,9 @@ Photon *Star::emit(int nphot) {
     phi_hat[1] = cos(phi);
     phi_hat[2] = 0;
 
-    double cost = random_number();
+    double cost = random_number(random_pool);
     double sint = sqrt(1-pow(cost,2));
-    phi = 2*pi*random_number();
+    phi = 2*pi*random_number(random_pool);
 
     P->n = cost*r_hat + sint*cos(phi)*phi_hat + sint*sin(phi)*theta_hat;
 
@@ -108,8 +110,8 @@ Photon *Star::emit(int nphot) {
 Photon *Star::emit(double _nu, double _dnu, int nphot) {
     Photon *P = new Photon();
 
-    double theta = pi*random_number();
-    double phi = 2*pi*random_number();
+    double theta = pi*random_number(random_pool);
+    double phi = 2*pi*random_number(random_pool);
 
     P->r[0] = radius*sin(theta)*cos(phi);
     P->r[1] = radius*sin(theta)*sin(phi);
@@ -127,9 +129,9 @@ Photon *Star::emit(double _nu, double _dnu, int nphot) {
     phi_hat[1] = cos(phi);
     phi_hat[2] = 0;
 
-    double cost = random_number();
+    double cost = random_number(random_pool);
     double sint = sqrt(1-pow(cost,2));
-    phi = 2*pi*random_number();
+    phi = 2*pi*random_number(random_pool);
 
     P->n = cost*r_hat + sint*cos(phi)*phi_hat + sint*sin(phi)*theta_hat;
 
@@ -151,8 +153,8 @@ Ray *Star::emit_ray(double *_nu, int _nnu, double _pixelsize, \
         Vector<double, 3> _n, int nphot) {
     Ray *R = new Ray();
 
-    double theta = pi*random_number();
-    double phi = 2*pi*random_number();
+    double theta = pi*random_number(random_pool);
+    double phi = 2*pi*random_number(random_pool);
 
     R->r[0] = radius*sin(theta)*cos(phi);
     R->r[1] = radius*sin(theta)*sin(phi);
@@ -188,8 +190,8 @@ Ray *Star::emit_ray(double *_nu, int _nnu, double _pixelsize, \
 Ray *Star::emit_ray(double *_nu, int _nnu, Vector<double, 3> _n, int nphot) {
     Ray *R = new Ray();
 
-    double theta = pi*random_number();
-    double phi = 2*pi*random_number();
+    double theta = pi*random_number(random_pool);
+    double phi = 2*pi*random_number(random_pool);
 
     R->r[0] = radius*sin(theta)*cos(phi);
     R->r[1] = radius*sin(theta)*sin(phi);
@@ -225,11 +227,11 @@ Ray *Star::emit_ray(double *_nu, int _nnu, Vector<double, 3> _n, int nphot) {
 
 double Star::random_nu() {
     double freq;
-    double ksi = random_number();
+    double ksi = random_number(random_pool);
 
     for (int i=1; i<nnu; i++) {
         if (random_nu_CPD[i] > ksi) {
-            freq = random_number() * (nu[i] - nu[i-1]) + nu[i-1];
+            freq = random_number(random_pool) * (nu[i] - nu[i-1]) + nu[i-1];
             break;
         }
     }
@@ -269,8 +271,8 @@ double Star::flux(double freq) {
 };
 
 void Star::reemit(Photon *P) {
-    double theta = pi*random_number();
-    double phi = 2*pi*random_number();
+    double theta = pi*random_number(random_pool);
+    double phi = 2*pi*random_number(random_pool);
 
     P->r[0] = radius*sin(theta)*cos(phi);
     P->r[1] = radius*sin(theta)*sin(phi);
@@ -288,9 +290,9 @@ void Star::reemit(Photon *P) {
     phi_hat[1] = cos(phi);
     phi_hat[2] = 0;
 
-    double cost = random_number();
+    double cost = random_number(random_pool);
     double sint = sqrt(1-pow(cost,2));
-    phi = 2*pi*random_number();
+    phi = 2*pi*random_number(random_pool);
 
     P->n = cost*r_hat + sint*cos(phi)*phi_hat + sint*sin(phi)*theta_hat;
 

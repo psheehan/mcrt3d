@@ -4,6 +4,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+#include <Kokkos_Random.hpp>
+
 #include <stdlib.h>
 #include "vector.h"
 #include "dust.h"
@@ -19,6 +21,8 @@ struct Star : public Source {
     double radius;
     double temperature;
     double luminosity;
+
+    Kokkos::Random_XorShift64_Pool<> *random_pool;
 
     Star(double x, double y, double z, double _mass, double _radius, 
             double _temperature);

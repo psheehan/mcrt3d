@@ -1,9 +1,9 @@
 #include "isotropic_dust.h"
 
 void IsotropicDust::scatter(Photon *P) {
-    double cost = -1+2*random_number();
+    double cost = -1+2*random_number(random_pool);
     double sint = sqrt(1-pow(cost,2));
-    double phi = 2*pi*random_number();
+    double phi = 2*pi*random_number(random_pool);
 
     P->n[0] = sint*cos(phi);
     P->n[1] = sint*sin(phi);

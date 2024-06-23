@@ -5,6 +5,7 @@
 Grid::Grid(py::array_t<double> __w1, py::array_t<double> __w2,
             py::array_t<double> __w3) {
 
+    random_pool = new Kokkos::Random_XorShift64_Pool<>(/*seed=*/12345);
     _w1 = __w1; _w2 = __w2; _w3 = __w3;
 
     // Load the array buffers to get the proper setup info.
@@ -69,25 +70,15 @@ Grid::~Grid() {
     for (int i = 0; i < nspecies; i++) {
         delete[] mass[i]; delete[] rosseland_mean_extinction[i];
         delete[] planck_mean_opacity[i];
-        #ifdef _OPENMP
-        for (int j=0; j<n1*n2*n3; j++)
-            omp_destroy_lock(&(lock[i][j]));
-        #endif
-    }
-    for (int i = 0; i < (int) energy.size(); i++) {
-        for (int j = 0; j < nspecies; j++)
-            delete[] energy[i][j];
-        energy[i].clear();
+        delete[] energy[i]; delete[] energy_mrw[i];
     }
     dens.clear(); temp.clear(); mass.clear(); energy.clear(); dust.clear();
-    #ifdef _OPENMP
-    lock.clear();
-    #endif
+    energy_mrw.clear();
 
     // Make sure the scattering array is deallocated.
 
     if ((int) scatt.size() > 0)
-        deallocate_scattering_array(0);
+        delete[] scatt[0]; scatt.clear();
     
     // Clear the gas.
     
@@ -130,6 +121,7 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
     // Now send to C++ useful things.
 
     double *__energy = new double [n1*n2*n3];
+    double *__energy_mrw = new double [n1*n2*n3];
     double *__mass = new double[n1*n2*n3];
     double *__rosseland_mean_extinction = new double[n1*n2*n3];
     double *__planck_mean_opacity = new double[n1*n2*n3];
@@ -138,23 +130,12 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
     //    __rosseland_mean_opacity[i] = 0;
     //    __planck_mean_opacity[i] = 0;
     //}
-    #ifdef _OPENMP
-    omp_lock_t*** __lock = new omp_lock_t**[n1*n2*n3];
-    for (int i=0; i<n1*n2*n3; i++)
-        omp_init_lock(&(__lock[i]));
-    #endif
 
     dens.push_back((double *) _dens_buf.ptr);
     temp.push_back((double *) _temp_buf.ptr);
     mass.push_back(__mass);
-    #ifdef _OPENMP
-    lock.push_back(__lock);
-    #endif
-    if (energy.empty()) { 
-        std::vector<double*> ___energy = {__energy};
-        energy.push_back(___energy);
-    } else
-        energy[0].push_back(__energy);
+    energy.push_back(__energy);
+    energy_mrw.push_back(__energy_mrw);
 
     rosseland_mean_extinction.push_back(__rosseland_mean_extinction);
     planck_mean_opacity.push_back(__planck_mean_opacity);
@@ -169,7 +150,8 @@ void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
                 D->rosseland_mean_extinction(temp[nspecies][icell]);
         __planck_mean_opacity[icell] = D->planck_mean_opacity(
                 temp[nspecies][icell]);
-        energy[0][nspecies][icell] = 0;
+        energy[nspecies][icell] = 0;
+        energy_mrw[nspecies][icell] = 0;
     }
 
     // Add the dust to the list of dust classes.
@@ -241,43 +223,32 @@ void Grid::add_scattering_array(py::array_t<double> ___scatt, int nthreads) {
     auto _scatt_buf = ___scatt.request();
 
     scatt.push_back((double *) _scatt_buf.ptr);
-
-    // If we are using more than one thread, add additional arrays.
-
-    for (int ithread = 1; ithread < nthreads; ithread++) {
-        scatt.push_back(new double[n1*n2*n3*Q->nnu]);
-        for (int i = 0; i < n1*n2*n3*Q->nnu; i++)
-            scatt[ithread][i] = 0.;
-    }
 }
 
 void Grid::initialize_scattering_array(int nthreads) {
     // Create a 4D scattering array for each of the separate threads.
 
-    for (int ithread = 0; ithread < nthreads; ithread++) {
-        scatt.push_back(new double[n1*n2*n3*Q->nnu]);
-        for (int i = 0; i < n1*n2*n3*Q->nnu; i++)
-            scatt[ithread][i] = 0.;
-    }
+    scatt.push_back(new double[n1*n2*n3*Q->nnu]);
+    for (int i = 0; i < n1*n2*n3*Q->nnu; i++)
+        scatt[0][i] = 0.;
 }
 
-void Grid::collapse_scattering_array() {
+/*void Grid::collapse_scattering_array() {
     for (int ithread = 1; ithread < (int) scatt.size(); ithread++)
         for (int icell=0; icell < n1*n2*n3*Q->nnu; icell++)
             scatt[0][icell] += scatt[ithread][icell];
 
     deallocate_scattering_array(1);
-}
+}*/
 
 void Grid::deallocate_scattering_array(int start) {
-    for (int ithread = start; ithread < (int) scatt.size(); ithread++)
-        delete[] scatt[ithread];
-    scatt.erase(scatt.begin()+start, scatt.end());
+    delete[] scatt[0];
+    scatt.clear();
 }
 
 /* Functions to manage the energy array. */
 
-void Grid::add_energy_arrays(int nthreads) {
+/*void Grid::add_energy_arrays(int nthreads) {
     // Create a 3D energy array for each of the separate threads.
 
     for (int ithread = 1; ithread < nthreads; ithread++) {
@@ -289,16 +260,16 @@ void Grid::add_energy_arrays(int nthreads) {
                 energy[ithread][idust][icell] = 0.;
         }
     }
-}
+}*/
 
-void Grid::deallocate_energy_arrays() {
+/*void Grid::deallocate_energy_arrays() {
     for (int ithread = 1; ithread < (int) energy.size(); ithread++) {
         for (int idust = 0; idust < nspecies; idust++)
             delete[] energy[ithread][idust];
         energy[ithread].clear();
     }
     energy.erase(energy.begin()+1, energy.end());
-}
+}*/
 
 /* Functions to manage the luminosity array. */
 
@@ -388,7 +359,7 @@ Photon *Grid::emit(double _nu, double _dnu, int nphot) {
 
     // Get the cell that randomly emits.
 
-    double rand = random_number();
+    double rand = random_number(random_pool);
     double cum_lum = 0.;
 
     for (idust = 0; idust<nspecies; idust++) {
@@ -414,8 +385,8 @@ Photon *Grid::emit(double _nu, double _dnu, int nphot) {
 
     P->r = random_location_in_cell(ix, iy, iz);
 
-    double theta = pi*random_number();
-    double phi = 2*pi*random_number();
+    double theta = pi*random_number(random_pool);
+    double phi = 2*pi*random_number(random_pool);
 
     P->n[0] = sin(theta)*cos(phi);
     P->n[1] = sin(theta)*sin(phi);
@@ -458,7 +429,7 @@ void Grid::absorb(Photon *P, int idust) {
             kabs_cum[i] = kabs_tot;
         }
 
-        double rand = random_number();
+        double rand = random_number(random_pool);
         for (int i=0; i<nspecies; i++) {
             if (rand < kabs_cum[i] / kabs_tot) {
                 idust = i;
@@ -470,13 +441,7 @@ void Grid::absorb(Photon *P, int idust) {
 
     // Now do the absorption.
 
-    #ifdef _OPENMP
-    omp_set_lock(&(lock[idust][P->cell_index]));
-    #endif
     dust[idust]->absorb(P, temp[idust][P->cell_index], Q->bw);
-    #ifdef _OPENMP
-    omp_unset_lock(&(lock[idust][P->cell_index]));
-    #endif
 
     // Update the photon's arrays of kext and albedo since P->nu has changed
     // upon absorption.
@@ -509,7 +474,7 @@ void Grid::absorb_mrw(Photon *P, int idust) {
             kabs_cum[i] = kabs_tot;
         }
 
-        double rand = random_number();
+        double rand = random_number(random_pool);
         for (int i=0; i<nspecies; i++) {
             if (rand < kabs_cum[i] / kabs_tot) {
                 idust = i;
@@ -521,13 +486,7 @@ void Grid::absorb_mrw(Photon *P, int idust) {
 
     // Now do the absorption.
 
-    #ifdef _OPENMP
-    omp_set_lock(&(lock[idust][P->cell_index]));
-    #endif
     dust[idust]->absorb_mrw(P, temp[idust][P->cell_index], Q->bw);
-    #ifdef _OPENMP
-    omp_unset_lock(&(lock[idust][P->cell_index]));
-    #endif
 
     // Update the photon's arrays of kext and albedo since P->nu has changed
     // upon absorption.
@@ -559,7 +518,7 @@ void Grid::scatter(Photon *P, int idust) {
             ksca_cum[i] = ksca_tot;
         }
 
-        double rand = random_number();
+        double rand = random_number(random_pool);
         for (int i=0; i<nspecies; i++) {
             if (rand < ksca_cum[i] / ksca_tot) {
                 idust = i;
@@ -587,7 +546,7 @@ void Grid::propagate_photon_full(Photon *P) {
     while (in_grid(P)) {
         // Determin the optical depth that the photon can travel until it's
         // next interaction.
-        double tau = -log(1-random_number());
+        double tau = -log(1-random_number(random_pool));
 
         // Figure out what that next action is, absorption or scattering. This
         // is figured out early for the sake of the continuous absorption
@@ -608,7 +567,7 @@ void Grid::propagate_photon_full(Photon *P) {
             albedo = ksca_tot / kext_tot;
         }
 
-        bool absorb_photon = random_number() > albedo;
+        bool absorb_photon = random_number(random_pool) > albedo;
 
         // Move the photon to the point of it's next interaction.
         if (Q-> scattering)
@@ -724,9 +683,9 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
         // current trajectory is absorption.
         if (absorb) {
             for (int idust=0; idust<nspecies; idust++)
-                energy[P->ithread][idust][P->cell_index] += 
+                Kokkos::atomic_add(&energy[idust][P->cell_index],
                     P->energy*s*P->current_kext[idust]*
-                    dens[idust][P->cell_index];
+                    dens[idust][P->cell_index]);
         }
 
         // Remvove the tau we've used up with this stepl
@@ -774,7 +733,7 @@ void Grid::propagate_photon_scattering(Photon *P) {
     while (in_grid(P) && total_tau_abs < 30.) {
         // Determin the optical depth that the photon can travel until it's
         // next interaction.
-        double tau = -log(1-random_number());
+        double tau = -log(1-random_number(random_pool));
 
         int i = 0;
 
@@ -811,9 +770,9 @@ void Grid::propagate_photon_scattering(Photon *P) {
                 average_energy = (1.0 - 0.5*tau_abs) * P->energy;
 
             // Add some of the energy to the scattering array.
-            scatt[P->ithread][P->cell_index*Q->nnu + Q->inu] += 
+            Kokkos::atomic_add(&scatt[0][P->cell_index*Q->nnu + Q->inu], 
                     average_energy * s / (4*pi * 
-                    volume[P->cell_index]);
+                    volume[P->cell_index]));
 
             // Absorb some of the photon's energy.
             P->energy *= exp(-tau_abs);
@@ -852,9 +811,9 @@ void Grid::propagate_photon_scattering(Photon *P) {
 
 void Grid::random_dir_mrw(Photon *P) {
     // Adjust the photon's direction if we are doing MRW.
-    double cost = -1+2*random_number();
+    double cost = -1+2*random_number(random_pool);
     double sint = sqrt(1-pow(cost,2));
-    double phi = 2*pi*random_number();
+    double phi = 2*pi*random_number(random_pool);
 
     P->n[0] = sint*cos(phi);
     P->n[1] = sint*sin(phi);
@@ -877,19 +836,17 @@ void Grid::propagate_photon_mrw(Photon *P) {
     // Rosseland mean opacity.
     double energy_threshold = 0.;
     for (int idust = 0; idust<nspecies; idust++) {
-        #ifdef _OPENMP
-        omp_set_lock(&(lock[idust][P->cell_index]));
-        #endif
+        // NEEDS TO BE ATOMIC? Because energy could be changing as this is
+        // beinc calculated?
         if (temp[idust][P->cell_index] > 3.) {
             for (int ithread = 0; ithread < (int) energy.size(); ithread++)
-                energy_threshold += energy[ithread][idust][P->cell_index];
+                energy_threshold += energy[idust][P->cell_index] + 
+                    energy_mrw[idust][P->cell_index];
         } else {
             energy_threshold = HUGE_VAL;
             break;
         }
-        #ifdef _OPENMP
-        omp_unset_lock(&(lock[idust][P->cell_index]));
-        #endif
+        // TO HERE?
     }
     energy_threshold *= 0.3;
 
@@ -933,7 +890,7 @@ void Grid::propagate_photon_mrw(Photon *P) {
             random_dir_mrw(P);
 
         } else {
-            double tau = -log(1-random_number());
+            double tau = -log(1-random_number(random_pool));
 
             // Calculate the distance to the next wall.
             double s1 = next_wall_distance(P);
@@ -970,10 +927,10 @@ void Grid::propagate_photon_mrw(Photon *P) {
 
     // Add the energy absorbed into the grid.
     for (int idust=0; idust<nspecies; idust++)
-        energy[P->ithread][idust][P->cell_index] += 
+        Kokkos::atomic_add(&energy_mrw[idust][P->cell_index],
                 P->energy*path_accumulated*
                 planck_mean_opacity[idust][P->cell_index]*
-                dens[idust][P->cell_index];
+                dens[idust][P->cell_index]);
 }
 
 /* Propagate a ray through the grid for raytracing. */
@@ -1171,15 +1128,12 @@ bool Grid::in_grid(Photon *P) {
 
 void Grid::update_grid(Vector<int, 3> l, int cell_index) {
     for (int idust=0; idust<nspecies; idust++) {
-        #ifdef _OPENMP
-        omp_set_lock(&(lock[idust][cell_index]));
-        #endif
-
         bool not_converged = true;
 
         double total_energy = 0;
         for (int ithread = 0; ithread < (int) energy.size(); ithread++)
-            total_energy += energy[ithread][idust][cell_index];
+            total_energy += energy[idust][cell_index] + 
+                energy_mrw[idust][cell_index];
 
         while (not_converged) {
             double T_old = temp[idust][cell_index];
@@ -1206,10 +1160,6 @@ void Grid::update_grid(Vector<int, 3> l, int cell_index) {
                     dust[idust]->planck_mean_opacity(
                     temp[idust][cell_index]);
         }
-
-        #ifdef _OPENMP
-        omp_unset_lock(&(lock[idust][cell_index]));
-        #endif
     }
 }
 

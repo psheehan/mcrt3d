@@ -1,5 +1,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <Kokkos_Core.hpp>
+#include <Kokkos_Random.hpp>
 
 #ifdef _OPENMP
 #include <omp.h>
@@ -30,6 +32,8 @@ struct MCRT {
     Grid *G;
     Params *Q;
     Camera *C;
+
+    Kokkos::InitializationSettings settings;
 
     py::dict images;
     py::dict spectra;

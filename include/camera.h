@@ -4,6 +4,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+#include <Kokkos_Random.hpp>
+
 #include "vector.h"
 #include "photon.h"
 #include "grid.h"
@@ -77,6 +79,8 @@ struct Spectrum {
 struct Camera {
     Grid* G;
     Params *Q;
+
+    Kokkos::Random_XorShift64_Pool<> *random_pool;
 
     double r;
     double incl;

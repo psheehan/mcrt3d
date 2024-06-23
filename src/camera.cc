@@ -187,6 +187,7 @@ Spectrum::Spectrum(py::array_t<double> __lam) {
 Camera::Camera(Grid *_G, Params *_Q) {
     G = _G;
     Q = _Q;
+    random_pool = new Kokkos::Random_XorShift64_Pool<>(/*seed=*/12345);
 }
 
 void Camera::set_orientation(double _incl, double _pa, double _dpc) {
@@ -228,21 +229,23 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
 
     // Now go through and raytrace.
 
-    #pragma omp parallel for num_threads(nthreads) schedule(guided) collapse(2)
-    for (int j=0; j<image->nx; j++)
-        for (int k=0; k<image->ny; k++) {
-            if (Q->verbose) printf("%d   %d\n", j, k);
+    Kokkos::parallel_for("RaytraceRectangularImage", 
+            Kokkos::MDRangePolicy<Kokkos::Rank<2>>({0,0},{image->nx,image->ny}),
+            [=] (int64_t j, int64_t k) {
+    //for (int j=0; j<image->nx; j++)
+    //    for (int k=0; k<image->ny; k++) {
+        if (Q->verbose) printf("%d   %d\n", j, k);
 
-            double *intensity = raytrace_pixel(image->x[j], image->y[k], 
-                    image->pixel_size, image->nu, image->nnu, 0);
+        double *intensity = raytrace_pixel(image->x[j], image->y[k], 
+                image->pixel_size, image->nu, image->nnu, 0);
 
-            for (int i = 0; i < image->nnu; i++)
-                image->intensity[k*image->ny*image->nnu + j*image->nnu + i] = 
-                    intensity[i] * image->pixel_size * image->pixel_size / 
-                    (r * r)/ Jy;
+        for (int i = 0; i < image->nnu; i++)
+            image->intensity[k*image->ny*image->nnu + j*image->nnu + i] = 
+                intensity[i] * image->pixel_size * image->pixel_size / 
+                (r * r)/ Jy;
 
-            delete[] intensity;
-        }
+        delete[] intensity;
+    });
 
     // Also raytrace the sources.
 
@@ -267,21 +270,17 @@ UnstructuredImage *Camera::make_unstructured_image(int nx, int ny,
 
     // Now go through and raytrace.
 
-    #pragma omp parallel num_threads(nthreads)
-    {
-    #ifdef _OPENMP
-    seed1 = int(time(NULL)) ^ omp_get_thread_num();
-    seed2 = int(time(NULL)) ^ omp_get_thread_num();
-    #else
+    //seed1 = int(time(NULL)) ^ omp_get_thread_num();
+    //seed2 = int(time(NULL)) ^ omp_get_thread_num();
     seed1 = int(time(NULL));
     seed2 = int(time(NULL));
-    #endif
 
-    #pragma omp for schedule(guided)
-    for (int j=0; j < nx*ny; j++)
+    //#pragma omp for schedule(guided)
+    //for (int j=0; j < nx*ny; j++)
+    Kokkos::parallel_for(nx*ny, [=] (int64_t j) {
         raytrace_pixel(image, j, image->pixel_size);
-    #pragma omp taskwait
-    }
+    });
+    //#pragma omp taskwait
 
     // Also raytrace the sources.
 
@@ -329,21 +328,18 @@ UnstructuredImage *Camera::make_circular_image(int nr, int nphi,
 
     // Now go through and raytrace.
 
-    #pragma omp parallel num_threads(nthreads)
-    {
-    #ifdef _OPENMP
-    seed1 = int(time(NULL)) ^ omp_get_thread_num();
-    seed2 = int(time(NULL)) ^ omp_get_thread_num();
-    #else
+    //#pragma omp parallel num_threads(nthreads)
+    //seed1 = int(time(NULL)) ^ omp_get_thread_num();
+    //seed2 = int(time(NULL)) ^ omp_get_thread_num();
     seed1 = int(time(NULL));
     seed2 = int(time(NULL));
-    #endif
 
-    #pragma omp for schedule(guided)
-    for (int j=0; j < (int)image->x.size(); j++)
+    //#pragma omp for schedule(guided)
+    //for (int j=0; j < (int)image->x.size(); j++)
+    Kokkos::parallel_for(image->x.size(), [=] (int64_t j) {
         raytrace_pixel(image, j, image->pixel_size);
-    #pragma omp taskwait
-    }
+    });
+    //#pragma omp taskwait
 
     // Also raytrace the sources.
 
@@ -516,22 +512,22 @@ void Camera::raytrace_pixel(UnstructuredImage *image, int ix,
         {
         nxy = image->x.size();
 
-        image->x.push_back(image->x[ix] - pixel_size/4 + (random_number()-0.5)*
+        image->x.push_back(image->x[ix] - pixel_size/4 + (random_number(random_pool)-0.5)*
                 pixel_size/10000);
-        image->x.push_back(image->x[ix] - pixel_size/4 + (random_number()-0.5)*
+        image->x.push_back(image->x[ix] - pixel_size/4 + (random_number(random_pool)-0.5)*
                 pixel_size/10000);
-        image->x.push_back(image->x[ix] + pixel_size/4 + (random_number()-0.5)*
+        image->x.push_back(image->x[ix] + pixel_size/4 + (random_number(random_pool)-0.5)*
                 pixel_size/10000);
-        image->x.push_back(image->x[ix] + pixel_size/4 + (random_number()-0.5)*
+        image->x.push_back(image->x[ix] + pixel_size/4 + (random_number(random_pool)-0.5)*
                 pixel_size/10000);
 
-        image->y.push_back(image->y[ix] - pixel_size/4 + (random_number()-0.5)*
+        image->y.push_back(image->y[ix] - pixel_size/4 + (random_number(random_pool)-0.5)*
                 pixel_size/10000);
-        image->y.push_back(image->y[ix] + pixel_size/4 + (random_number()-0.5)* 
+        image->y.push_back(image->y[ix] + pixel_size/4 + (random_number(random_pool)-0.5)* 
                 pixel_size/10000);
-        image->y.push_back(image->y[ix] - pixel_size/4 + (random_number()-0.5)* 
+        image->y.push_back(image->y[ix] - pixel_size/4 + (random_number(random_pool)-0.5)* 
                 pixel_size/10000);
-        image->y.push_back(image->y[ix] + pixel_size/4 + (random_number()-0.5)* 
+        image->y.push_back(image->y[ix] + pixel_size/4 + (random_number(random_pool)-0.5)* 
                 pixel_size/10000);
 
         image->intensity.push_back(std::vector<double>());

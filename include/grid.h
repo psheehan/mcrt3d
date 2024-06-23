@@ -4,6 +4,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+#include <Kokkos_Random.hpp>
+
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -36,6 +38,8 @@ struct Grid {
     double *w2;
     double *w3;
 
+    Kokkos::Random_XorShift64_Pool<> *random_pool;
+
     bool mirror_symmetry;
 
     py::array_t<double> _w1;
@@ -48,7 +52,8 @@ struct Grid {
     py::list _scatt;
 
     std::vector<double*> dens;
-    std::vector<std::vector<double*>> energy;
+    std::vector<double*> energy;
+    std::vector<double*> energy_mrw;
     std::vector<double*> temp;
     std::vector<double*> mass;
     std::vector<double*> rosseland_mean_extinction;
@@ -67,10 +72,6 @@ struct Grid {
     py::list _gas_temp;
     py::list _microturbulence;
     py::list _velocity;
-
-    #ifdef _OPENMP
-    std::vector<omp_lock_t*> lock;
-    #endif
 
     int nspecies;
     std::vector<Dust*> dust;
@@ -114,10 +115,10 @@ struct Grid {
     void add_scattering_array(py::array_t<double> _scatt, int nthreads);
     void initialize_scattering_array(int nthreads);
     void deallocate_scattering_array(int start);
-    void collapse_scattering_array();
+    //void collapse_scattering_array();
 
-    void add_energy_arrays(int nthreads);
-    void deallocate_energy_arrays();
+    //void add_energy_arrays(int nthreads);
+    //void deallocate_energy_arrays();
 
     void initialize_luminosity_array();
     void initialize_luminosity_array(double nu);

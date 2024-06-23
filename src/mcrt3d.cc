@@ -18,10 +18,15 @@
 
 MCRT::MCRT() {
     Q = new Params();
+
+    settings.set_num_threads(8);
+    Kokkos::initialize(settings);
 }
 
 MCRT::~MCRT() {
     delete G; delete C; delete Q;
+
+    Kokkos::finalize();
 }
 
 void MCRT::set_cartesian_grid(py::array_t<double> x, py::array_t<double> y,
@@ -71,7 +76,7 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
 
     // Make sure the proper number of energy arrays are allocated for the
     // threads.
-    G->add_energy_arrays(nthreads);
+    //G->add_energy_arrays(nthreads);
 
     // Do the thermal calculation.
     if (Q->bw)
@@ -97,7 +102,7 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
             for (int ithread=0; ithread < (int) G->energy.size(); ithread++)
                 for (int idust=0; idust < G->nspecies; idust++)
                     for (int icell=0; icell < G->n1*G->n2*G->n3; icell++)
-                        G->energy[ithread][idust][icell] = 0.;
+                        G->energy[idust][icell] = 0.;
 
             if (i > 2)
                 if (converged(G->temp, told, treallyold, G->nspecies, G->n1, 
@@ -113,7 +118,7 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
     }
 
     // Clean up the energy arrays that were calculated.
-    G->deallocate_energy_arrays();
+    //G->deallocate_energy_arrays();
 }
 
 void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose, 
@@ -176,7 +181,7 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
     Q->scattering = old_scattering;
 
     // If nthreads is >1, collapse the scattering array to a single value.
-    if (nthreads > 1) G->collapse_scattering_array();
+    //if (nthreads > 1) G->collapse_scattering_array();
 
     // Clean up the appropriate grid parameters.
     if (save) {
@@ -190,29 +195,23 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
 }
 
 void MCRT::mc_iteration(int nthreads) {
-    double event_average = 0;
-    int photon_count = 0;
+    Kokkos::View<double> event_average("event average");
+    Kokkos::View<int> photon_count("photon count");
 
-    #pragma omp parallel num_threads(nthreads) default(none) \
-            shared(G,Q,event_average,nthreads,photon_count)
-    {
-    #ifdef _OPENMP
-    seed1 = int(time(NULL)) ^ omp_get_thread_num();
-    seed2 = int(time(NULL)) ^ omp_get_thread_num();
-    #else
+    event_average() = 0.;
+    photon_count() = 0;
+
+    //seed1 = int(time(NULL)) ^ omp_get_thread_num();
+    //seed2 = int(time(NULL)) ^ omp_get_thread_num();
     seed1 = int(time(NULL));
     seed2 = int(time(NULL));
-    #endif
 
-    #pragma omp for schedule(guided)
-    for (int i=0; i<Q->nphot; i++) {
+    //for (int i=0; i<Q->nphot; i++) {
+    Kokkos::parallel_for(Q->nphot, 
+        [=] (const int64_t i) {
         Photon *P = G->emit(i);
         P->event_count = 0;
-        #ifdef _OPENMP
-        P->ithread = omp_get_thread_num();
-        #else
         P->ithread = 0;
-        #endif
 
         if (Q->verbose) {
             printf("Emitting photon # %i\n", i);
@@ -228,21 +227,18 @@ void MCRT::mc_iteration(int nthreads) {
         else
             G->propagate_photon_full(P);
 
-        #pragma omp atomic
-        event_average += P->event_count;
+        Kokkos::atomic_add(&event_average(), P->event_count);
 
         delete P;
         if (Q->verbose) printf("Photon has escaped the grid.\n\n");
 
-        #pragma omp atomic
-        photon_count++;
+        Kokkos::atomic_increment(&photon_count());
 
-        if (fmod(photon_count,Q->nphot/10) == 0) printf("%i\n", photon_count);
-    }
-    }
+        if (fmod(photon_count(),Q->nphot/10) == 0) printf("%i\n", photon_count());
+    });
 
     printf("Average number of abs/scat events per photon package = %f \n", 
-            event_average / Q->nphot);
+            event_average() / Q->nphot);
 
     // Make sure all of the cells are properly updated.
     if (not Q->scattering) G->update_grid();

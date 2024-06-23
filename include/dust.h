@@ -4,6 +4,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+#include <Kokkos_Random.hpp>
+
 #include <stdlib.h>
 #include <cmath>
 #include "misc.h"
@@ -21,6 +23,8 @@ struct Dust {
     double *albedo;
     double *dkextdnu;
     double *dalbedodnu;
+
+    Kokkos::Random_XorShift64_Pool<> *random_pool;
 
     py::array_t<double> _nu;
     py::array_t<double> _lam;

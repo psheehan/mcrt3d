@@ -22,6 +22,9 @@
 #include <stdio.h>
 #include <vector>
 
+#include <Kokkos_Core.hpp>
+#include <Kokkos_Random.hpp>
+
 const double pi = 3.14159265;
 const double au = 1.496e13;
 const double pc = 3.086e18;
@@ -40,9 +43,11 @@ const double m_p = 1.6726e-24;
 /* Get a random number between 0 and 1. */
 
 static int seed1 = 1, seed2 = 1;
-#pragma omp threadprivate(seed1, seed2)
+//#pragma omp threadprivate(seed1, seed2)
 
 double random_number();
+
+double random_number(Kokkos::Random_XorShift64_Pool<> *random_pool);
 
 /* Calculate the blackbody function for a given frequency and temperature. */
 

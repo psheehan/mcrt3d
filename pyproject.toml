@@ -1,2 +1,15 @@
 [build-system]
-requires = ["setuptools","wheel","numpy","pybind11"]
+requires = [
+    "scikit-build-core",
+    "numpy",
+    "pybind11"
+]
+build-backend="scikit_build_core.build"
+
+[project]
+name = "mcrt3d"
+version = "0.0.1"
+authors = [
+    { name="Patrick Sheehan", email="psheehan@nrao.edu" },
+]
+description = "Monte Carlo radiative transfer"
