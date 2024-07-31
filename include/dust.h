@@ -15,14 +15,14 @@ namespace py = pybind11;
 
 struct Dust {
     int nlam;
-    double *nu;
-    double *lam;
-    double *kabs;
-    double *ksca;
-    double *kext;
-    double *albedo;
-    double *dkextdnu;
-    double *dalbedodnu;
+    Kokkos::View<double*> nu{"nu", 0};
+    Kokkos::View<double*> lam{"lam", 0};
+    Kokkos::View<double*> kabs{"kabs", 0};
+    Kokkos::View<double*> ksca{"ksca", 0};
+    Kokkos::View<double*> kext{"kext", 0};
+    Kokkos::View<double*> albedo{"albedo", 0};
+    Kokkos::View<double*> dkextdnu{"dkextdnu", 0};
+    Kokkos::View<double*> dalbedodnu{"dalbedodnu", 0};
 
     Kokkos::Random_XorShift64_Pool<> *random_pool;
 
@@ -34,21 +34,21 @@ struct Dust {
     py::array_t<double> _albedo;
 
     int ntemp;
-    double *temp;
-    double *planck_opacity;
-    double *dplanck_opacity_dT;
-    double *rosseland_extinction;
-    double *drosseland_extinction_dT;
-    double **random_nu_CPD;
-    double **random_nu_CPD_bw;
-    double **drandom_nu_CPD_dT;
-    double **drandom_nu_CPD_bw_dT;
+    Kokkos::View<double*> temp{"temp", 0};
+    Kokkos::View<double*> planck_opacity{"planck_opacity", 0};
+    Kokkos::View<double*> dplanck_opacity_dT{"dplanck_opacity_dT", 0};
+    Kokkos::View<double*> rosseland_extinction{"rosseland_extinction", 0};
+    Kokkos::View<double*> drosseland_extinction_dT{"drosseland_extinction_dT", 0};
+    Kokkos::View<double**> random_nu_CPD{"random_nu_CPD", 0, 0};
+    Kokkos::View<double**> random_nu_CPD_bw{"random_nu_CPD_bw", 0, 0};
+    Kokkos::View<double**> drandom_nu_CPD_dT{"drandom_nu_CPD_dT", 0, 0};
+    Kokkos::View<double**> drandom_nu_CPD_bw_dT{"drandom_nu_CPD_bw_dT", 0, 0};
 
     Dust(py::array_t<double> lam, py::array_t<double> kabs, 
             py::array_t<double> ksca);
 
-    Dust(int _nlam, double *_nu, double *_lam, double *_kabs, double *_ksca, 
-            double *_kext, double *_albedo);
+    /*Dust(int _nlam, double *_nu, double *_lam, double *_kabs, double *_ksca, 
+            double *_kext, double *_albedo);*/
 
     ~Dust();
         

@@ -4,52 +4,46 @@ Image::Image(int _nx, int _ny, double _pixel_size, py::array_t<double> __lam) {
     // Start by setting up the appropriate Python arrays.
 
     nx = _nx; ny = _ny;
-    _x = py::array_t<double>(nx);
-    _y = py::array_t<double>(ny);
-    _lam = __lam;
-
-    auto _x_buf = _x.request(); auto _y_buf = _y.request(); 
-    auto _lam_buf = _lam.request();
-
-    if (_lam_buf.ndim != 1)
-        throw std::runtime_error("Number of dimensions must be one");
-
-    // Now get the correct format.
-    
-    x = (double *) _x_buf.ptr; 
-    y = (double *) _y_buf.ptr; 
-    lam = (double *) _lam_buf.ptr;
-
-    nnu = _lam_buf.shape[0];
+    Kokkos::resize(x, nx);
+    Kokkos::resize(y, ny);
 
     // Set up the x and y values properly.
 
     pixel_size = _pixel_size;
-
+    
     for (int i = 0; i < nx; i++)
-        x[i] = (i - nx/2)*pixel_size;
+        x(i) = (i - nx/2)*pixel_size;
     for (int i = 0; i < ny; i++)
-        y[i] = (i - ny/2)*pixel_size;
+        y(i) = (i - ny/2)*pixel_size;
+
+    // Now get the correct format.
+    
+    _x = array_from_view(x, 1, {(size_t) nx});
+    _y = array_from_view(y, 1, {(size_t) ny});
+    
+    // Set up the wavelength array.
+
+    auto _lam_buf = __lam.request();
+    nnu = _lam_buf.shape[0];
+
+    Kokkos::resize(lam, nnu);
+    Kokkos::deep_copy(lam, view_from_array(__lam));
+    _lam = __lam;
 
     // Set up the frequency array.
 
-    _nu = py::array_t<double>(nnu);
-    auto _nu_buf = _nu.request();
-
-    nu = (double *) _nu_buf.ptr;
-
+    Kokkos::resize(nu, nnu);
     for (int i = 0; i < nnu; i++)
-        nu[i] = c_l / (lam[i]*1.0e-4);
+        nu(i) = c_l / (lam(i)*1.0e-4);
+    _nu = array_from_view(nu, 1, {(size_t) nnu});
 
     // Set up the volume of each cell.
 
-    _intensity = py::array_t<double>(nx*ny*nnu);
-    _intensity.resize({nx, ny, nnu});
-
-    auto _intensity_buf = _intensity.request();
-    intensity = (double *) _intensity_buf.ptr;
+    Kokkos::resize(intensity, nx*ny*nnu);
     for (int i = 0; i < nx*ny*nnu; i++)
-        intensity[i] = 0.;
+        intensity(i) = 0.;
+
+    _intensity = array_from_view(intensity, 3, {(size_t) nx, (size_t) ny, (size_t) nnu});
 }
 
 Image::~Image() {
@@ -67,35 +61,40 @@ UnstructuredImage::UnstructuredImage(int _nx, int _ny, double _pixel_size,
     if (_lam_buf.ndim != 1)
         throw std::runtime_error("Number of dimensions must be one");
 
-    // Now get the correct format.
-    
-    lam = (double *) _lam_buf.ptr;
-
     nnu = _lam_buf.shape[0];
+
+    // Now get the correct format.
+
+    Kokkos::resize(lam, nnu);
+    lam = view_from_array(_lam);
+    _lam = __lam;
 
     // Set up the x and y values properly.
 
     pixel_size = _pixel_size;
 
+    Kokkos::resize(x, nx*ny);
+    Kokkos::resize(y, nx*ny);
+    Kokkos::resize(intensity, nx*ny, nnu);
+
     for (int i = 0; i < nx; i++) {
         for (int j = 0; j < ny; j++) {
-            x.push_back((i - nx/2)*pixel_size + (random_number()-0.5)*
-                    pixel_size/10000);
-            y.push_back((j - ny/2)*pixel_size + (random_number()-0.5)*
-                    pixel_size/10000);
-            intensity.push_back(std::vector<double>());
+            x(i*ny+j) = (i - nx/2)*pixel_size + (random_number()-0.5)*
+                    pixel_size/10000;
+            y(i*ny+j) = (j - ny/2)*pixel_size + (random_number()-0.5)*
+                    pixel_size/10000;
+            
+            for (int k = 0; k < nnu; k++)
+                intensity(i*ny+j,k) = 0.;
         }
     }
 
     // Set up the frequency array.
 
-    _nu = py::array_t<double>(nnu);
-    auto _nu_buf = _nu.request();
-
-    nu = (double *) _nu_buf.ptr;
-
+    Kokkos::resize(nu, nnu);
     for (int i = 0; i < nnu; i++)
-        nu[i] = c_l / (lam[i]*1.0e-4);
+        nu(i) = c_l / (lam(i)*1.0e-4);
+    _nu = array_from_view(nu, 1, {(size_t) nnu});
 }
 
 UnstructuredImage::UnstructuredImage(int _nr, int _nphi, double rmin, 
@@ -110,11 +109,13 @@ UnstructuredImage::UnstructuredImage(int _nr, int _nphi, double rmin,
     if (_lam_buf.ndim != 1)
         throw std::runtime_error("Number of dimensions must be one");
 
-    // Now get the correct format.
-    
-    lam = (double *) _lam_buf.ptr;
-
     nnu = _lam_buf.shape[0];
+
+    // Now get the correct format.
+
+    Kokkos::resize(lam, nnu);
+    Kokkos::deep_copy(lam, view_from_array(_lam));
+    _lam = __lam;
 
     // Set up the x and y values properly.
 
@@ -124,28 +125,30 @@ UnstructuredImage::UnstructuredImage(int _nr, int _nphi, double rmin,
     double logrmax = log10(rmax);
     double dlogr = (logrmax - logrmin) / (nx - 1);
 
+    Kokkos::resize(x, nx*ny+1);
+    Kokkos::resize(y, nx*ny+1);
+    Kokkos::resize(intensity, nx*ny+1, nnu);
+
     for (int i = 0; i < nx; i++) {
         for (int j = 0; j < ny; j++) {
             double r = pow(10, logrmin + dlogr*i);
             double phi = 2*pi * (j + 0.5) / ny;
-            x.push_back(r*cos(phi));
-            y.push_back(r*sin(phi));
-            intensity.push_back(std::vector<double>());
+            x(i*ny+j) = r*cos(phi);
+            y(i*ny+j) = r*sin(phi);
+            
+            for (int k = 0; k < nnu; k++)
+                intensity(i*ny+j,k) = 0.;
         }
     }
-    x.push_back(0.);
-    y.push_back(0.);
-    intensity.push_back(std::vector<double>());
+    x(x.extent(0)-1) = 0.;
+    y(x.extent(0)-1) = 0.;
 
     // Set up the frequency array.
 
-    _nu = py::array_t<double>(nnu);
-    auto _nu_buf = _nu.request();
-
-    nu = (double *) _nu_buf.ptr;
-
+    Kokkos::resize(nu, nnu);
     for (int i = 0; i < nnu; i++)
-        nu[i] = c_l / (lam[i]*1.0e-4);
+        nu(i) = c_l / (lam(i)*1.0e-4);
+    _nu = array_from_view(nu, 1, {(size_t) nnu});
 }
 
 Spectrum::Spectrum(py::array_t<double> __lam) {
@@ -157,31 +160,27 @@ Spectrum::Spectrum(py::array_t<double> __lam) {
     if (_lam_buf.ndim != 1)
         throw std::runtime_error("Number of dimensions must be one");
 
-    // Now get the correct format.
-    
-    lam = (double *) _lam_buf.ptr;
-
     nnu = _lam_buf.shape[0];
+
+    // Now get the correct format.
+
+    Kokkos::resize(lam, nnu);
+    Kokkos::deep_copy(lam, view_from_array(_lam));
+    _lam = __lam;
 
     // Set up the frequency array.
 
-    _nu = py::array_t<double>(nnu);
-    auto _nu_buf = _nu.request();
-
-    nu = (double *) _nu_buf.ptr;
-
+    Kokkos::resize(nu, nnu);
     for (int i = 0; i < nnu; i++)
-        nu[i] = c_l / (lam[i]*1.0e-4);
+        nu(i) = c_l / (lam(i)*1.0e-4);
+    _nu = array_from_view(nu, 1, {(size_t) nnu});
 
     // Set up the volume of each cell.
 
-    _intensity = py::array_t<double>(nnu);
-
-    auto _intensity_buf = _intensity.request();
-    intensity = (double *) _intensity_buf.ptr;
-
+    Kokkos::resize(intensity, nnu);
     for (int i = 0; i < nnu; i++)
-        intensity[i] = 0;
+        intensity(i) = 0;
+    _intensity = array_from_view(intensity, 1, {(size_t) nnu});
 }
 
 Camera::Camera(Grid *_G, Params *_Q) {
@@ -236,15 +235,13 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
     //    for (int k=0; k<image->ny; k++) {
         if (Q->verbose) printf("%d   %d\n", j, k);
 
-        double *intensity = raytrace_pixel(image->x[j], image->y[k], 
-                image->pixel_size, image->nu, image->nnu, 0);
+        Kokkos::View<double*> intensity(raytrace_pixel(image->x(j), image->y(k), 
+                image->pixel_size, image->nu, image->nnu, 0));
 
         for (int i = 0; i < image->nnu; i++)
-            image->intensity[k*image->ny*image->nnu + j*image->nnu + i] = 
-                intensity[i] * image->pixel_size * image->pixel_size / 
+            image->intensity(k*image->ny*image->nnu + j*image->nnu + i) = 
+                intensity(i) * image->pixel_size * image->pixel_size / 
                 (r * r)/ Jy;
-
-        delete[] intensity;
     });
 
     // Also raytrace the sources.
@@ -252,6 +249,8 @@ Image *Camera::make_image(int nx, int ny, double pixel_size,
     raytrace_sources(image, nthreads);
 
     // And return.
+
+    image->_intensity = array_from_view(image->intensity, 3, {(size_t) image->nx, (size_t) image->ny, (size_t) image->nnu});
 
     return image;
 }
@@ -270,44 +269,22 @@ UnstructuredImage *Camera::make_unstructured_image(int nx, int ny,
 
     // Now go through and raytrace.
 
-    //seed1 = int(time(NULL)) ^ omp_get_thread_num();
-    //seed2 = int(time(NULL)) ^ omp_get_thread_num();
     seed1 = int(time(NULL));
     seed2 = int(time(NULL));
 
-    //#pragma omp for schedule(guided)
-    //for (int j=0; j < nx*ny; j++)
     Kokkos::parallel_for(nx*ny, [=] (int64_t j) {
         raytrace_pixel(image, j, image->pixel_size);
     });
-    //#pragma omp taskwait
 
     // Also raytrace the sources.
 
     //raytrace_sources(image);
 
     // Now that thats done, create an intensity Python array to populate.
-    //
-    image->_x = py::array_t<double>(image->x.size());
-    image->_y = py::array_t<double>(image->y.size());
-    image->_intensity = py::array_t<double>(image->x.size()*image->nnu);
-    image->_intensity.resize({(int)image->x.size(), image->nnu});
-
-    auto _x_buf = image->_x.request();
-    auto _y_buf = image->_y.request();
-    auto _intensity_buf = image->_intensity.request();
-
-    double *_x_arr = (double *) _x_buf.ptr;
-    double *_y_arr = (double *) _y_buf.ptr;
-    double *_intensity_arr = (double *) _intensity_buf.ptr;
-
-    for (int i = 0; i < (int) image->x.size(); i++) {
-        _x_arr[i] = image->x[i];
-        _y_arr[i] = image->y[i];
-
-        for (int j = 0; j < image->nnu; j++)
-            _intensity_arr[i*image->nnu + j] = image->intensity[i][j];
-    }
+    
+    image->_x = array_from_view(image->x, 1, {image->x.extent(0)});
+    image->_y = array_from_view(image->y, 1, {image->y.extent(0)});
+    image->_intensity = array_from_view(image->intensity, 2, {image->intensity.extent(0), image->intensity.extent(1)});
 
     // And return.
 
@@ -328,45 +305,22 @@ UnstructuredImage *Camera::make_circular_image(int nr, int nphi,
 
     // Now go through and raytrace.
 
-    //#pragma omp parallel num_threads(nthreads)
-    //seed1 = int(time(NULL)) ^ omp_get_thread_num();
-    //seed2 = int(time(NULL)) ^ omp_get_thread_num();
     seed1 = int(time(NULL));
     seed2 = int(time(NULL));
 
-    //#pragma omp for schedule(guided)
-    //for (int j=0; j < (int)image->x.size(); j++)
-    Kokkos::parallel_for(image->x.size(), [=] (int64_t j) {
+    Kokkos::parallel_for(image->x.extent(0), [=] (int64_t j) {
         raytrace_pixel(image, j, image->pixel_size);
     });
-    //#pragma omp taskwait
 
     // Also raytrace the sources.
 
     //raytrace_sources(image);
 
     // Now that thats done, create an intensity Python array to populate.
-    //
-    image->_x = py::array_t<double>(image->x.size());
-    image->_y = py::array_t<double>(image->y.size());
-    image->_intensity = py::array_t<double>(image->x.size()*image->nnu);
-    image->_intensity.resize({(int)image->x.size(), image->nnu});
 
-    auto _x_buf = image->_x.request();
-    auto _y_buf = image->_y.request();
-    auto _intensity_buf = image->_intensity.request();
-
-    double *_x_arr = (double *) _x_buf.ptr;
-    double *_y_arr = (double *) _y_buf.ptr;
-    double *_intensity_arr = (double *) _intensity_buf.ptr;
-
-    for (int i = 0; i < (int) image->x.size(); i++) {
-        _x_arr[i] = image->x[i];
-        _y_arr[i] = image->y[i];
-
-        for (int j = 0; j < image->nnu; j++)
-            _intensity_arr[i*image->nnu + j] = image->intensity[i][j];
-    }
+    image->_x = array_from_view(image->x, 1, {image->x.extent(0)});
+    image->_y = array_from_view(image->y, 1, {image->y.extent(0)});
+    image->_intensity = array_from_view(image->intensity, 2, {image->intensity.extent(0), image->intensity.extent(1)});
 
     // And return.
 
@@ -391,12 +345,16 @@ Spectrum *Camera::make_spectrum(py::array_t<double> lam, double incl,
     // Sum the image intensity.
     Spectrum *S = new Spectrum(lam);
 
-    for (int i=0; i<image->nnu; i++)
-        for (int j=0; j<image->nx; j++)
+    for (int i=0; i<image->nnu; i++) {
+        for (int j=0; j<image->nx; j++) {
             for (int k=0; k<image->ny; k++) {
-                S->intensity[i] += image->intensity[j*image->nnu*image->ny 
-                    + k*image->nnu + i];
+                S->intensity(i) += image->intensity(j*image->nnu*image->ny 
+                    + k*image->nnu + i);
             }
+        }
+    }
+
+    S->_intensity = array_from_view(S->intensity, 1, {(size_t) S->nnu});
 
     // Delete the parts of the image we no longer need.
     delete image;
@@ -406,30 +364,30 @@ Spectrum *Camera::make_spectrum(py::array_t<double> lam, double incl,
     return S;
 }
 
-Ray *Camera::emit_ray(double x, double y, double pixel_size, double *nu, 
+Ray *Camera::emit_ray(double x, double y, double pixel_size, Kokkos::View<double*> nu, 
         int nnu) {
     Ray *R = new Ray();
 
     R->nnu = nnu;
-    R->tau = new double[nnu];
-    R->intensity = new double[nnu];
+    Kokkos::resize(R->nu, nnu);
+    Kokkos::resize(R->tau, nnu);
+    Kokkos::resize(R->intensity, nnu);
     for (int i = 0; i < nnu; i++) {
-        R->tau[i] = 0; R->intensity[i] = 0;
+        R->nu(i) = nu(i);
+        R->tau(i) = 0; R->intensity(i) = 0;
     }
 
     R->pixel_size = pixel_size;
     R->pixel_too_large = false;
 
-    R->nu = nu;
-
     R->ndust = G->nspecies;
-    R->current_kext = create2DArr(G->nspecies, nnu);
-    R->current_albedo = create2DArr(G->nspecies, nnu);
+    Kokkos::resize(R->current_kext, G->nspecies, nnu);
+    Kokkos::resize(R->current_albedo, G->nspecies, nnu);
 
     for (int j=0; j<G->nspecies; j++) {
         for (int k = 0; k < nnu; k++) {
-            R->current_kext[j][k] = G->dust[j]->opacity(R->nu[k]);
-            R->current_albedo[j][k] = G->dust[j]->albdo(R->nu[k]);
+            R->current_kext(j,k) = G->dust[j]->opacity(R->nu(k));
+            R->current_albedo(j,k) = G->dust[j]->albdo(R->nu(k));
         }
     }
 
@@ -453,39 +411,29 @@ Ray *Camera::emit_ray(double x, double y, double pixel_size, double *nu,
     return R;
 }
 
-double* Camera::raytrace_pixel(double x, double y, double pixel_size, 
-        double *nu, int nnu, int count) {
+Kokkos::View<double*> Camera::raytrace_pixel(double x, double y, double pixel_size, 
+        Kokkos::View<double*> nu, int nnu, int count) {
     //printf("%d\n", count);
     bool subpixel = false;
 
-    double *intensity = raytrace(x, y, pixel_size, nu, nnu, false, &subpixel);
+    Kokkos::View<double*> intensity(raytrace(x, y, pixel_size, nu, nnu, false, &subpixel));
 
     count++;
 
     if (subpixel) { // && (count < 1)) {
-        double *intensity1, *intensity2, *intensity3, *intensity4;
-
-        #pragma omp task shared(intensity1)
-        intensity1 = raytrace_pixel(x-pixel_size/4, y-pixel_size/4, 
-                pixel_size/2, nu, nnu, count);
-        #pragma omp task shared(intensity2)
-        intensity2 = raytrace_pixel(x-pixel_size/4, y+pixel_size/4, 
-                pixel_size/2, nu, nnu, count);
-        #pragma omp task shared(intensity3)
-        intensity3 = raytrace_pixel(x+pixel_size/4, y-pixel_size/4, 
-                pixel_size/2, nu, nnu, count);
-        #pragma omp task shared(intensity4)
-        intensity4 = raytrace_pixel(x+pixel_size/4, y+pixel_size/4, 
-                pixel_size/2, nu, nnu, count);
-        #pragma omp taskwait
+        Kokkos::View<double*> intensity1(raytrace_pixel(x-pixel_size/4, y-pixel_size/4, 
+                pixel_size/2, nu, nnu, count));
+        Kokkos::View<double*> intensity2(raytrace_pixel(x-pixel_size/4, y+pixel_size/4, 
+                pixel_size/2, nu, nnu, count));
+        Kokkos::View<double*> intensity3(raytrace_pixel(x+pixel_size/4, y-pixel_size/4, 
+                pixel_size/2, nu, nnu, count));
+        Kokkos::View<double*> intensity4(raytrace_pixel(x+pixel_size/4, y+pixel_size/4, 
+                pixel_size/2, nu, nnu, count));
 
         for (int i = 0; i < nnu; i++) {
-            intensity[i] = (intensity1[i]+intensity2[i]+intensity3[i]+
-                    intensity4[i])/4;
+            intensity(i) = (intensity1(i)+intensity2(i)+intensity3(i)+
+                    intensity4(i))/4;
         }
-
-        delete[] intensity1; delete[] intensity2; delete[] intensity3;
-        delete[] intensity4;
     }
 
     return intensity;
@@ -497,64 +445,45 @@ void Camera::raytrace_pixel(UnstructuredImage *image, int ix,
 
     // Raytrace all frequencies.
 
-    double *intensity = raytrace(image->x[ix], image->y[ix], pixel_size, 
-            image->nu, image->nnu, true, &subpixel);
+    Kokkos::View<double*> intensity(raytrace(image->x(ix), image->y(ix), pixel_size, 
+            image->nu, image->nnu, true, &subpixel));
 
     for (int i=0; i<image->nnu; i++)
-        image->intensity[ix].push_back(intensity[i]);
-
-    delete[] intensity;
+        image->intensity(ix,i) = intensity(i);
     
     // Split the cell into four and raytrace again.
     if (subpixel) {
         int nxy;
-        #pragma omp critical
-        {
-        nxy = image->x.size();
+        //#pragma omp critical
+        //{
+        nxy = image->x.extent(0);
 
-        image->x.push_back(image->x[ix] - pixel_size/4 + (random_number(random_pool)-0.5)*
-                pixel_size/10000);
-        image->x.push_back(image->x[ix] - pixel_size/4 + (random_number(random_pool)-0.5)*
-                pixel_size/10000);
-        image->x.push_back(image->x[ix] + pixel_size/4 + (random_number(random_pool)-0.5)*
-                pixel_size/10000);
-        image->x.push_back(image->x[ix] + pixel_size/4 + (random_number(random_pool)-0.5)*
-                pixel_size/10000);
+        Kokkos::resize(image->x, image->x.extent(0)+4);
+        Kokkos::resize(image->y, image->y.extent(0)+4);
+        Kokkos::resize(image->intensity, image->intensity.extent(0)+4, image->intensity.extent(1));
 
-        image->y.push_back(image->y[ix] - pixel_size/4 + (random_number(random_pool)-0.5)*
-                pixel_size/10000);
-        image->y.push_back(image->y[ix] + pixel_size/4 + (random_number(random_pool)-0.5)* 
-                pixel_size/10000);
-        image->y.push_back(image->y[ix] - pixel_size/4 + (random_number(random_pool)-0.5)* 
-                pixel_size/10000);
-        image->y.push_back(image->y[ix] + pixel_size/4 + (random_number(random_pool)-0.5)* 
-                pixel_size/10000);
-
-        image->intensity.push_back(std::vector<double>());
-        image->intensity.push_back(std::vector<double>());
-        image->intensity.push_back(std::vector<double>());
-        image->intensity.push_back(std::vector<double>());
+        for (int i=0; i < 4; i++) {
+            image->x(nxy+i) = image->x(ix) + pow(-1,i)*pixel_size/4 + (random_number(random_pool)-0.5)*
+                pixel_size/10000;
+            image->y(nxy+i) = image->y(ix) + pow(-1, (int) i < 2)*pixel_size/4 + (random_number(random_pool)-0.5)*
+                pixel_size/10000;
         }
+        //}
 
-        #pragma omp task
         raytrace_pixel(image, nxy+0, pixel_size/2);
-        #pragma omp task
         raytrace_pixel(image, nxy+1, pixel_size/2);
-        #pragma omp task
         raytrace_pixel(image, nxy+2, pixel_size/2);
-        #pragma omp task
         raytrace_pixel(image, nxy+3, pixel_size/2);
-        #pragma omp taskwait
     }
 }
 
-double* Camera::raytrace(double x, double y, double pixel_size, double *nu, 
+Kokkos::View<double*> Camera::raytrace(double x, double y, double pixel_size, Kokkos::View<double*> nu, 
         int nnu, bool unstructured, bool *pixel_too_large) {
     /* Emit a ray from the given location. */
     Ray *R = emit_ray(x, y, pixel_size, nu, nnu);
 
     /* Create an intensity array for the result to go into. */
-    double *intensity = new double[nnu];
+    Kokkos::View<double*> intensity("intensity", nnu);
 
     /* Move the ray onto the grid boundary */
     double s = G->outer_wall_distance(R);
@@ -574,7 +503,7 @@ double* Camera::raytrace(double x, double y, double pixel_size, double *nu,
 
         if (G->on_and_parallel_to_wall(R) and not unstructured) {
             for (int i = 0; i < nnu; i++)
-                intensity[i] = -1.0;
+                intensity(i) = -1.0;
 
             *pixel_too_large = true;
 
@@ -591,7 +520,7 @@ double* Camera::raytrace(double x, double y, double pixel_size, double *nu,
         /* Check whether the run was successful or if we need to sub-pixel 
          * to get a good intensity measurement. */
         for (int i = 0; i < nnu; i++)
-            intensity[i] = R->intensity[i];
+            intensity(i) = R->intensity(i);
 
         *pixel_too_large = R->pixel_too_large;
 
@@ -604,7 +533,7 @@ double* Camera::raytrace(double x, double y, double pixel_size, double *nu,
         delete R; // Make sure the Ray instance is cleaned up.
 
         for (int i = 0; i < nnu; i++)
-            intensity[i] = 0.0;
+            intensity(i) = 0.0;
 
         return intensity;
     }
@@ -624,13 +553,13 @@ void Camera::raytrace_sources(Image *image, int nthreads) {
             // Get the appropriate dust opacities.
 
             R->ndust = G->nspecies;
-            R->current_kext = create2DArr(G->nspecies, image->nnu);
-            R->current_albedo = create2DArr(G->nspecies, image->nnu);
+            Kokkos::resize(R->current_kext, G->nspecies, image->nnu);
+            Kokkos::resize(R->current_albedo, G->nspecies, image->nnu);
 
             for (int j=0; j<G->nspecies; j++) {
                 for (int k = 0; k < image->nnu; k++) {
-                    R->current_kext[j][k] = G->dust[j]->opacity(R->nu[k]);
-                    R->current_albedo[j][k] = G->dust[j]->albdo(R->nu[k]);
+                    R->current_kext(j,k) = G->dust[j]->opacity(R->nu(k));
+                    R->current_albedo(j,k) = G->dust[j]->albdo(R->nu(k));
                 }
             }
 
@@ -641,17 +570,17 @@ void Camera::raytrace_sources(Image *image, int nthreads) {
             double ximage = R->r * ey;
             double yimage = R->r * ex;
 
-            int ix = int(image->nx * (ximage + image->x[image->nx-1]) / 
-                    (2*image->x[image->nx-1]) + 0.5);
-            int iy = int(image->ny * (yimage + image->y[image->ny-1]) / 
-                    (2*image->y[image->ny-1]) + 0.5);
+            int ix = int(image->nx * (ximage + image->x(image->nx-1)) / 
+                    (2*image->x(image->nx-1)) + 0.5);
+            int iy = int(image->ny * (yimage + image->y(image->ny-1)) / 
+                    (2*image->y(image->ny-1)) + 0.5);
 
             // Finally, add the energy into the appropriate cell.
             #pragma omp critical
             {
             for (int inu=0; inu < image->nnu; inu++) {
-                image->intensity[ix*image->ny*image->nnu + iy*image->nnu + inu] 
-                    += R->intensity[inu] * image->pixel_size * 
+                image->intensity(ix*image->ny*image->nnu + iy*image->nnu + inu)
+                    += R->intensity(inu) * image->pixel_size * 
                     image->pixel_size / (r * r)/ Jy;
             }
             }
@@ -677,13 +606,13 @@ void Camera::raytrace_sources(UnstructuredImage *image) {
             // Get the appropriate dust opacities.
 
             R->ndust = G->nspecies;
-            R->current_kext = create2DArr(G->nspecies, image->nnu);
-            R->current_albedo = create2DArr(G->nspecies, image->nnu);
+            Kokkos::resize(R->current_kext, G->nspecies, image->nnu);
+            Kokkos::resize(R->current_albedo, G->nspecies, image->nnu);
 
             for (int j=0; j<G->nspecies; j++) {
                 for (int k = 0; k < image->nnu; k++) {
-                    R->current_kext[j][k] = G->dust[j]->opacity(R->nu[k]);
-                    R->current_albedo[j][k] = G->dust[j]->albdo(R->nu[k]);
+                    R->current_kext(j,k) = G->dust[j]->opacity(R->nu(k));
+                    R->current_albedo(j,k) = G->dust[j]->albdo(R->nu(k));
                 }
             }
 
@@ -694,13 +623,13 @@ void Camera::raytrace_sources(UnstructuredImage *image) {
             double ximage = R->r * ey;
             double yimage = R->r * ex;
 
-            image->x.push_back(ximage);
-            image->y.push_back(yimage);
-            image->intensity.push_back(std::vector<double>());
+            Kokkos::resize(image->x, image->x.extent(0)+1);
+            Kokkos::resize(image->y, image->y.extent(0)+1);
+            Kokkos::resize(image->intensity, image->intensity.extent(0)+1, image->intensity.extent(1));
 
             // Finally, add the energy into the appropriate cell.
             for (int inu=0; inu < image->nnu; inu++) {
-                image->intensity[nxy+iphot].push_back(R->intensity[inu]);
+                image->intensity(nxy+iphot,inu) = R->intensity(inu);
             }
 
             // And clean up the Ray.

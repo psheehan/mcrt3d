@@ -19,7 +19,7 @@ struct Params {
     int nnu;
     double nu;
     double dnu;
-    double *scattering_nu;
+    Kokkos::View<double*> scattering_nu{"scatering_nu", 0};
 
     // Parameters for imaging.
 

@@ -4,6 +4,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
+#include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
 
 #ifdef _OPENMP
@@ -34,9 +35,9 @@ struct Grid {
     int nw1;
     int nw2;
     int nw3;
-    double *w1;
-    double *w2;
-    double *w3;
+    Kokkos::View<double*> w1{"w1", 0};
+    Kokkos::View<double*> w2{"w2", 0};
+    Kokkos::View<double*> w3{"w3", 0};
 
     Kokkos::Random_XorShift64_Pool<> *random_pool;
 
@@ -47,31 +48,31 @@ struct Grid {
     py::array_t<double> _w3;
     py::array_t<double> _volume;
 
-    py::list _dens;
-    py::list _temp;
+    py::array_t<double> _dens;
+    py::array_t<double> _temp;
     py::list _scatt;
 
-    std::vector<double*> dens;
-    std::vector<double*> energy;
-    std::vector<double*> energy_mrw;
-    std::vector<double*> temp;
-    std::vector<double*> mass;
-    std::vector<double*> rosseland_mean_extinction;
-    std::vector<double*> planck_mean_opacity;
-    std::vector<double*> luminosity;
-    std::vector<double*> scatt;
-    double *volume;
-    double *uses_mrw;
+    Kokkos::View<double**> dens{"density", 0, 0};
+    Kokkos::View<double**> energy{"energy", 0, 0};
+    Kokkos::View<double**> energy_mrw{"energy", 0, 0};
+    Kokkos::View<double**> temp{"temperature", 0, 0};
+    Kokkos::View<double**> mass{"mass", 0, 0};
+    Kokkos::View<double**> rosseland_mean_extinction{"rosseland_mean_extinction", 0, 0};
+    Kokkos::View<double**> planck_mean_opacity{"planck_mean_opacity", 0, 0};
+    Kokkos::View<double**> luminosity{"luminosity", 0, 0};
+    Kokkos::View<double**> scatt{"scattering_phase_function", 0, 0};
+    Kokkos::View<double*> volume{"volume", 0};
+    Kokkos::View<double*> uses_mrw{"uses_mrw", 0};
 
-    std::vector<double*> number_dens;
-    std::vector<double*> gas_temp;
-    std::vector<double*> velocity;
-    std::vector<double*> microturbulence;
+    Kokkos::View<double**> number_dens{"number_density", 0, 0};
+    Kokkos::View<double**> gas_temp{"gas_temperature", 0, 0};
+    Kokkos::View<double**> velocity{"velocity", 0, 0};
+    Kokkos::View<double**> microturbulence{"microturbulence", 0, 0};
 
-    py::list _number_dens;
-    py::list _gas_temp;
-    py::list _microturbulence;
-    py::list _velocity;
+    py::array_t<double> _number_dens;
+    py::array_t<double> _gas_temp;
+    py::array_t<double> _microturbulence;
+    py::array_t<double> _velocity;
 
     int nspecies;
     std::vector<Dust*> dust;
@@ -80,10 +81,11 @@ struct Grid {
     int ngases;
     std::vector<Gas *> gas;
     py::list _gas;
-    std::vector<int> include_lines;
-    std::vector<double*> level_populations;
-    std::vector<double*> alpha_line;
-    std::vector<double*> inv_gamma_thermal;
+
+    Kokkos::View<int*> include_lines{"include_lines", 0};
+    Kokkos::View<double**> level_populations{"level_populations", 0, 0};
+    Kokkos::View<double**> alpha_line{"alpha_line", 0, 0};
+    Kokkos::View<double**> inv_gamma_thermal{"inv_gamma_thermal", 0, 0};
 
 
     int nsources;
@@ -96,9 +98,9 @@ struct Grid {
     Grid(py::array_t<double> w1, py::array_t<double> w2, 
             py::array_t<double> w3);
 
-    Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
+    /*Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
             double *_w1, double *_w2, double *_w3, double *_volume,
-            bool _mirror_symmetry);
+            bool _mirror_symmetry);*/
 
     ~Grid();
 
@@ -112,7 +114,7 @@ struct Grid {
     void add_star(double x, double y, double z, double _mass, double _radius, 
             double _temperature);
 
-    void add_scattering_array(py::array_t<double> _scatt, int nthreads);
+    //void add_scattering_array(py::array_t<double> _scatt, int nthreads);
     void initialize_scattering_array(int nthreads);
     void deallocate_scattering_array(int start);
     //void collapse_scattering_array();

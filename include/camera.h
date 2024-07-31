@@ -22,11 +22,11 @@ struct Image {
     py::array_t<double> _lam;
     py::array_t<double> _nu;
 
-    double *x;
-    double *y;
-    double *lam;
-    double *nu;
-    double *intensity;
+    Kokkos::View<double*> x{"x", 0};
+    Kokkos::View<double*> y{"y", 0};
+    Kokkos::View<double*> lam{"lam", 0};
+    Kokkos::View<double*> nu{"nu", 0};
+    Kokkos::View<double*> intensity{"intensity", 0};
 
     double pixel_size;
     int nx;
@@ -45,11 +45,11 @@ struct UnstructuredImage {
     py::array_t<double> _lam;
     py::array_t<double> _nu;
 
-    std::vector<double> x;
-    std::vector<double> y;
-    double* lam;
-    double* nu;
-    std::vector<std::vector<double>> intensity;
+    Kokkos::View<double*> x{"x", 0};
+    Kokkos::View<double*> y{"y", 0};
+    Kokkos::View<double*> lam{"lam", 0};
+    Kokkos::View<double*> nu{"lam", 0};
+    Kokkos::View<double**> intensity{"intensity", 0, 0};
 
     double pixel_size;
     int nx;
@@ -67,9 +67,9 @@ struct Spectrum {
     py::array_t<double> _lam;
     py::array_t<double> _nu;
 
-    double *lam;
-    double *nu;
-    double *intensity;
+    Kokkos::View<double*> lam{"lam", 0};
+    Kokkos::View<double*> nu{"nu", 0};
+    Kokkos::View<double*> intensity{"intensity", 0};
     double pixel_size;
     int nnu;
 
@@ -110,11 +110,11 @@ struct Camera {
 
     void set_orientation(double incl, double pa, double dpc);
 
-    Ray* emit_ray(double x, double y, double pixel_size, double *nu, int nnu);
-    double* raytrace_pixel(double x, double y, double pixel_size, double *nu, 
+    Ray* emit_ray(double x, double y, double pixel_size, Kokkos::View<double*> nu, int nnu);
+    Kokkos::View<double*> raytrace_pixel(double x, double y, double pixel_size, Kokkos::View<double*> nu, 
             int nnu, int count);
     void raytrace_pixel(UnstructuredImage *image, int ix, double pixel_size); 
-    double* raytrace(double x, double y, double pixel_size, double *nu, 
+    Kokkos::View<double*> raytrace(double x, double y, double pixel_size, Kokkos::View<double*> nu, 
             int nnu, bool unstructured, bool *pixel_too_large);
 
     void raytrace_sources(Image *I, int nthreads);

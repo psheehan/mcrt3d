@@ -17,24 +17,21 @@ CartesianGrid::CartesianGrid(py::array_t<double> _x, py::array_t<double> _y,
     // Now get the correct values.
 
     double *__x = (double *) x_buf.ptr;
-    for (int i = 0; i < n1; i++) __x[i] = 0.5 * (w1[i+1] + w1[i]);
+    for (int i = 0; i < n1; i++) __x[i] = 0.5 * (w1(i+1) + w1(i));
 
     double *__y = (double *) y_buf.ptr;
-    for (int i = 0; i < n2; i++) __y[i] = 0.5 * (w2[i+1] + w2[i]);
+    for (int i = 0; i < n2; i++) __y[i] = 0.5 * (w2(i+1) + w2(i));
 
     double *__z = (double *) z_buf.ptr;
-    for (int i = 0; i < n3; i++) __z[i] = 0.5 * (w3[i+1] + w3[i]);
+    for (int i = 0; i < n3; i++) __z[i] = 0.5 * (w3(i+1) + w3(i));
     
     // Set up the volume of each cell.
-
-    auto _volume_buf = _volume.request();
-    double *__volume = (double *) _volume_buf.ptr;
 
     for (int i = 0; i < n1; i++)
         for (int j = 0; j < n2; j++)
             for (int k = 0; k < n3; k++)
-                __volume[i*n2*n3 + j*n3 + k] = (w1[i+1] - w1[i]) * 
-                    (w2[j+1] - w2[j]) * (w3[k+1] - w3[k]);
+                volume(i*n2*n3 + j*n3 + k) = (w1(i+1) - w1(i)) * 
+                    (w2(j+1) - w2(j)) * (w3(k+1) - w3(k));
 
     // Finally, set up the mirror symmetry.
 
@@ -46,19 +43,19 @@ CartesianGrid::CartesianGrid(py::array_t<double> _x, py::array_t<double> _y,
 double CartesianGrid::next_wall_distance(Photon *P) {
     double s = HUGE_VAL;
 
-    double sx1 = (w1[P->l[0]] - P->r[0])*P->invn[0];
+    double sx1 = (w1(P->l[0]) - P->r[0])*P->invn[0];
     if ((sx1 < s) && (sx1 > 0)) s = sx1;
-    double sx2 = (w1[P->l[0]+1] - P->r[0])*P->invn[0];
+    double sx2 = (w1(P->l[0]+1) - P->r[0])*P->invn[0];
     if ((sx2 < s) && (sx2 > 0)) s = sx2;
     
-    double sy1 = (w2[P->l[1]] - P->r[1])*P->invn[1];
+    double sy1 = (w2(P->l[1]) - P->r[1])*P->invn[1];
     if ((sy1 < s) && (sy1 > 0)) s = sy1;
-    double sy2 = (w2[P->l[1]+1] - P->r[1])*P->invn[1];
+    double sy2 = (w2(P->l[1]+1) - P->r[1])*P->invn[1];
     if ((sy2 < s) && (sy2 > 0)) s = sy2;
     
-    double sz1 = (w3[P->l[2]] - P->r[2])*P->invn[2];
+    double sz1 = (w3(P->l[2]) - P->r[2])*P->invn[2];
     if ((sz1 < s) && (sz1 > 0)) s = sz1;
-    double sz2 = (w3[P->l[2]+1] - P->r[2])*P->invn[2];
+    double sz2 = (w3(P->l[2]+1) - P->r[2])*P->invn[2];
     if ((sz2 < s) && (sz2 > 0)) s = sz2;
     
     return s;
@@ -70,36 +67,36 @@ double CartesianGrid::outer_wall_distance(Photon *P) {
     double s = 0;
 
     if (P->n[0] != 0) {
-        if (P->r[0] <= w1[0]) {
-            double sx = (w1[0] - P->r[0])*P->invn[0];
+        if (P->r[0] <= w1(0)) {
+            double sx = (w1(0) - P->r[0])*P->invn[0];
             if (sx > s) s = sx;
         }
-        else if (P->r[0] >= w1[nw1-1]) {
-            double sx = (w1[nw1-1] - P->r[0])*P->invn[0];
+        else if (P->r[0] >= w1(nw1-1)) {
+            double sx = (w1(nw1-1) - P->r[0])*P->invn[0];
             if (sx > s) s = sx;
         }
     }
     if (Q->verbose) printf("%7.4f\n", s/au);
     
     if (P->n[1] != 0) {
-        if (P->r[1] <= w2[0]) {
-            double sy = (w2[0] - P->r[1])*P->invn[1];
+        if (P->r[1] <= w2(0)) {
+            double sy = (w2(0) - P->r[1])*P->invn[1];
             if (sy > s) s = sy;
         }
-        else if (P->r[1] >= w2[nw2-1]) {
-            double sy = (w2[nw2-1] - P->r[1])*P->invn[1];
+        else if (P->r[1] >= w2(nw2-1)) {
+            double sy = (w2(nw2-1) - P->r[1])*P->invn[1];
             if (sy > s) s = sy;
         }
     }
     if (Q->verbose) printf("%7.4f\n", s/au);
     
     if (P->n[2] != 0) {
-        if (P->r[2] <= w3[0]) {
-            double sz = (w3[0] - P->r[2])*P->invn[2];
+        if (P->r[2] <= w3(0)) {
+            double sz = (w3(0) - P->r[2])*P->invn[2];
             if (sz > s) s = sz;
         }
-        else if (P->r[2] >= w3[nw3-1]) {
-            double sz = (w3[nw3-1] - P->r[2])*P->invn[2];
+        else if (P->r[2] >= w3(nw3-1)) {
+            double sz = (w3(nw3-1) - P->r[2])*P->invn[2];
             if (sz > s) s = sz;
         }
     }
@@ -110,17 +107,17 @@ double CartesianGrid::outer_wall_distance(Photon *P) {
     if (Q->verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
             newr[2]/au);
 
-    if (equal(newr[0],w1[0],EPSILON)) newr[0] = w1[0];
-    else if (equal(newr[0],w1[nw1-1],EPSILON)) newr[0] = w1[nw1-1];
-    if (equal(newr[1],w2[0],EPSILON)) newr[1] = w2[0];
-    else if (equal(newr[1],w2[nw2-1],EPSILON)) newr[1] = w2[nw2-1];
-    if (equal(newr[2],w3[0],EPSILON)) newr[2] = w3[0];
-    else if (equal(newr[2],w3[nw3-1],EPSILON)) newr[2] = w3[nw3-1];
+    if (equal(newr[0],w1(0),EPSILON)) newr[0] = w1(0);
+    else if (equal(newr[0],w1(nw1-1),EPSILON)) newr[0] = w1(nw1-1);
+    if (equal(newr[1],w2(0),EPSILON)) newr[1] = w2(0);
+    else if (equal(newr[1],w2(nw2-1),EPSILON)) newr[1] = w2(nw2-1);
+    if (equal(newr[2],w3(0),EPSILON)) newr[2] = w3(0);
+    else if (equal(newr[2],w3(nw3-1),EPSILON)) newr[2] = w3(nw3-1);
 
     if (Q->verbose) printf("%20.17f   %7.4f   %7.4f\n", newr[0]/au, newr[1]/au, 
             newr[2]/au);
-    if ((newr[0] < w1[0]) || (newr[0] > w1[nw1-1]) || (newr[1] < w2[0]) ||
-            (newr[1] > w2[nw2-1]) || (newr[2] < w3[0]) || (newr[2] > w3[nw3-1]))
+    if ((newr[0] < w1(0)) || (newr[0] > w1(nw1-1)) || (newr[1] < w2(0)) ||
+            (newr[1] > w2(nw2-1)) || (newr[2] < w3(0)) || (newr[2] > w3(nw3-1)))
         s = HUGE_VAL;
     if (Q->verbose) printf("%7.4f\n", s/au);
     
@@ -132,19 +129,19 @@ double CartesianGrid::outer_wall_distance(Photon *P) {
 double CartesianGrid::minimum_wall_distance(Photon *P) {
     double s = HUGE_VAL;
 
-    double sx1 = fabs(w1[P->l[0]] - P->r[0]);
+    double sx1 = fabs(w1(P->l[0]) - P->r[0]);
     if (sx1 < s) s = sx1;
-    double sx2 = fabs(w1[P->l[0]+1] - P->r[0]);
+    double sx2 = fabs(w1(P->l[0]+1) - P->r[0]);
     if (sx2 < s) s = sx2;
     
-    double sy1 = fabs(w2[P->l[1]] - P->r[1]);
+    double sy1 = fabs(w2(P->l[1]) - P->r[1]);
     if (sy1 < s) s = sy1;
-    double sy2 = fabs(w2[P->l[1]+1] - P->r[1]);
+    double sy2 = fabs(w2(P->l[1]+1) - P->r[1]);
     if (sy2 < s) s = sy2;
     
-    double sz1 = fabs(w3[P->l[2]] - P->r[2]);
+    double sz1 = fabs(w3(P->l[2]) - P->r[2]);
     if (sz1 < s) s = sz1;
-    double sz2 = fabs(w3[P->l[2]+1] - P->r[2]);
+    double sz2 = fabs(w3(P->l[2]+1) - P->r[2]);
     if (sz2 < s) s = sz2;
     
     return s;
@@ -154,12 +151,12 @@ double CartesianGrid::minimum_wall_distance(Photon *P) {
 
 double CartesianGrid::smallest_wall_size(Photon *P) {
 
-    double s = fabs(w1[P->l[0]+1] - w1[P->l[0]]);
+    double s = fabs(w1(P->l[0]+1) - w1(P->l[0]));
     
-    double sy = fabs(w2[P->l[0]+1] - w2[P->l[0]]);
+    double sy = fabs(w2(P->l[0]+1) - w2(P->l[0]));
     if (sy < s) s = sy;
     
-    double sz = fabs(w3[P->l[0]+1] - w3[P->l[0]]);
+    double sz = fabs(w3(P->l[0]+1) - w3(P->l[0]));
     if (sz < s) s = sz;
     
     return s;
@@ -169,7 +166,7 @@ double CartesianGrid::smallest_wall_size(Ray *R) {
 
     // Use the cell volume as an estimator of the average size of a cell.
 
-    double cell_volume = volume[R->l[0]*n2*n3 + R->l[1]*n3 + R->l[2]];
+    double cell_volume = volume(R->l[0]*n2*n3 + R->l[1]*n3 + R->l[2]);
 
     double s = pow(cell_volume, 1./3);
 
@@ -179,9 +176,9 @@ double CartesianGrid::smallest_wall_size(Ray *R) {
 /* Calculate the size of the grid. */
 
 double CartesianGrid::grid_size() {
-    double rw1_max = std::max(abs(w1[0]), abs(w1[nw1-1]));
-    double rw2_max = std::max(abs(w2[0]), abs(w2[nw2-1]));
-    double rw3_max = std::max(abs(w3[0]), abs(w3[nw3-1]));
+    double rw1_max = std::max(abs(w1(0)), abs(w1(nw1-1)));
+    double rw2_max = std::max(abs(w2(0)), abs(w2(nw2-1)));
+    double rw3_max = std::max(abs(w3(0)), abs(w3(nw3-1)));
 
     return 2*sqrt(rw1_max*rw1_max + rw2_max*rw2_max + rw3_max*rw3_max);
 }
@@ -193,9 +190,9 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
     
     // Determine which cell the photon is currently in.
 
-    if (P->r[0] >= w1[nw1-1])
+    if (P->r[0] >= w1(nw1-1))
         l[0] = n1-1;
-    else if (P->r[0] <= w1[0])
+    else if (P->r[0] <= w1(0))
         l[0] = 0;
     else {
         if (P->l[0] == -1)
@@ -229,9 +226,9 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
     
     // Determine which cell the photon is currently in.
 
-    if (P->r[1] >= w2[nw2-1])
+    if (P->r[1] >= w2(nw2-1))
         l[1] = n2-1;
-    else if (P->r[1] <= w2[0])
+    else if (P->r[1] <= w2(0))
         l[1] = 0;
     else {
         if (P->l[1] == -1)
@@ -265,9 +262,9 @@ Vector<int, 3> CartesianGrid::photon_loc(Photon *P) {
     
     // Determine which cell the photon is currently in.
 
-    if (P->r[2] >= w3[nw3-1])
+    if (P->r[2] >= w3(nw3-1))
         l[2] = n3-1;
-    else if (P->r[2] <= w3[0])
+    else if (P->r[2] <= w3(0))
         l[2] = 0;
     else {
         if (P->l[2] == -1)
@@ -320,19 +317,19 @@ void CartesianGrid::photon_loc_mrw(Photon *P) {
 /* Check whether a photon is on a wall and going parallel to it. */
 
 bool CartesianGrid::on_and_parallel_to_wall(Photon *P) {
-    if (P->r[0] == w1[P->l[0]] and P->n[0] == 0)
+    if (P->r[0] == w1(P->l[0]) and P->n[0] == 0)
         return true;
-    if (P->r[0] == w1[P->l[0]+1] and P->n[0] == 0)
-        return true;
-
-    if (P->r[1] == w2[P->l[1]] and P->n[1] == 0)
-        return true;
-    if (P->r[1] == w2[P->l[1]+1] and P->n[1] == 0)
+    if (P->r[0] == w1(P->l[0]+1) and P->n[0] == 0)
         return true;
 
-    if (P->r[2] == w3[P->l[2]] and P->n[2] == 0)
+    if (P->r[1] == w2(P->l[1]) and P->n[1] == 0)
         return true;
-    if (P->r[2] == w3[P->l[2]+1] and P->n[2] == 0)
+    if (P->r[1] == w2(P->l[1]+1) and P->n[1] == 0)
+        return true;
+
+    if (P->r[2] == w3(P->l[2]) and P->n[2] == 0)
+        return true;
+    if (P->r[2] == w3(P->l[2]+1) and P->n[2] == 0)
         return true;
 
     return false;
@@ -342,9 +339,9 @@ bool CartesianGrid::on_and_parallel_to_wall(Photon *P) {
  
 Vector<double, 3> CartesianGrid::random_location_in_cell(int ix, int iy, 
         int iz) {
-    double x = w1[ix] + random_number(random_pool) * (w1[ix+1] - w1[ix]);
-    double y = w2[iy] + random_number(random_pool) * (w2[iy+1] - w2[iy]);
-    double z = w3[iz] + random_number(random_pool) * (w3[iz+1] - w3[iz]);
+    double x = w1(ix) + random_number(random_pool) * (w1(ix+1) - w1(ix));
+    double y = w2(iy) + random_number(random_pool) * (w2(iy+1) - w2(iy));
+    double z = w3(iz) + random_number(random_pool) * (w3(iz+1) - w3(iz));
 
     return Vector<double, 3>(x, y, z);
 }
@@ -352,9 +349,9 @@ Vector<double, 3> CartesianGrid::random_location_in_cell(int ix, int iy,
 /* Check whether a photon is in the boundaries of the grid. */
 
 bool CartesianGrid::in_grid(Photon *P) {
-    /*if ((P->r[0] >= w1[nw1-1]) || (P->r[1] >= w2[nw2-1]) ||
-        (P->r[2] >= w3[nw2-1]) || (P->r[0] <= w1[0]) ||
-        (P->r[1] <= w2[0]) || (P->r[2] <= w3[0]))
+    /*if ((P->r[0] >= w1(nw1-1)) || (P->r[1] >= w2(nw2-1)) ||
+        (P->r[2] >= w3(nw2-1)) || (P->r[0] <= w1(0)) ||
+        (P->r[1] <= w2(0)) || (P->r[2] <= w3(0)))
         return false;*/
     if ((P->l[0] >= n1) || (P->l[0] < 0) || (P->l[1] >= n2) || (P->l[1] < 0) ||
             (P->l[2] >= n3) || (P->l[2] < 0))

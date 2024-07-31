@@ -17,10 +17,10 @@
 #include "timer.c"
 
 MCRT::MCRT() {
-    Q = new Params();
-
-    settings.set_num_threads(8);
+    settings.set_num_threads(1);
     Kokkos::initialize(settings);
+    
+    Q = new Params();
 }
 
 MCRT::~MCRT() {
@@ -82,27 +82,29 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
     if (Q->bw)
         mc_iteration(nthreads);
     else {
-        std::vector<double*> told = create2DVecArr(G->nspecies, G->n1*G->n2*G->n3);
-        std::vector<double*> treallyold = create2DVecArr(G->nspecies, 
-                G->n1*G->n2*G->n3);
+        Kokkos::View<double**> told, treallyold;
 
         int maxniter = 10;
 
-        equate2DVecArrs(told, G->temp, G->nspecies, G->n1*G->n2*G->n3);
+        Kokkos::deep_copy(told, G->temp);
 
         int i = 1;
         while (i <= maxniter) {
             printf("Starting iteration # %i \n\n", i);
 
-            equate2DVecArrs(treallyold, told, G->nspecies, G->n1*G->n2*G->n3);
-            equate2DVecArrs(told, G->temp, G->nspecies, G->n1*G->n2*G->n3);
+            Kokkos::deep_copy(treallyold, told);
+            Kokkos::deep_copy(told, G->temp);
 
             mc_iteration(nthreads);
 
-            for (int ithread=0; ithread < (int) G->energy.size(); ithread++)
-                for (int idust=0; idust < G->nspecies; idust++)
-                    for (int icell=0; icell < G->n1*G->n2*G->n3; icell++)
-                        G->energy[idust][icell] = 0.;
+            for (int ithread=0; ithread < (int) G->energy.size(); ithread++) {
+                for (int idust=0; idust < G->nspecies; idust++) {
+                    for (int icell=0; icell < G->n1*G->n2*G->n3; icell++) {
+                        G->energy(idust,icell) = 0.;
+                        G->energy_mrw(idust,icell) = 0.;
+                    }
+                }
+            }
 
             if (i > 2)
                 if (converged(G->temp, told, treallyold, G->nspecies, G->n1, 
@@ -112,10 +114,9 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
             i++;
             printf("\n");
         }
-
-        delete2DVecArr(told, G->nspecies, G->n1*G->n2*G->n3);
-        delete2DVecArr(treallyold, G->nspecies, G->n1*G->n2*G->n3);
     }
+
+    G->_temp = array_from_view(G->temp, 4, {(size_t) G->nspecies, (size_t) G->n1, (size_t) G->n2, (size_t) G->n3});
 
     // Clean up the energy arrays that were calculated.
     //G->deallocate_energy_arrays();
@@ -142,35 +143,23 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
     double *lam = (double *) _lam_buf.ptr;
 
     Q->nnu = _lam_buf.shape[0];
-    Q->scattering_nu = new double[Q->nnu];
+    Kokkos::resize(Q->scattering_nu, Q->nnu);
 
     for (int i = 0; i < Q->nnu; i++)
-        Q->scattering_nu[i] = c_l / (lam[i]*1.0e-4);
+        Q->scattering_nu(i) = c_l / (lam[i]*1.0e-4);
 
     // Create a scattering array in Numpy.
-    if ((int) G->scatt.size() > 1) printf("Whoops, looks like the scattering array wasn't cleaned properly.\n");
+    //if ((int) G->scatt.size() > 1) printf("Whoops, looks like the scattering array wasn't cleaned properly.\n");
 
-    if (save) {
-        py::array_t<double> scatt = py::array_t<double>(G->n1*G->n2*G->n3*
-                Q->nnu);
-        scatt.resize({G->n1, G->n2, G->n3, Q->nnu});
-
-        // Set the Grid's scattering array.
-        G->add_scattering_array(scatt, nthreads);
-
-        // Make sure the scattering array is zeroed out.
-        for (int i = 0; i < G->n1*G->n2*G->n3*Q->nnu; i++)
-            G->scatt[0][i] = 0.;
-    } else
-        G->initialize_scattering_array(nthreads);
+    G->initialize_scattering_array(nthreads);
 
     // Run the simulation for every frequency bin.
     for (int inu=0; inu<Q->nnu; inu++) {
         printf("inu = %i\n", inu);
         // Set up the right parameters.
         Q->inu = inu;
-        Q->nu = Q->scattering_nu[inu];
-        Q->dnu = abs(Q->scattering_nu[inu+1] - Q->scattering_nu[inu]);
+        Q->nu = Q->scattering_nu(inu);
+        Q->dnu = abs(Q->scattering_nu(inu+1) - Q->scattering_nu(inu));
 
         G->initialize_luminosity_array(Q->nu);
         mc_iteration(nthreads);
@@ -185,12 +174,13 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
 
     // Clean up the appropriate grid parameters.
     if (save) {
-        for (int i = 0; i < (int) G->scatt.size(); i++)
-            delete[] G->scatt[i];
-        G->scatt.clear();
+        std::vector<size_t> extents = {1, (size_t) G->n1, (size_t) G->n2, (size_t) G->n3, (size_t) Q->nnu};
+        G->_scatt.append(array_from_view(G->scatt, 5, extents));
+
+        G->deallocate_scattering_array(0);
 
         Q->nnu = 0;
-        delete[] Q->scattering_nu;
+        Kokkos::resize(Q->scattering_nu, 0);
     }
 }
 
@@ -218,7 +208,7 @@ void MCRT::mc_iteration(int nthreads) {
             printf("Emitted with direction: %f  %f  %f\n", P->n[0], P->n[1], 
                     P->n[2]);
             printf("Emitted from a cell with temperature: %f\n", 
-                    G->temp[0][P->cell_index]);
+                    G->temp(0,P->cell_index));
             printf("Emitted with frequency: %e\n", P->nu);
         }
 
@@ -277,7 +267,7 @@ void MCRT::run_image(py::str name, py::array_t<double> __lam, int nx, int ny,
         G->deallocate_scattering_array(0);
 
         Q->nnu = 0;
-        delete[] Q->scattering_nu;
+        Kokkos::resize(Q->scattering_nu, 0);
     }
 
     if (raytrace_gas) G->deselect_lines();
@@ -316,7 +306,7 @@ void MCRT::run_unstructured_image(py::str name, py::array_t<double> __lam,
         G->deallocate_scattering_array(0);
 
         Q->nnu = 0;
-        delete[] Q->scattering_nu;
+        Kokkos::resize(Q->scattering_nu, 0);
     }
 
     if (raytrace_gas) G->deselect_lines();
@@ -355,7 +345,7 @@ void MCRT::run_circular_image(py::str name, py::array_t<double> __lam, int nr,
         G->deallocate_scattering_array(0);
 
         Q->nnu = 0;
-        delete[] Q->scattering_nu;
+        Kokkos::resize(Q->scattering_nu, 0);
     }
 
     if (raytrace_gas) G->deselect_lines();
@@ -393,7 +383,7 @@ void MCRT::run_spectrum(py::str name, py::array_t<double> __lam, int nphot,
         G->deallocate_scattering_array(0);
 
         Q->nnu = 0;
-        delete[] Q->scattering_nu;
+        Kokkos::resize(Q->scattering_nu, 0);
     }
 
     if (raytrace_gas) G->deselect_lines();

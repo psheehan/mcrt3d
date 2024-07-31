@@ -6,31 +6,35 @@ Grid::Grid(py::array_t<double> __w1, py::array_t<double> __w2,
             py::array_t<double> __w3) {
 
     random_pool = new Kokkos::Random_XorShift64_Pool<>(/*seed=*/12345);
-    _w1 = __w1; _w2 = __w2; _w3 = __w3;
 
     // Load the array buffers to get the proper setup info.
 
-    auto _w1_buf = _w1.request(); auto _w2_buf = _w2.request(); 
-    auto _w3_buf = _w3.request();
+    auto _w1_buf = __w1.unchecked<1>(); auto _w2_buf = __w2.unchecked<1>(); 
+    auto _w3_buf = __w3.unchecked<1>();
 
-    if (_w1_buf.ndim != 1 || _w2_buf.ndim != 1 || _w3_buf.ndim != 1)
+    if (_w1_buf.ndim() != 1 || _w2_buf.ndim() != 1 || _w3_buf.ndim() != 1)
         throw std::runtime_error("Number of dimensions must be one");
 
     // Now get the correct format.
     
-    nw1 = _w1_buf.shape[0], nw2 = _w2_buf.shape[0], nw3 = _w3_buf.shape[0];
-    n1 = _w1_buf.shape[0]-1, n2 = _w2_buf.shape[0]-1, n3 = _w3_buf.shape[0]-1;
-    w1 = (double *) _w1_buf.ptr; 
-    w2 = (double *) _w2_buf.ptr; 
-    w3 = (double *) _w3_buf.ptr;
+    nw1 = _w1_buf.shape(0), nw2 = _w2_buf.shape(0), nw3 = _w3_buf.shape(0);
+    n1 = _w1_buf.shape(0)-1, n2 = _w2_buf.shape(0)-1, n3 = _w3_buf.shape(0)-1;
+    
+    Kokkos::resize(w1, nw1);
+    for (size_t i = 0; i < nw1; i++) w1(i) = _w1_buf[i];
+    Kokkos::resize(w2, nw2);
+    for (size_t i = 0; i < nw2; i++) w2(i) = _w2_buf[i];
+    Kokkos::resize(w3, nw3);
+    for (size_t i = 0; i < nw3; i++) w3(i) = _w3_buf[i];
+
+    _w1 = array_from_view(w1, 1, {(size_t) nw1});
+    _w2 = array_from_view(w2, 1, {(size_t) nw2});
+    _w3 = array_from_view(w3, 1, {(size_t) nw3});
 
     // Set up the volume of each cell.
 
-    _volume = py::array_t<double>(n1*n2*n3);
-    _volume.resize({n1, n2, n3});
-
-    auto _volume_buf = _volume.request();
-    volume = (double *) _volume_buf.ptr;
+    Kokkos::resize(volume, n1*n2*n3);
+    _volume = array_from_view(volume, 3, {(size_t) n1, (size_t) n2, (size_t) n3});
 
     // Make sure the number of species and sources are set correctly.
 
@@ -38,14 +42,14 @@ Grid::Grid(py::array_t<double> __w1, py::array_t<double> __w2,
 
     // Initialize the uses_mrw array.
 
-    double *uses_mrw = new double[n1*n2*n3];
+    Kokkos::resize(uses_mrw, n1*n2*n3);
     for (int i=0; i<n1*n2*n3; i++)
-        uses_mrw[i] = -1;
+        uses_mrw(i) = -1;
 }
 
 /* Functions to set up the grid. */
 
-Grid::Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
+/*Grid::Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3, 
         double *_w1, double *_w2, double *_w3, double *_volume, 
         bool _mirror_symmetry) {
 
@@ -62,40 +66,19 @@ Grid::Grid(int _n1, int _n2, int _n3, int _nw1, int _nw2, int _nw3,
     mirror_symmetry = _mirror_symmetry;
 
     volume = _volume;
-}
+}*/
 
 Grid::~Grid() {
     // Free the physical parameters;
 
-    for (int i = 0; i < nspecies; i++) {
-        delete[] mass[i]; delete[] rosseland_mean_extinction[i];
-        delete[] planck_mean_opacity[i];
-        delete[] energy[i]; delete[] energy_mrw[i];
-    }
-    dens.clear(); temp.clear(); mass.clear(); energy.clear(); dust.clear();
-    energy_mrw.clear();
+    dust.clear();
 
-    // Make sure the scattering array is deallocated.
-
-    if ((int) scatt.size() > 0)
-        delete[] scatt[0]; scatt.clear();
-    
     // Clear the gas.
     
-    for (int i = 0; i < ngases; i++) {
-        delete[] number_dens[i];
-        delete[] gas_temp[i];
-        delete[] microturbulence[i];
-        delete[] velocity[i];
-    }
-    number_dens.clear(); gas_temp.clear(); velocity.clear(); 
-    microturbulence.clear(); gas.clear();
+    gas.clear();
 
     // Clear the sources.
-    
-    for (int i = 0; i < nsources; i++) {
-        delete sources[i];
-    }
+
     sources.clear();
 }
 
@@ -103,56 +86,37 @@ Grid::~Grid() {
 //        Dust *D) {
 void Grid::add_density(py::array_t<double> ___dens, Dust *D) {
 
-    // Deal with the Python code.
+    int idust = dens.extent(0);
+    Kokkos::resize(dens, dens.extent(0)+1, n1*n2*n3);
+    Kokkos::resize(temp, temp.extent(0)+1, n1*n2*n3);
+    Kokkos::resize(energy, energy.extent(0)+1, n1*n2*n3);
+    Kokkos::resize(energy_mrw, energy_mrw.extent(0)+1, n1*n2*n3);
+    Kokkos::resize(mass, mass.extent(0)+1, n1*n2*n3);
+    Kokkos::resize(rosseland_mean_extinction, rosseland_mean_extinction.extent(0)+1, n1*n2*n3);
+    Kokkos::resize(planck_mean_opacity, planck_mean_opacity.extent(0)+1, n1*n2*n3);
 
-    auto _dens_buf = ___dens.request();
-
-    _dens.append(___dens);
-
-    // Create temperature array.
-
-    py::array_t<double> ___temp = py::array_t<double>(n1*n2*n3);
-    ___temp.resize({n1, n2, n3});
-
-    _temp.append(___temp);
-
-    auto _temp_buf = ___temp.request();
-
-    // Now send to C++ useful things.
-
-    double *__energy = new double [n1*n2*n3];
-    double *__energy_mrw = new double [n1*n2*n3];
-    double *__mass = new double[n1*n2*n3];
-    double *__rosseland_mean_extinction = new double[n1*n2*n3];
-    double *__planck_mean_opacity = new double[n1*n2*n3];
-    //for (int i=0; i<n1*n2*n3; i++) {
-    //    __mass[i] = 0;
-    //    __rosseland_mean_opacity[i] = 0;
-    //    __planck_mean_opacity[i] = 0;
-    //}
-
-    dens.push_back((double *) _dens_buf.ptr);
-    temp.push_back((double *) _temp_buf.ptr);
-    mass.push_back(__mass);
-    energy.push_back(__energy);
-    energy_mrw.push_back(__energy_mrw);
-
-    rosseland_mean_extinction.push_back(__rosseland_mean_extinction);
-    planck_mean_opacity.push_back(__planck_mean_opacity);
-
-    // Initialize their values.
-
-    for (int icell = 0; icell < n1*n2*n3; icell++) {
-        if (dens[nspecies][icell] < 1.0e-99) dens[nspecies][icell] = 1.0e-99;
-        temp[nspecies][icell] = 0.1;
-        __mass[icell] = dens[nspecies][icell] * volume[icell];
-        __rosseland_mean_extinction[icell] = 
-                D->rosseland_mean_extinction(temp[nspecies][icell]);
-        __planck_mean_opacity[icell] = D->planck_mean_opacity(
-                temp[nspecies][icell]);
-        energy[nspecies][icell] = 0;
-        energy_mrw[nspecies][icell] = 0;
+    auto ___dens_access = ___dens.unchecked<3>();
+    for (int i = 0; i < n1; i++) {
+        for (int j = 0; j < n2; j++) {
+            for (int k = 0; k < n3; k++) {
+                int icell = i*n2*n3 + j*n3 + k;
+                dens(idust,icell) = ___dens_access(i,j,k);
+                if (dens(nspecies,icell) < 1.0e-99) dens(nspecies,icell) = 1.0e-99;
+                temp(idust,icell) = 0.1;
+                mass(nspecies,icell) = dens(nspecies,icell) * volume(icell);
+                rosseland_mean_extinction(nspecies,icell) = 
+                        D->rosseland_mean_extinction(temp(nspecies,icell));
+                planck_mean_opacity(nspecies,icell) = D->planck_mean_opacity(
+                        temp(nspecies,icell));
+                energy(nspecies,icell) = 0;
+                energy_mrw(nspecies,icell) = 0;
+            }
+        }
     }
+
+    std::vector<size_t> extents = {(size_t) nspecies+1, (size_t) n1, (size_t) n2, (size_t) n3};
+    _dens = array_from_view(dens, 4, extents);
+    _temp = array_from_view(temp, 4, extents);
 
     // Add the dust to the list of dust classes.
 
@@ -165,31 +129,34 @@ void Grid::add_number_density(py::array_t<double> ___number_dens,
         py::array_t<double> ___velocity, py::array_t<double> ___microturbulence,
         Gas *G) {
 
-    // Deal with the Python code.
+    Kokkos::resize(number_dens, number_dens.extent(0)+1, n1*n2*n3);
+    Kokkos::resize(gas_temp, gas_temp.extent(0)+1, n1*n2*n3);
+    Kokkos::resize(velocity, velocity.extent(0)+1, 3*n1*n2*n3);
+    Kokkos::resize(microturbulence, microturbulence.extent(0)+1, n1*n2*n3);
 
-    auto _number_dens_buf = ___number_dens.request();
-    auto _velocity_buf = ___velocity.request();
-    auto _microturbulence_buf = ___microturbulence.request();
+    auto number_dens_access = ___number_dens.unchecked<3>();
+    auto velocity_access = ___velocity.unchecked<4>();
+    auto microturbulence_access = ___microturbulence.unchecked<3>();
+    for (int i = 0; i < n1; i++) {
+        for (int j = 0; j < n2; j++) {
+            for (int k = 0; k < n3; k++) {
+                int icell = i*n2*n3 + j*n3 + k;
+                number_dens(ngases,icell) = number_dens_access(i,j,k);
+                gas_temp(ngases,icell) = 0.;
+                microturbulence(ngases,icell) = microturbulence_access(i,j,k);
+                velocity(ngases,icell) = velocity_access(0,i,j,k);
+                velocity(ngases,2*n1*n2*n3+icell) = velocity_access(1,i,j,k);
+                velocity(ngases,3*n1*n2*n3+icell) = velocity_access(2,i,j,k);
+            }
+        }
+    }
 
-    _number_dens.append(___number_dens);
-    _velocity.append(___velocity);
-    _microturbulence.append(___microturbulence);
-
-    // Create temperature array.
-
-    py::array_t<double> ___gas_temp = py::array_t<double>(n1*n2*n3);
-    ___gas_temp.resize({n1, n2, n3});
-
-    _gas_temp.append(___gas_temp);
-
-    auto _gas_temp_buf = ___gas_temp.request();
-
-    // Now send to C++ useful things.
-
-    number_dens.push_back((double *) _number_dens_buf.ptr);
-    gas_temp.push_back((double *) _gas_temp_buf.ptr);
-    velocity.push_back((double *) _velocity_buf.ptr);
-    microturbulence.push_back((double *) _microturbulence_buf.ptr);
+    std::vector<size_t> extents = {(size_t) ngases+1, (size_t) n1, (size_t) n2, (size_t) n3};
+    _number_dens = array_from_view(number_dens, 4, extents);
+    _gas_temp = array_from_view(gas_temp, 4, extents);
+    _microturbulence = array_from_view(microturbulence, 4, extents);
+    extents.insert(extents.begin()+1, 3);
+    _velocity = array_from_view(velocity, 5, extents);
 
     // Add the dust to the list of dust classes.
 
@@ -212,7 +179,7 @@ void Grid::add_star(double x, double y, double z, double _mass, double _radius,
 
 /* Functions to manage the scattering array. */
 
-void Grid::add_scattering_array(py::array_t<double> ___scatt, int nthreads) {
+/*void Grid::add_scattering_array(py::array_t<double> ___scatt, int nthreads) {
     // Add the array to the Python-connected list of scattering phase
     // functions.
 
@@ -223,14 +190,11 @@ void Grid::add_scattering_array(py::array_t<double> ___scatt, int nthreads) {
     auto _scatt_buf = ___scatt.request();
 
     scatt.push_back((double *) _scatt_buf.ptr);
-}
+}*/
 
 void Grid::initialize_scattering_array(int nthreads) {
     // Create a 4D scattering array for each of the separate threads.
-
-    scatt.push_back(new double[n1*n2*n3*Q->nnu]);
-    for (int i = 0; i < n1*n2*n3*Q->nnu; i++)
-        scatt[0][i] = 0.;
+    Kokkos::resize(scatt, 1, n1*n2*n3*Q->nnu);
 }
 
 /*void Grid::collapse_scattering_array() {
@@ -242,8 +206,7 @@ void Grid::initialize_scattering_array(int nthreads) {
 }*/
 
 void Grid::deallocate_scattering_array(int start) {
-    delete[] scatt[0];
-    scatt.clear();
+    Kokkos::resize(scatt, 0, 0);
 }
 
 /* Functions to manage the energy array. */
@@ -276,13 +239,13 @@ void Grid::deallocate_scattering_array(int start) {
 void Grid::initialize_luminosity_array() {
     total_lum = 0.;
 
+    Kokkos::resize(luminosity, nspecies, n1*n2*n3);
+
     for (int idust = 0; idust<nspecies; idust++) {
-        luminosity.push_back(new double[n1*n2*n3]);
-
         for (int icell = 0; icell<n1*n2*n3; icell++) {
-            luminosity[idust][icell] = cell_lum(idust, icell);
+            luminosity(idust,icell) = cell_lum(idust, icell);
 
-            total_lum += luminosity[idust][icell];
+            total_lum += luminosity(idust,icell);
         }
     }
 }
@@ -290,22 +253,19 @@ void Grid::initialize_luminosity_array() {
 void Grid::initialize_luminosity_array(double nu) {
     total_lum = 0.;
 
+    Kokkos::resize(luminosity, nspecies, n1*n2*n3);
+
     for (int idust = 0; idust<nspecies; idust++) {
-        luminosity.push_back(new double[n1*n2*n3]);
-
         for (int icell = 0; icell<n1; icell++) {
-            luminosity[idust][icell] = cell_lum(idust, icell, nu);
+            luminosity(idust,icell) = cell_lum(idust, icell, nu);
 
-            total_lum += luminosity[idust][icell];
+            total_lum += luminosity(idust,icell);
         }
     }
 }
 
 void Grid::deallocate_luminosity_array() {
-    for (int idust = 0; idust<nspecies; idust++) {
-        delete[] luminosity[idust];
-    }
-    luminosity.clear();
+    Kokkos::resize(luminosity, 0, 0);
 }
 
 /* Emit a photon from the grid. */
@@ -328,9 +288,9 @@ Photon *Grid::emit(int iphot) {
     Photon *P;
     if (Q->scattering) {
         if (isource == nsources)
-            P = emit(Q->scattering_nu[Q->inu], Q->dnu, photons_per_source);
+            P = emit(Q->scattering_nu(Q->inu), Q->dnu, photons_per_source);
         else
-            P = sources[isource]->emit(Q->scattering_nu[Q->inu], Q->dnu, 
+            P = sources[isource]->emit(Q->scattering_nu(Q->inu), Q->dnu, 
                     photons_per_source);
     }
     else
@@ -339,11 +299,11 @@ Photon *Grid::emit(int iphot) {
     /* Calculate kext and albedo at the photon's current frequency for all
      * dust species. */
 
-    P->current_kext = new double[nspecies];
-    P->current_albedo = new double[nspecies];
+    Kokkos::resize(P->current_kext, nspecies);
+    Kokkos::resize(P->current_albedo, nspecies);
     for (int i=0; i<nspecies; i++) {
-        P->current_kext[i] = dust[i]->opacity(P->nu);
-        P->current_albedo[i] = dust[i]->albdo(P->nu);
+        P->current_kext(i) = dust[i]->opacity(P->nu);
+        P->current_albedo(i) = dust[i]->albdo(P->nu);
     }
 
     /* Check the photon's location in the grid. */
@@ -366,7 +326,7 @@ Photon *Grid::emit(double _nu, double _dnu, int nphot) {
         for (ix = 0; ix<n1; ix++) {
             for (iy = 0; iy<n2; iy++) {
                 for (iz = 0; iz<n3; iz++) {
-                    cum_lum += luminosity[idust][ix*n2*n3 + iy*n3 + iz] / total_lum;
+                    cum_lum += luminosity(idust,ix*n2*n3 + iy*n3 + iz) / total_lum;
 
                     if (cum_lum >= rand)
                         break;
@@ -415,6 +375,7 @@ void Grid::absorb(Photon *P, int idust) {
         update_grid(P->l, P->cell_index);
     }
 
+
     // Determine which dust species should do the absorption.
     idust = 0;
     if (nspecies == 1) {
@@ -424,8 +385,8 @@ void Grid::absorb(Photon *P, int idust) {
         double kabs_tot = 0;
         double *kabs_cum = new double[nspecies];
         for (int i=0; i<nspecies; i++) {
-            kabs_tot += (1 - P->current_albedo[i])*P->current_kext[i]*
-                dens[i][P->cell_index];
+            kabs_tot += (1 - P->current_albedo(i))*P->current_kext(i)*
+                dens(i,P->cell_index);
             kabs_cum[i] = kabs_tot;
         }
 
@@ -441,13 +402,13 @@ void Grid::absorb(Photon *P, int idust) {
 
     // Now do the absorption.
 
-    dust[idust]->absorb(P, temp[idust][P->cell_index], Q->bw);
+    dust[idust]->absorb(P, temp(idust,P->cell_index), Q->bw);
 
     // Update the photon's arrays of kext and albedo since P->nu has changed
     // upon absorption.
     for (int i=0; i<nspecies; i++) {
-        P->current_kext[i] = dust[i]->opacity(P->nu);
-        P->current_albedo[i] = dust[i]->albdo(P->nu);
+        P->current_kext(i) = dust[i]->opacity(P->nu);
+        P->current_albedo(i) = dust[i]->albdo(P->nu);
     }
 
     // Check the photon's location again because there's a small chance that 
@@ -469,8 +430,8 @@ void Grid::absorb_mrw(Photon *P, int idust) {
         double kabs_tot = 0;
         double *kabs_cum = new double[nspecies];
         for (int i=0; i<nspecies; i++) {
-            kabs_tot += (1 - P->current_albedo[i])*P->current_kext[i]*
-                dens[i][P->cell_index];
+            kabs_tot += (1 - P->current_albedo(i))*P->current_kext(i)*
+                dens(i,P->cell_index);
             kabs_cum[i] = kabs_tot;
         }
 
@@ -486,13 +447,13 @@ void Grid::absorb_mrw(Photon *P, int idust) {
 
     // Now do the absorption.
 
-    dust[idust]->absorb_mrw(P, temp[idust][P->cell_index], Q->bw);
+    dust[idust]->absorb_mrw(P, temp(idust,P->cell_index), Q->bw);
 
     // Update the photon's arrays of kext and albedo since P->nu has changed
     // upon absorption.
     for (int i=0; i<nspecies; i++) {
-        P->current_kext[i] = dust[i]->opacity(P->nu);
-        P->current_albedo[i] = dust[i]->albdo(P->nu);
+        P->current_kext(i) = dust[i]->opacity(P->nu);
+        P->current_albedo(i) = dust[i]->albdo(P->nu);
     }
 
     // Check the photon's location again because there's a small chance that 
@@ -513,8 +474,8 @@ void Grid::scatter(Photon *P, int idust) {
         double ksca_tot = 0;
         double *ksca_cum = new double[nspecies];
         for (int i=0; i<nspecies; i++) {
-            ksca_tot += P->current_albedo[i]*P->current_kext[i]*
-                dens[i][P->cell_index];
+            ksca_tot += P->current_albedo(i)*P->current_kext(i)*
+                dens(i,P->cell_index);
             ksca_cum[i] = ksca_tot;
         }
 
@@ -553,16 +514,16 @@ void Grid::propagate_photon_full(Photon *P) {
         // method.
         double albedo;
         if (nspecies == 1) {
-            albedo = P->current_albedo[0];
+            albedo = P->current_albedo(0);
         }
         else {
             double ksca_tot = 0;
             double kext_tot = 0;
             for (int i=0; i<nspecies; i++) {
-                ksca_tot += P->current_albedo[i]*P->current_kext[i]*
-                    dens[i][P->cell_index];
-                kext_tot += P->current_kext[i]*
-                    dens[i][P->cell_index];
+                ksca_tot += P->current_albedo(i)*P->current_kext(i)*
+                    dens(i,P->cell_index);
+                kext_tot += P->current_kext(i)*
+                    dens(i,P->cell_index);
             }
             albedo = ksca_tot / kext_tot;
         }
@@ -589,7 +550,7 @@ void Grid::propagate_photon_full(Photon *P) {
                     printf("Absorbing photon at %i  %i  %i\n", P->l[0],
                             P->l[1], P->l[2]);
                     printf("Absorbed in a cell with temperature: %f\n",
-                            temp[0][P->cell_index]);
+                            temp(0,P->cell_index));
                     printf("Re-emitted with direction: %f  %f  %f\n",
                             P->n[0], P->n[1], P->n[2]);
                     printf("Re-emitted with frequency: %e\n", P->nu);
@@ -613,7 +574,7 @@ void Grid::propagate_photon_full(Photon *P) {
             // or scattering may have been on the outermost wall, putting
             // it outside of the grid.
             if (Q->use_mrw && in_grid(P) && ((P->same_cell_count > 400) || 
-                        (uses_mrw[P->cell_index] > 0))) {
+                        (uses_mrw(P->cell_index) > 0))) {
                 // First check whether we need to update the cell properties,
                 // i.e. the last event was scattering.
                 if (Q->bw and not absorb_photon) update_grid(P->l, P->cell_index);
@@ -622,13 +583,13 @@ void Grid::propagate_photon_full(Photon *P) {
 
                 double alpha = 0.0;
                 for (int idust = 0; idust<nspecies; idust++)
-                    alpha += rosseland_mean_extinction[idust][P->cell_index] * 
-                        dens[idust][P->cell_index];
+                    alpha += rosseland_mean_extinction(idust,P->cell_index) * 
+                        dens(idust,P->cell_index);
 
                 double dmin = smallest_wall_size(P);
 
                 if (alpha * dmin > 20) {
-                    uses_mrw[P->cell_index] = 1.0;
+                    uses_mrw(P->cell_index) = 1.0;
 
                     // Propagate the photon.
                     propagate_photon_mrw(P);
@@ -654,8 +615,8 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
         // Calculate how far the photon can go with the current tau.
         double alpha = 0;
         for (int idust = 0; idust<nspecies; idust++)
-            alpha += P->current_kext[idust]*
-                dens[idust][P->cell_index];
+            alpha += P->current_kext(idust)*
+                dens(idust,P->cell_index);
 
         double s2 = tau/alpha;
 
@@ -683,9 +644,9 @@ void Grid::propagate_photon(Photon *P, double tau, bool absorb) {
         // current trajectory is absorption.
         if (absorb) {
             for (int idust=0; idust<nspecies; idust++)
-                Kokkos::atomic_add(&energy[idust][P->cell_index],
-                    P->energy*s*P->current_kext[idust]*
-                    dens[idust][P->cell_index]);
+                Kokkos::atomic_add(&energy(idust,P->cell_index),
+                    P->energy*s*P->current_kext(idust)*
+                    dens(idust,P->cell_index));
         }
 
         // Remvove the tau we've used up with this stepl
@@ -746,11 +707,11 @@ void Grid::propagate_photon_scattering(Photon *P) {
             double alpha_abs = 0;
             double alpha_scat = 0;
             for (int idust = 0; idust<nspecies; idust++) {
-                alpha_abs += P->current_kext[idust]* 
-                    (1.-P->current_albedo[idust])*
-                    dens[idust][P->cell_index];
-                alpha_scat += P->current_kext[idust]*P->current_albedo[idust]*
-                    dens[idust][P->cell_index];
+                alpha_abs += P->current_kext(idust)* 
+                    (1.-P->current_albedo(idust))*
+                    dens(idust,P->cell_index);
+                alpha_scat += P->current_kext(idust)*P->current_albedo(idust)*
+                    dens(idust,P->cell_index);
             }
 
             double s2 = tau/alpha_scat;
@@ -770,9 +731,9 @@ void Grid::propagate_photon_scattering(Photon *P) {
                 average_energy = (1.0 - 0.5*tau_abs) * P->energy;
 
             // Add some of the energy to the scattering array.
-            Kokkos::atomic_add(&scatt[0][P->cell_index*Q->nnu + Q->inu], 
+            Kokkos::atomic_add(&scatt(0,P->cell_index*Q->nnu + Q->inu), 
                     average_energy * s / (4*pi * 
-                    volume[P->cell_index]));
+                    volume(P->cell_index)));
 
             // Absorb some of the photon's energy.
             P->energy *= exp(-tau_abs);
@@ -829,8 +790,8 @@ void Grid::propagate_photon_mrw(Photon *P) {
     // Calculate the Rosseland mean opacity.
     double alpha = 0.0;
     for (int idust = 0; idust<nspecies; idust++)
-        alpha += rosseland_mean_extinction[idust][P->cell_index] * 
-                dens[idust][P->cell_index];
+        alpha += rosseland_mean_extinction(idust,P->cell_index) * 
+                dens(idust,P->cell_index);
 
     // Calculate the energy threshold at which to stop and re-calculate the
     // Rosseland mean opacity.
@@ -838,10 +799,10 @@ void Grid::propagate_photon_mrw(Photon *P) {
     for (int idust = 0; idust<nspecies; idust++) {
         // NEEDS TO BE ATOMIC? Because energy could be changing as this is
         // beinc calculated?
-        if (temp[idust][P->cell_index] > 3.) {
+        if (temp(idust,P->cell_index) > 3.) {
             for (int ithread = 0; ithread < (int) energy.size(); ithread++)
-                energy_threshold += energy[idust][P->cell_index] + 
-                    energy_mrw[idust][P->cell_index];
+                energy_threshold += energy(idust,P->cell_index) + 
+                    energy_mrw(idust,P->cell_index);
         } else {
             energy_threshold = HUGE_VAL;
             break;
@@ -927,10 +888,10 @@ void Grid::propagate_photon_mrw(Photon *P) {
 
     // Add the energy absorbed into the grid.
     for (int idust=0; idust<nspecies; idust++)
-        Kokkos::atomic_add(&energy_mrw[idust][P->cell_index],
+        Kokkos::atomic_add(&energy_mrw(idust,P->cell_index),
                 P->energy*path_accumulated*
-                planck_mean_opacity[idust][P->cell_index]*
-                dens[idust][P->cell_index]);
+                planck_mean_opacity(idust,P->cell_index)*
+                dens(idust,P->cell_index));
 }
 
 /* Propagate a ray through the grid for raytracing. */
@@ -952,41 +913,41 @@ void Grid::propagate_ray(Ray *R) {
 
             if (Q->raytrace_dust) {
                 for (int idust=0; idust<nspecies; idust++) {
-                    tau_cell += s*R->current_kext[idust][inu] *
-                            dens[idust][R->cell_index];
+                    tau_cell += s*R->current_kext(idust,inu) *
+                            dens(idust,R->cell_index);
 
-                    alpha_ext += R->current_kext[idust][inu] *
-                            dens[idust][R->cell_index];
-                    alpha_sca += R->current_kext[idust][inu] *
-                            R->current_albedo[idust][inu] *
-                            dens[idust][R->cell_index];
+                    alpha_ext += R->current_kext(idust,inu) *
+                            dens(idust,R->cell_index);
+                    alpha_sca += R->current_kext(idust,inu) *
+                            R->current_albedo(idust,inu) *
+                            dens(idust,R->cell_index);
 
-                    intensity_abs += R->current_kext[idust][inu] * 
-                            (1 - R->current_albedo[idust][inu]) *
-                            dens[idust][R->cell_index]
-                            * planck_function(R->nu[inu], 
-                            temp[idust][R->cell_index]);
+                    intensity_abs += R->current_kext(idust,inu) * 
+                            (1 - R->current_albedo(idust,inu)) *
+                            dens(idust,R->cell_index)
+                            * planck_function(R->nu(inu), 
+                            temp(idust,R->cell_index));
                 }
             }
 
             double intensity_line = 0;
             if (Q->raytrace_gas) {
                 for (int itrans=0; itrans < include_lines.size(); itrans+=2) {
-                    int igas = include_lines[itrans];
-                    int iline = include_lines[itrans+1];
+                    int igas = include_lines(itrans);
+                    int iline = include_lines(itrans+1);
 
                     double alpha_this_line = 
-                            alpha_line[itrans/2][R->cell_index] *
+                            alpha_line(itrans/2,R->cell_index) *
                             line_profile(igas, iline, itrans/2, R->cell_index, 
-                            R->nu[inu] * (1 - -R->nframe.dot(
+                            R->nu(inu) * (1 - -R->nframe.dot(
                             vector_velocity(igas, R)) / c_l));
 
                     tau_cell += s*alpha_this_line;
                     alpha_ext += alpha_this_line;
 
                     intensity_line += alpha_this_line * 
-                            planck_function(R->nu[inu],
-                            gas_temp[igas][R->cell_index]);
+                            planck_function(R->nu(inu),
+                            gas_temp(igas,R->cell_index));
                 }
             }
 
@@ -999,7 +960,7 @@ void Grid::propagate_ray(Ray *R) {
 
             double intensity_sca = 0;
             if (Q->raytrace_dust) intensity_sca = (1.0-exp(-tau_cell)) * 
-                    albedo * scatt[0][R->cell_index*Q->nnu + inu];
+                    albedo * scatt(0,R->cell_index*Q->nnu + inu);
 
             double intensity_cell = intensity_abs + intensity_sca + 
                 intensity_line;
@@ -1007,14 +968,14 @@ void Grid::propagate_ray(Ray *R) {
             if (Q->verbose) {
                 printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
                         R->l[0], R->r[0]/au, s*R->n[0]/au);
-                printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity[inu], R->l[1],
+                printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity(inu), R->l[1],
                         R->r[1]/au, s*R->n[1]/au);
-                printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau[inu], R->l[2], 
+                printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau(inu), R->l[2], 
                         R->r[2]/au, s*R->n[2]/au);
             }
 
-            R->intensity[inu] += intensity_cell*exp(-R->tau[inu]);
-            R->tau[inu] += tau_cell;
+            R->intensity(inu) += intensity_cell*exp(-R->tau(inu));
+            R->tau(inu) += tau_cell;
         }
 
         R->move(s);
@@ -1037,19 +998,19 @@ void Grid::propagate_ray_from_source(Ray *R) {
 
             double tau_cell = 0;
             for (int idust=0; idust<nspecies; idust++)
-                tau_cell += s*R->current_kext[idust][inu]*
-                    dens[idust][R->cell_index];
+                tau_cell += s*R->current_kext(idust,inu)*
+                    dens(idust,R->cell_index);
 
             if (Q->verbose) {
                 printf("%2i  %7.5f  %i  %7.4f  %7.4f\n", i, tau_cell, 
                         R->l[0], R->r[0]/au, s*R->n[0]/au);
-                printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity[inu], R->l[1],
+                printf("%11.1e  %i  %7.4f  %7.4f\n", R->intensity(inu), R->l[1],
                         R->r[1]/au, s*R->n[1]/au);
-                printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau[inu], R->l[2], 
+                printf("%11.5f  %i  %7.4f  %7.4f\n", R->tau(inu), R->l[2], 
                         R->r[2]/au, s*R->n[2]/au);
             }
 
-            R->intensity[inu] *= exp(-tau_cell);
+            R->intensity(inu) *= exp(-tau_cell);
         }
 
         R->move(s);
@@ -1130,35 +1091,36 @@ void Grid::update_grid(Vector<int, 3> l, int cell_index) {
     for (int idust=0; idust<nspecies; idust++) {
         bool not_converged = true;
 
-        double total_energy = 0;
+        /*double total_energy = 0;
         for (int ithread = 0; ithread < (int) energy.size(); ithread++)
-            total_energy += energy[idust][cell_index] + 
-                energy_mrw[idust][cell_index];
+            total_energy += energy(idust,cell_index) + 
+                energy_mrw(idust,cell_index);*/
+        double total_energy = energy(idust,cell_index) + energy_mrw(idust,cell_index);
 
         while (not_converged) {
-            double T_old = temp[idust][cell_index];
+            double T_old = temp(idust,cell_index);
 
-            temp[idust][cell_index]=pow(total_energy/
+            temp(idust,cell_index)=pow(total_energy/
                 (4*sigma*dust[idust]->
-                planck_mean_opacity(temp[idust][cell_index])*
-                mass[idust][cell_index]),0.25);
+                planck_mean_opacity(temp(idust,cell_index))*
+                mass(idust,cell_index)),0.25);
 
             // Make sure that there is a minimum temperature that the grid can
             // get to.
-            if (temp[idust][cell_index] < 0.1) 
-                temp[idust][cell_index] = 0.1;
+            if (temp(idust,cell_index) < 0.1) 
+                temp(idust,cell_index) = 0.1;
 
-            if ((fabs(T_old-temp[idust][cell_index])/T_old < 1.0e-2))
+            if ((fabs(T_old-temp(idust,cell_index))/T_old < 1.0e-2))
                 not_converged = false;
         }
 
         if (Q->use_mrw) {
-            rosseland_mean_extinction[idust][cell_index] = 
+            rosseland_mean_extinction(idust,cell_index) = 
                     dust[idust]->rosseland_mean_extinction(
-                    temp[idust][cell_index]);
-            planck_mean_opacity[idust][cell_index] = 
+                    temp(idust,cell_index));
+            planck_mean_opacity(idust,cell_index) = 
                     dust[idust]->planck_mean_opacity(
-                    temp[idust][cell_index]);
+                    temp(idust,cell_index));
         }
     }
 }
@@ -1179,9 +1141,9 @@ void Grid::update_grid() {
 }*/
 
 double Grid::cell_lum(int idust, int cell_index) {
-    return 4*mass[idust][cell_index]*dust[idust]->
-        planck_mean_opacity(temp[idust][cell_index])*sigma*
-        pow(temp[idust][cell_index],4);
+    return 4*mass(idust,cell_index)*dust[idust]->
+        planck_mean_opacity(temp(idust,cell_index))*sigma*
+        pow(temp(idust,cell_index),4);
 }
 
 /*double Grid::cell_lum(Vector<int, 3> l, double nu) {
@@ -1191,26 +1153,26 @@ double Grid::cell_lum(int idust, int cell_index) {
 }*/
 
 double Grid::cell_lum(int idust, int cell_index, double nu) {
-    return 4*pi*mass[idust][cell_index]*
+    return 4*pi*mass(idust,cell_index)*
         dust[idust]->opacity(nu)*(1. - dust[idust]->albdo(nu))*
-        planck_function(nu, temp[idust][cell_index]);
+        planck_function(nu, temp(idust,cell_index));
 }
 
 /* Calculate the line profile of a spectral line. */
 
 Vector<double, 3> Grid::vector_velocity(int igas, Photon *P) {
-    return Vector<double, 3>(velocity[igas][P->cell_index], 
-            velocity[igas][1*n1*n2*n3+P->cell_index], 
-            velocity[igas][2*n1*n2*n3+P->cell_index]);
+    return Vector<double, 3>(velocity(igas,P->cell_index), 
+            velocity(igas,1*n1*n2*n3+P->cell_index), 
+            velocity(igas,2*n1*n2*n3+P->cell_index));
 }
 
 double Grid::maximum_velocity(int igas) {
     double vmax = 0;
 
     for (int icell = 0; icell < n1*n2*n3; icell++) {
-        Vector<double, 3> vcell(velocity[igas][icell],
-                velocity[igas][1*n1*n2*n3+icell], 
-                velocity[igas][2*n1*n2*n3+icell]);
+        Vector<double, 3> vcell(velocity(igas,icell),
+                velocity(igas,1*n1*n2*n3+icell), 
+                velocity(igas,2*n1*n2*n3+icell));
         double vnorm = vcell.norm();
 
         if (vnorm > vmax) vmax = vnorm;
@@ -1223,8 +1185,8 @@ double Grid::maximum_gas_temperature(int igas) {
     double Tmax = 0;
 
     for (int icell = 0; icell < n1*n2*n3; icell++) {
-        if (gas_temp[igas][icell] > Tmax) Tmax = 
-                gas_temp[igas][icell];
+        if (gas_temp(igas,icell) > Tmax) Tmax = 
+                gas_temp(igas,icell);
     }
 
     return Tmax;
@@ -1234,8 +1196,8 @@ double Grid::maximum_microturbulence(int igas) {
     double Mmax = 0;
 
     for (int icell = 0; icell < n1*n2*n3; icell++) {
-        if (microturbulence[igas][icell] > Mmax) Mmax = 
-                microturbulence[igas][icell];
+        if (microturbulence(igas,icell) > Mmax) Mmax = 
+                microturbulence(igas,icell);
     }
 
     return Mmax;
@@ -1243,10 +1205,10 @@ double Grid::maximum_microturbulence(int igas) {
 
 double Grid::line_profile(int igas, int iline, int itrans, int cell_index, 
         double nu) {
-    double inv_gammat = inv_gamma_thermal[itrans][cell_index];
+    double inv_gammat = inv_gamma_thermal(itrans,cell_index);
 
-    double profile = exp(-(nu - gas[igas]->nu[iline])*(nu - 
-            gas[igas]->nu[iline]) * (inv_gammat * inv_gammat));
+    double profile = exp(-(nu - gas[igas]->nu(iline))*(nu - 
+            gas[igas]->nu(iline)) * (inv_gammat * inv_gammat));
 
     return profile;
 }
@@ -1257,9 +1219,9 @@ void Grid::set_tgas_eq_tdust() {
         double dust_density = 0;
 
         for (int idust = 0; idust < nspecies; idust++) {
-            dust_temperature += dens[idust][icell] * 
-                temp[idust][icell];
-            dust_density += dens[idust][icell];
+            dust_temperature += dens(idust,icell) * 
+                temp(idust,icell);
+            dust_density += dens(idust,icell);
         }
 
         if (dust_density > 0)
@@ -1268,7 +1230,7 @@ void Grid::set_tgas_eq_tdust() {
             dust_temperature = 0.1;
 
         for (int igas = 0; igas < ngases; igas++)
-            gas_temp[igas][icell] = dust_temperature;
+            gas_temp(igas,icell) = dust_temperature;
     }
 }
 
@@ -1304,17 +1266,18 @@ void Grid::select_lines(py::array_t<double> _lam) {
         max_v += a_thermal + a_microturb;
 
         for (int iline = 0; iline < gas[igas]->ntransitions; iline++) {
-            double max_frequency = gas[igas]->nu[iline] * (1. + max_v / c_l);
-            double min_frequency = gas[igas]->nu[iline] * (1. - max_v / c_l);
+            double max_frequency = gas[igas]->nu(iline) * (1. + max_v / c_l);
+            double min_frequency = gas[igas]->nu(iline) * (1. - max_v / c_l);
 
             if (((min_nu < min_frequency) && (min_frequency < max_nu)) || 
                     ((min_nu < max_frequency) && (max_frequency < max_nu)) ||
                     ((min_frequency < min_nu) && (max_nu < max_frequency))) {
                 printf("Including gas %d transition at %f GHz \n", igas, \
-                        gas[igas]->nu[iline]/1e9);
+                        gas[igas]->nu(iline)/1e9);
 
-                include_lines.push_back(igas);
-                include_lines.push_back(iline);
+                Kokkos::resize(include_lines, include_lines.extent(0)+2);
+                include_lines(include_lines.extent(0)-2) = igas;
+                include_lines(include_lines.extent(0)-1) = iline;
 
                 calculate_level_populations(igas, iline);
             }
@@ -1323,69 +1286,60 @@ void Grid::select_lines(py::array_t<double> _lam) {
 }
 
 void Grid::calculate_level_populations(int igas, int iline) {
-    double *level_pop_up = new double[n1*n2*n3];
-    double *level_pop_low = new double[n1*n2*n3];
-    double *alpha = new double[n1*n2*n3];
-    double *inv_gamma_therm = new double[n1*n2*n3];
+    size_t i_up = level_populations.extent(0);
+    size_t i_low = level_populations.extent(0) + 1;
+    Kokkos::resize(level_populations, level_populations.extent(0)+2, n1*n2*n3);
+    Kokkos::resize(alpha_line, alpha_line.extent(0)+1, n1*n2*n3);
+    Kokkos::resize(inv_gamma_thermal, inv_gamma_thermal.extent(0)+1, n1*n2*n3);
 
-    int level_up = gas[igas]->up[iline]-1;
-    int level_low = gas[igas]->low[iline]-1;
+    int level_up = gas[igas]->up(iline)-1;
+    int level_low = gas[igas]->low(iline)-1;
 
     for (int ix = 0; ix < n1; ix++) {
         for (int iy = 0; iy < n2; iy++) {
             for (int iz = 0; iz < n3; iz++) {
                 int icell = n3*n2*ix + n3*iy + iz;
 
-                level_pop_up[icell] = gas[igas]->weights[level_up] * 
-                    exp(-h_p * c_l * gas[igas]->energies[level_up] / (k_B *
-                    gas_temp[igas][icell])) / 
-                    gas[igas]->partition_function(gas_temp[igas][icell]);
+                level_populations(i_up,icell) = gas[igas]->weights(level_up) * 
+                    exp(-h_p * c_l * gas[igas]->energies(level_up) / (k_B *
+                    gas_temp(igas,icell))) / 
+                    gas[igas]->partition_function(gas_temp(igas,icell));
 
-                level_pop_low[icell] = gas[igas]->weights[level_low] * 
-                    exp(-h_p * c_l * gas[igas]->energies[level_low] / (k_B *
-                    gas_temp[igas][icell])) / 
-                    gas[igas]->partition_function(gas_temp[igas][icell]);
+                level_populations(i_low,icell) = gas[igas]->weights(level_low) * 
+                    exp(-h_p * c_l * gas[igas]->energies(level_low) / (k_B *
+                    gas_temp(igas,icell))) / 
+                    gas[igas]->partition_function(gas_temp(igas,icell));
 
                 // Also calculate inv_gamma_thermal so we don't have to do it
                 // on the fly.
 
-                double a_thermal = sqrt(2 * k_B * gas_temp[igas][icell] / 
+                double a_thermal = sqrt(2 * k_B * gas_temp(igas,icell) / 
                         (gas[igas]->mu * m_p));
-                double a_microturb = microturbulence[igas][icell];
+                double a_microturb = microturbulence(igas,icell);
 
-                inv_gamma_therm[icell] = 1./(gas[igas]->nu[iline] / c_l * 
+                inv_gamma_thermal(inv_gamma_thermal.extent(0), icell) = 1./(gas[igas]->nu(iline) / c_l * 
                         sqrt(a_thermal*a_thermal + a_microturb*a_microturb));
 
                 // Calculate the alpha value for the line in this cell, so this
                 // doesn't have to be done on the fly, either.
 
-                alpha[icell] = c_l*c_l / (8*pi*
-                        gas[igas]->nu[iline]*gas[igas]->nu[iline]) * 
-                        gas[igas]->A[iline] * 
-                        number_dens[igas][icell] * 
-                        (level_pop_low[icell]*
-                        gas[igas]->weights[level_up] / 
-                        gas[igas]->weights[level_low] - 
-                        level_pop_up[icell]) *
-                        inv_gamma_therm[icell] / sqrt(pi);
+                alpha_line(alpha_line.extent(0), icell) = c_l*c_l / (8*pi*
+                        gas[igas]->nu(iline)*gas[igas]->nu(iline)) * 
+                        gas[igas]->A(iline) * 
+                        number_dens(igas,icell) * 
+                        (level_populations(i_low,icell)*
+                        gas[igas]->weights(level_up) / 
+                        gas[igas]->weights(level_low) - 
+                        level_populations(i_up,icell)) *
+                        inv_gamma_thermal(inv_gamma_thermal.extent(0), icell) / sqrt(pi);
             }
         }
     }
-
-    level_populations.push_back(level_pop_up);
-    level_populations.push_back(level_pop_low);
-    alpha_line.push_back(alpha);
-    inv_gamma_thermal.push_back(inv_gamma_therm);
 }
 
 void Grid::deselect_lines() {
-    for (int iline = 0; iline<level_populations.size(); iline++) {
-        delete[] level_populations[iline];
-        if (iline%2 == 0) {
-            delete[] inv_gamma_thermal[iline/2];
-            delete[] alpha_line[iline/2];
-        }
-    }
-    include_lines.clear(); level_populations.clear(); inv_gamma_thermal.clear();
-    alpha_line.clear();
+    Kokkos::resize(level_populations, 0, 0);
+    Kokkos::resize(inv_gamma_thermal, 0, 0);
+    Kokkos::resize(alpha_line, 0, 0);
+    Kokkos::resize(include_lines, 0);
 }

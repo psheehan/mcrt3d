@@ -27,6 +27,89 @@ double random_number(Kokkos::Random_XorShift64_Pool<> *random_pool) {
     return x;
 };
 
+Kokkos::View<double*> view_from_array(py::array_t<double> arr) {
+    auto arr_buf = arr.request();
+    int n = arr_buf.shape[0];
+
+    Kokkos::View<double*> result("result", n);
+    auto arr_access = arr.unchecked<1>();
+    for (size_t i = 0; i < n; i++) result(i) = arr_access[i];
+
+    return result;
+}
+
+Kokkos::View<int*> view_from_array(py::array_t<int> arr) {
+    auto arr_buf = arr.request();
+    int n = arr_buf.shape[0];
+
+    Kokkos::View<int*> result("result", n);
+    auto arr_access = arr.unchecked<1>();
+    for (size_t i = 0; i < n; i++) result(i) = arr_access[i];
+
+    return result;
+}
+
+//template<typename Ta, typename Tv>
+py::array_t<double> array_from_view(Kokkos::View<double*> v, int ndim, std::vector<size_t> extents) {
+    std::vector<size_t> strides;
+    for (int i=0; i < ndim; i++) {
+        strides.push_back(sizeof(double));
+        for (int j = i+1; j<ndim; j++)
+            strides[i] *= extents[j];
+    }
+    py::array_t<double> arr = py::array_t<double>(py::buffer_info(
+            v.data(),                               /* Pointer to buffer */
+            sizeof(double),                          /* Size of one scalar */
+            py::format_descriptor<double>::format(), /* Python struct-style format descriptor */
+            ndim,                                      /* Number of dimensions */
+            extents,                                /* Buffer dimensions */
+            strides
+        )
+    );
+
+    return arr;
+};
+
+py::array_t<double> array_from_view(Kokkos::View<double**> v, int ndim, std::vector<size_t> extents) {
+    std::vector<size_t> strides;
+    for (int i=0; i < ndim; i++) {
+        strides.push_back(sizeof(double));
+        for (int j = i+1; j<ndim; j++)
+            strides[i] *= extents[j];
+    }
+    py::array_t<double> arr = py::array_t<double>(py::buffer_info(
+            v.data(),                               /* Pointer to buffer */
+            sizeof(double),                          /* Size of one scalar */
+            py::format_descriptor<double>::format(), /* Python struct-style format descriptor */
+            ndim,                                      /* Number of dimensions */
+            extents,                 /* Buffer dimensions */
+            strides
+        )
+    );
+
+    return arr;
+};
+
+py::array_t<int> array_from_view(Kokkos::View<int*> v, int ndim, std::vector<size_t> extents) {
+    std::vector<size_t> strides;
+    for (int i=0; i < ndim; i++) {
+        strides.push_back(sizeof(int));
+        for (int j = i+1; j<ndim; j++)
+            strides[i] *= extents[j];
+    }
+    py::array_t<int> arr = py::array_t<int>(py::buffer_info(
+            v.data(),                               /* Pointer to buffer */
+            sizeof(int),                          /* Size of one scalar */
+            py::format_descriptor<int>::format(), /* Python struct-style format descriptor */
+            ndim,                                      /* Number of dimensions */
+            extents,                                /* Buffer dimensions */
+            strides
+        )
+    );
+
+    return arr;
+};
+
 /* Calculate the blackbody function for a given frequency and temperature. */
 
 double planck_function(double nu, double T) {
@@ -59,6 +142,16 @@ double integrate(double *y, double *x, int nx) {
     return sum;
 };
 
+double integrate(Kokkos::View<double*> y, Kokkos::View<double*> x, int nx) {
+    double sum = 0.0;
+
+    for (int i=0; i<nx-1; i++)
+        sum += 0.5*(y(i+1)+y(i))*(x(i+1)-x(i));
+
+    return sum;
+};
+
+
 /* Cumulatively integrate. */
 
 double *cumulative_integrate(double *y, double *x, int nx) {
@@ -77,6 +170,22 @@ double *cumulative_integrate(double *y, double *x, int nx) {
     return cum_sum;
 }
 
+Kokkos::View<double*> cumulative_integrate(Kokkos::View<double*> y, Kokkos::View<double*> x, int nx) {
+    double sum = 0;
+    Kokkos::View<double*> cum_sum("cum_sum", nx);
+
+    cum_sum(0) = sum;
+    for (int i = 1; i < nx; i++) {
+        sum += 0.5*(y(i)+y(i-1))*(x(i)-x(i-1));
+        cum_sum(i) = sum;
+    }
+
+    for (int i = 0; i < nx; i++)
+        cum_sum(i) /= sum;
+
+    return cum_sum;
+}
+
 /* Take the derivative of an array. */
 
 double *derivative(double *y, double *x, int nx) {
@@ -88,12 +197,31 @@ double *derivative(double *y, double *x, int nx) {
     return result;
 }
 
+Kokkos::View<double*> derivative(Kokkos::View<double*> y, Kokkos::View<double*> x, int nx) {
+    Kokkos::View<double*> result("result", nx-1);
+
+    for (int i = 0; i < nx-1; i++)
+        result(i) = (y(i+1) - y(i)) / (x(i+1) - x(i));
+
+    return result;
+}
+
 double **derivative2D_ax0(double **y, double *x, int nx, int ny) {
     double **result = create2DArr(nx-1, ny);
 
     for (int i = 0; i < nx-1; i++)
         for (int j = 0; j < ny; j++)
             result[i][j] = (y[i+1][j] - y[i][j]) / (x[i+1] - x[i]);
+
+    return result;
+}
+
+Kokkos::View<double**> derivative2D_ax0(Kokkos::View<double**> y, Kokkos::View<double*> x, int nx, int ny) {
+    Kokkos::View<double**> result("result", nx-1, ny);
+
+    for (int i = 0; i < nx-1; i++)
+        for (int j = 0; j < ny; j++)
+            result(i,j) = (y(i+1,j) - y(i,j)) / (x(i+1) - x(i));
 
     return result;
 }
@@ -117,7 +245,31 @@ bool equal_zero(double x, double tol) {
 /* Find the cell in an array in which the given value is located using a 
    tree. */
 
-int find_in_arr(double val, double *arr, int n) {
+int find_in_arr(double val, Kokkos::View<double*> arr, int n) {
+    int lmin = 0;
+    int lmax = n-1;
+    bool not_found = true;
+    int l;
+
+    while (not_found) {
+        int ltest = (lmax-lmin)/2+lmin;
+
+        if ((val >= arr(ltest)) && (val <= arr(ltest+1))) {
+            l = ltest;
+            not_found = false;
+        }
+        else {
+            if (val < arr(ltest))
+                lmax = ltest;
+            else
+                lmin = ltest;
+        }
+    }
+
+    return l;
+};
+
+int find_in_arr(double val, double* arr, int n) {
     int lmin = 0;
     int lmax = n-1;
     bool not_found = true;
@@ -145,7 +297,18 @@ int find_in_arr(double val, double *arr, int n) {
  * function overloads the previous one by allowing you to search a smaller 
  * portion of the array. */
 
-int find_in_arr(double val, double *arr, int lmin, int lmax) {
+int find_in_arr(double val, Kokkos::View<double*> arr, int lmin, int lmax) {
+    int l;
+
+    for (int i=lmin; i <= lmax; i++) {
+        if ((val >= arr(i)) && (val <= arr(i+1)))
+            l = i;
+    }
+
+    return l;
+};
+
+int find_in_arr(double val, double* arr, int lmin, int lmax) {
     int l;
 
     for (int i=lmin; i <= lmax; i++) {
@@ -159,7 +322,20 @@ int find_in_arr(double val, double *arr, int lmin, int lmax) {
 /* Find the cell in an array in which the given value is located, but in this
  * case the array is cyclic. */
 
-int find_in_periodic_arr(double val, double *arr, int n, int lmin, int lmax) {
+int find_in_periodic_arr(double val, Kokkos::View<double*> arr, int n, int lmin, int lmax) {
+    int l = -1;
+
+    for (int i=lmin; i <= lmax; i++) {
+        int index = (i+n)%(n);
+        if ((val >= arr(index)) && (val <= arr(index+1))) {
+            l = index;
+        }
+    }
+
+    return l;
+}
+
+int find_in_periodic_arr(double val, double* arr, int n, int lmin, int lmax) {
     int l = -1;
 
     for (int i=lmin; i <= lmax; i++) {
@@ -256,8 +432,8 @@ double quantile(double* R, double p, int nx, int ny, int nz, int nq) {
     return quant;
 }
 
-bool converged(std::vector<double*> newArr, std::vector<double*> oldArr, 
-        std::vector<double*> reallyoldArr, int n1, int n2, int n3, int n4) {
+bool converged(Kokkos::View<double**> newArr, Kokkos::View<double**> oldArr, 
+        Kokkos::View<double**> reallyoldArr, int n1, int n2, int n3, int n4) {
     double Qthresh = 2.0;
     double Delthresh = 1.1;
     double p = 0.99;
@@ -267,8 +443,8 @@ bool converged(std::vector<double*> newArr, std::vector<double*> oldArr,
 
     for (int i=0; i<n1; i++) {
         for (int j=0; j<n2*n3*n4; j++) {
-            R[i*n2*n3*n4 + j] = delta(oldArr[i][j], newArr[i][j]);
-            Rold[i*n2*n3*n4 + j] = delta(reallyoldArr[i][j], newArr[i][j]);
+            R[i*n2*n3*n4 + j] = delta(oldArr(i,j), newArr(i,j));
+            Rold[i*n2*n3*n4 + j] = delta(reallyoldArr(i,j), newArr(i,j));
         }
     }
 

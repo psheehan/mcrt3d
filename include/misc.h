@@ -25,6 +25,11 @@
 #include <Kokkos_Core.hpp>
 #include <Kokkos_Random.hpp>
 
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+
+namespace py = pybind11;
+
 const double pi = 3.14159265;
 const double au = 1.496e13;
 const double pc = 3.086e18;
@@ -49,6 +54,14 @@ double random_number();
 
 double random_number(Kokkos::Random_XorShift64_Pool<> *random_pool);
 
+Kokkos::View<double*> view_from_array(py::array_t<double> arr);
+Kokkos::View<int*> view_from_array(py::array_t<int> arr);
+
+//template<typename Ta, typename Tv>
+py::array_t<double> array_from_view(Kokkos::View<double*> view, int ndim, std::vector<size_t> extents);
+py::array_t<double> array_from_view(Kokkos::View<double**> view, int ndim, std::vector<size_t> extents);
+py::array_t<int> array_from_view(Kokkos::View<int*> view, int ndim, std::vector<size_t> extents);
+
 /* Calculate the blackbody function for a given frequency and temperature. */
 
 double planck_function(double nu, double T);
@@ -58,12 +71,16 @@ double planck_function_derivative(double nu, double T);
 /* Integrate an array y over array x using the trapezoidal method. */
 
 double integrate(double *y, double *x, int nx);
+double integrate(Kokkos::View<double*> y, Kokkos::View<double*> x, int nx);
 
 double* cumulative_integrate(double *y, double *x, int nx);
+Kokkos::View<double*> cumulative_integrate(Kokkos::View<double*> y, Kokkos::View<double*> x, int nx);
 
 double* derivative(double *y, double *x, int nx);
+Kokkos::View<double*> derivative(Kokkos::View<double*> y, Kokkos::View<double*> x, int nx);
 
 double **derivative2D_ax0(double **y, double *x, int nx, int ny);
+Kokkos::View<double**> derivative2D_ax0(Kokkos::View<double**> y, Kokkos::View<double*> x, int nx, int ny);
 
 /* Define what amounts to a tiny value. */
 
@@ -78,18 +95,22 @@ bool equal_zero(double x, double tol);
 /* Find the cell in an array in which the given value is located using a 
    tree. */
 
-int find_in_arr(double val, double *arr, int n);
+int find_in_arr(double val, Kokkos::View<double*> arr, int n);
+
+int find_in_arr(double val, double* arr, int n);
 
 /* Find the cell in an array in which the given value is located. This 
  * function overloads the previous one by allowing you to search a smaller 
  * portion of the array. */
 
-int find_in_arr(double val, double *arr, int lmin, int lmax);
+int find_in_arr(double val, Kokkos::View<double*> arr, int lmin, int lmax);
+int find_in_arr(double val, double* arr, int lmin, int lmax);
 
 /* Find the cell in an array in which the given value is located, but in this
  * case the array is cyclic. */
 
-int find_in_periodic_arr(double val, double *arr, int n, int lmin, int lmax);
+int find_in_periodic_arr(double val, Kokkos::View<double*> arr, int n, int lmin, int lmax);
+int find_in_periodic_arr(double val, double* arr, int n, int lmin, int lmax);
 
 void swap (double* x, double* y);
 
@@ -118,7 +139,7 @@ double delta(double x1, double x2);
 double quantile(std::vector<double***> R, double p, int nx, int ny, int nz, 
         int nq);
 
-bool converged(std::vector<double***> newArr, std::vector<double***> oldArr, 
-        std::vector<double***> reallyoldArr, int n1, int n2, int n3, int n4);
+bool converged(Kokkos::View<double**> newArr, Kokkos::View<double**> oldArr, 
+        Kokkos::View<double**> reallyoldArr, int n1, int n2, int n3, int n4);
 
 #endif

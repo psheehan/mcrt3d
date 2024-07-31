@@ -31,13 +31,13 @@ struct Star : public Source {
 
     void set_blackbody_spectrum(py::array_t<double> nu);
 
-    double *random_nu_CPD;
+    Kokkos::View<double*> random_nu_CPD{"random_nu_CPD", 0};
 
     Photon *emit(int nphot);
     Photon *emit(double _nu, double _dnu, int nphot);
-    Ray *emit_ray(double *_nu, int _nnu, double _pixelsize, \
+    Ray *emit_ray(Kokkos::View<double*> _nu, int _nnu, double _pixelsize, \
             Vector<double, 3> _n, int nphot);
-    Ray *emit_ray(double *_nu, int nnu, Vector<double, 3> _n, int nphot);
+    Ray *emit_ray(Kokkos::View<double*> _nu, int nnu, Vector<double, 3> _n, int nphot);
     double intercept_distance(Photon *P);
     double random_nu();
     double flux(double freq);

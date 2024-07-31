@@ -2,6 +2,7 @@
 #define PHOTON_H
 
 #include "vector.h"
+#include "misc.h"
 
 struct Photon {
     double energy;
@@ -10,7 +11,7 @@ struct Photon {
     Vector<double, 3> n;
     Vector<double, 3> invn;
     Vector<double, 3> nframe;
-    double *current_kext, *current_albedo;
+    Kokkos::View<double*> current_kext{"current_kext", 0}, current_albedo{"current_albedo", 0};
     Vector<int, 3> l;
     int cell_index;
 
@@ -33,14 +34,14 @@ struct Photon {
 };
 
 struct Ray : public Photon {
-    double **current_kext, **current_albedo;
+    Kokkos::View<double**> current_kext{"current_kext", 0, 0}, current_albedo{"current_albedo", 0, 0};
 
     int nnu;
     int ndust;
 
-    double *nu;
-    double *tau;
-    double *intensity;
+    Kokkos::View<double*> nu{"nu", 0};
+    Kokkos::View<double*> tau{"tau", 0};
+    Kokkos::View<double*> intensity{"intensity", 0};
     double pixel_size;
     bool pixel_too_large;
 

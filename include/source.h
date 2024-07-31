@@ -15,9 +15,9 @@ namespace py = pybind11;
 
 struct Source {
     Vector<double, 3> r;
-    double *nu;
-    double *lam;
-    double *Bnu;
+    Kokkos::View<double*> nu{"nu", 0};
+    Kokkos::View<double*> lam{"lam", 0};
+    Kokkos::View<double*> Bnu{"Bnu", 0};
     int nnu;
 
     py::array_t<double> _lam;
@@ -30,9 +30,9 @@ struct Source {
 
     virtual Photon *emit(int nphot);
     virtual Photon *emit(double _nu, double _dnu, int nphot);
-    virtual Ray *emit_ray(double *_nu, int _nnu, double _pixelsize, \
+    virtual Ray *emit_ray(Kokkos::View<double*> _nu, int _nnu, double _pixelsize, \
             Vector<double, 3> _n, int nphot);
-    virtual Ray *emit_ray(double *_nu, int _nnu, Vector<double, 3> _n, 
+    virtual Ray *emit_ray(Kokkos::View<double*> _nu, int _nnu, Vector<double, 3> _n, 
             int nphot);
     virtual double intercept_distance(Photon *P);
     virtual double random_nu();

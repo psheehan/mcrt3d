@@ -18,45 +18,50 @@ Star::Star(double x, double y, double z, double _mass, double _radius, \
 }
 
 Star::~Star() {
-    if (spectrum_set)
-        delete[] random_nu_CPD;
 }
 
 void Star::set_blackbody_spectrum(py::array_t<double> __lam) {
 
     // Load the array buffers to get the proper setup info.
 
-    _lam = __lam;
     auto _lam_buf = __lam.request();
 
     if (_lam_buf.ndim != 1)
         throw std::runtime_error("Number of dimensions must be one");
 
-    lam = (double *) _lam_buf.ptr;
+    //lam = (double *) _lam_buf.ptr;
     nnu = _lam_buf.shape[0];
+
+    Kokkos::resize(lam, nnu);
+    Kokkos::deep_copy(lam, view_from_array(__lam));
+
+    _lam = array_from_view(lam, 1, {(size_t) nnu});
 
     // Set up the frequency array.
 
-    _nu = py::array_t<double>(nnu); auto _nu_buf = _nu.request();
-    nu = (double *) _nu_buf.ptr;
+    Kokkos::resize(nu, nnu);
 
     for (int i = 0; i < nnu; i++)
-        nu[i] = c_l / lam[i];
+        nu(i) = c_l / lam(i);
+
+    _nu = array_from_view(nu, 1, {(size_t) nnu});
 
     // And set up the spectrum.
 
-    _flux = py::array_t<double>(nnu); auto _flux_buf = _flux.request();
-    Bnu = (double *) _flux_buf.ptr;
+    Kokkos::resize(Bnu, nnu);
 
     for (int i = 0; i < nnu; i++)
-        Bnu[i] = planck_function(nu[i], temperature);
+        Bnu(i) = planck_function(nu(i), temperature);
+
+    _flux = array_from_view(Bnu, 1, {(size_t) nnu});
 
     luminosity = 4*pi*radius*radius*sigma*temperature*temperature*temperature*
             temperature;
 
     // Calculate the lookup array for the cumulative spectrum.
 
-    random_nu_CPD = cumulative_integrate(Bnu, nu, nnu);
+    Kokkos::resize(random_nu_CPD, nnu);
+    Kokkos::deep_copy(random_nu_CPD, cumulative_integrate(Bnu, nu, nnu));
 
     // Indicate that the spectrum was calculated.
 
@@ -149,7 +154,7 @@ Photon *Star::emit(double _nu, double _dnu, int nphot) {
     return P;
 };
 
-Ray *Star::emit_ray(double *_nu, int _nnu, double _pixelsize, \
+Ray *Star::emit_ray(Kokkos::View<double*> _nu, int _nnu, double _pixelsize, \
         Vector<double, 3> _n, int nphot) {
     Ray *R = new Ray();
 
@@ -169,15 +174,15 @@ Ray *Star::emit_ray(double *_nu, int _nnu, double _pixelsize, \
     R->l[1] = -1;
     R->l[2] = -1;
 
-    R->nu = _nu;
-    R->nnu = _nnu;
-
     // Now get the total energy of the photon.
-    R->tau = new double[_nnu];
-    R->intensity = new double[_nnu];
+    R->nnu = _nnu;
+    Kokkos::resize(R->nu, _nnu);
+    Kokkos::resize(R->tau, _nnu);
+    Kokkos::resize(R->intensity, _nnu);
     for (int i = 0; i < _nnu; i++) {
-        R->tau[i] = 0;
-        R->intensity[i] = flux(_nu[i]) * pi*radius*radius / 
+        R->nu(i) = _nu(i);
+        R->tau(i) = 0;
+        R->intensity(i) = flux(_nu[i]) * pi*radius*radius / 
                 (_pixelsize * _pixelsize) / nphot;
     }
 
@@ -187,7 +192,7 @@ Ray *Star::emit_ray(double *_nu, int _nnu, double _pixelsize, \
     return R;
 };
 
-Ray *Star::emit_ray(double *_nu, int _nnu, Vector<double, 3> _n, int nphot) {
+Ray *Star::emit_ray(Kokkos::View<double*> _nu, int _nnu, Vector<double, 3> _n, int nphot) {
     Ray *R = new Ray();
 
     double theta = pi*random_number(random_pool);
@@ -206,15 +211,15 @@ Ray *Star::emit_ray(double *_nu, int _nnu, Vector<double, 3> _n, int nphot) {
     R->l[1] = -1;
     R->l[2] = -1;
 
-    R->nu = _nu;
-    R->nnu = _nnu;
-
     // Now get the total energy of the photon.
-    R->tau = new double[_nnu];
-    R->intensity = new double[_nnu];
+    R->nnu = _nnu;
+    Kokkos::resize(R->nu, _nnu);
+    Kokkos::resize(R->tau, _nnu);
+    Kokkos::resize(R->intensity, _nnu);
     for (int i = 0; i < _nnu; i++) {
-        R->tau[i] = 0;
-        R->intensity[i] = flux(_nu[i]) * pi*radius*radius / nphot;
+        R->nu(i) = _nu(i);
+        R->tau(i) = 0;
+        R->intensity(i) = flux(_nu[i]) * pi*radius*radius / nphot;
     }
 
     R->pixel_size = 0.0;
@@ -230,8 +235,8 @@ double Star::random_nu() {
     double ksi = random_number(random_pool);
 
     for (int i=1; i<nnu; i++) {
-        if (random_nu_CPD[i] > ksi) {
-            freq = random_number(random_pool) * (nu[i] - nu[i-1]) + nu[i-1];
+        if (random_nu_CPD(i) > ksi) {
+            freq = random_number(random_pool) * (nu(i) - nu(i-1)) + nu(i-1);
             break;
         }
     }
@@ -263,9 +268,9 @@ double Star::intercept_distance(Photon *P) {
 double Star::flux(double freq) {
     int l = find_in_arr(freq, nu, nnu);
 
-    double dBnudnu = (Bnu[l+1] - Bnu[l])/(nu[l+1] - nu[l]);
+    double dBnudnu = (Bnu(l+1) - Bnu(l))/(nu(l+1) - nu(l));
 
-    double flux = dBnudnu*(freq-nu[l])+Bnu[l];
+    double flux = dBnudnu*(freq-nu(l))+Bnu(l);
 
     return flux;
 };

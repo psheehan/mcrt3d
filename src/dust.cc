@@ -7,51 +7,48 @@ Dust::Dust(py::array_t<double> __lam, py::array_t<double> __kabs,
 
     random_pool = new Kokkos::Random_XorShift64_Pool<>(/*seed=*/12345);
 
-    _lam = __lam; _kabs = __kabs; _ksca = __ksca;
+    auto __lam_buf = __lam.request();
+    nlam = __lam_buf.shape[0];
 
-    // Load the array buffers to get the proper setup info.
+    Kokkos::resize(lam, nlam);
+    Kokkos::deep_copy(lam, view_from_array(__lam));
+    Kokkos::resize(kabs, nlam);
+    Kokkos::deep_copy(kabs, view_from_array(__kabs));
+    Kokkos::resize(ksca, nlam);
+    Kokkos::deep_copy(ksca, view_from_array(__ksca));
 
-    auto _lam_buf = __lam.request(); auto _kabs_buf = __kabs.request();
-    auto _ksca_buf = __ksca.request();
-
-    if (_lam_buf.ndim != 1 || _kabs_buf.ndim != 1 || _ksca_buf.ndim != 1)
-        throw std::runtime_error("Number of dimensions must be one");
-
-    // Now get the correct format.
-
-    nlam = _lam_buf.shape[0];
-    lam = (double *) _lam_buf.ptr;
-    kabs = (double *) _kabs_buf.ptr;
-    ksca = (double *) _ksca_buf.ptr;
+    _lam = array_from_view(lam, 1, {(size_t) nlam});
+    _kabs = array_from_view(kabs, 1, {(size_t) nlam});
+    _ksca = array_from_view(ksca, 1, {(size_t) nlam});
 
     // Set up the volume of each cell.
 
-    _nu = py::array_t<double>(nlam);
-    _kext = py::array_t<double>(nlam);
-    _albedo = py::array_t<double>(nlam);
+    Kokkos::resize(nu, nlam);
+    Kokkos::resize(kext, nlam);
+    Kokkos::resize(albedo, nlam);
 
-    auto _nu_buf = _nu.request(); nu = (double *) _nu_buf.ptr;
-    auto _kext_buf = _kext.request(); kext = (double *) _kext_buf.ptr;
-    auto _albedo_buf = _albedo.request(); albedo = (double *) _albedo_buf.ptr;
+    _nu = array_from_view(nu, 1, {(size_t) nlam});
+    _kext = array_from_view(kext, 1, {(size_t) nlam});
+    _albedo = array_from_view(albedo, 1, {(size_t) nlam});
 
     // Finally, calculate their values.
 
     for (int i = 0; i < nlam; i++) {
-        nu[i] = c_l / lam[i]; 
-        kext[i] = kabs[i] + ksca[i];
-        albedo[i] = ksca[i] / kext[i];
+        nu(i) = c_l / lam(i); 
+        kext(i) = kabs(i) + ksca(i);
+        albedo(i) = ksca(i) / kext(i); 
     }
 
     // Catch if nu is not increasing.
 
-    if (nu[1] - nu[0] <= 0.)
+    if (nu(1) - nu(0) <= 0.)
         throw std::runtime_error("nu must be monotonically increasing.");
 
     // Finally, make the lookup tables;
     set_lookup_tables();
 }
 
-Dust::Dust(int _nlam, double *_nu, double *_lam, double *_kabs, 
+/*Dust::Dust(int _nlam, double *_nu, double *_lam, double *_kabs, 
         double *_ksca, double *_kext, double *_albedo) {
     
     nlam = _nlam;
@@ -61,92 +58,89 @@ Dust::Dust(int _nlam, double *_nu, double *_lam, double *_kabs,
     ksca = _ksca;
     kext = _kext;
     albedo = _albedo;
-}
+}*/
 
 Dust::~Dust() {
-    delete[] temp; delete[] dkextdnu; delete[] dalbedodnu;
-    delete[] planck_opacity; delete[] dplanck_opacity_dT;
-    delete[] rosseland_extinction; delete[] drosseland_extinction_dT;
-    delete2DArr(random_nu_CPD, ntemp, nlam);
-    delete2DArr(drandom_nu_CPD_dT, ntemp-1, nlam);
-    delete2DArr(random_nu_CPD_bw, ntemp, nlam);
-    delete2DArr(drandom_nu_CPD_bw_dT, ntemp-1, nlam);
 }
 
 void Dust::set_lookup_tables() {
     // Create the temperature array;
     ntemp = 1000;
-    temp = new double[ntemp];
+    Kokkos::resize(temp, ntemp);
 
     for (int i = 0; i < ntemp; i++)
-        temp[i] = pow(10.,-1.+i*6./(ntemp-1));
+        temp(i) = pow(10.,-1.+i*6./(ntemp-1));
 
     // Calculate the derivatives of kext and albedo.
-    dkextdnu = derivative(kext, nu, nlam);
-    dalbedodnu = derivative(albedo, nu, nlam);
+    Kokkos::resize(dkextdnu, nlam-1);
+    Kokkos::deep_copy(dkextdnu, derivative(kext, nu, nlam));
+    Kokkos::resize(dalbedodnu, nlam-1);
+    Kokkos::deep_copy(dalbedodnu, derivative(albedo, nu, nlam));
 
     // Calculate the Planck Mean Opacity and its derivative.
-    double **tmp_planck = create2DArr(ntemp, nlam);
+    Kokkos::View<double**> tmp_planck("tmp_planck", ntemp, nlam);
     for (int i = 0; i < ntemp; i++)
         for (int j = 0; j < nlam; j++)
-            tmp_planck[i][j] = planck_function(nu[j], temp[i]) * kabs[j];
+            tmp_planck(i,j) = planck_function(nu(j), temp(i)) * kabs(j);
 
-    planck_opacity = new double[ntemp];
+    Kokkos::resize(planck_opacity, ntemp);
     for (int i = 0; i < ntemp; i++)
-        planck_opacity[i] = pi / (sigma * pow(temp[i],4)) * 
-                integrate(tmp_planck[i], nu, nlam);
+        planck_opacity(i) = pi / (sigma * pow(temp(i),4)) * 
+                integrate(Kokkos::subview(tmp_planck, i, Kokkos::ALL), nu, nlam);
 
-    dplanck_opacity_dT = derivative(planck_opacity, temp, ntemp);
-
-    delete2DArr(tmp_planck, ntemp, nlam);
+    Kokkos::resize(dplanck_opacity_dT, ntemp-1);
+    Kokkos::deep_copy(dplanck_opacity_dT, derivative(planck_opacity, temp, ntemp));
 
     // Calculate the Planck Mean Opacity and its derivative.
-    double **tmp_ross = create2DArr(ntemp, nlam);
-    double **tmp_ross_num = create2DArr(ntemp, nlam);
+    Kokkos::View<double**> tmp_ross("tmp_ross", ntemp, nlam);
+    Kokkos::View<double**> tmp_ross_num("tmp_ross_num", ntemp, nlam);
     for (int i = 0; i < ntemp; i++) {
         for (int j = 0; j < nlam; j++) {
-            tmp_ross[i][j] = planck_function_derivative(nu[j], temp[i]) / kext[j];
-            tmp_ross_num[i][j] = planck_function_derivative(nu[j], temp[i]);
+            tmp_ross(i,j) = planck_function_derivative(nu(j), temp(i)) / kext(j);
+            tmp_ross_num(i,j) = planck_function_derivative(nu(j), temp(i));
         }
     }
 
-    rosseland_extinction = new double[ntemp];
+    Kokkos::resize(rosseland_extinction, ntemp);
     for (int i = 0; i < ntemp; i++)
-        rosseland_extinction[i] = integrate(tmp_ross_num[i], nu, nlam) / 
-                integrate(tmp_ross[i], nu, nlam);
+        rosseland_extinction(i) = integrate(Kokkos::subview(tmp_ross_num, i, Kokkos::ALL), nu, nlam) / 
+                integrate(Kokkos::subview(tmp_ross, i, Kokkos::ALL), nu, nlam);
 
-    drosseland_extinction_dT = derivative(rosseland_extinction, temp, ntemp);
-
-    delete2DArr(tmp_ross, ntemp, nlam);
-    delete2DArr(tmp_ross_num, ntemp, nlam);
+    Kokkos::resize(drosseland_extinction_dT, ntemp-1);
+    Kokkos::deep_copy(drosseland_extinction_dT, derivative(rosseland_extinction, temp, ntemp));
 
     // Create the cumulative probability density functions for generating a
     // random nu value, for regular.
-    double **tmp = create2DArr(ntemp, nlam);
+    Kokkos::View<double**> tmp("tmp", ntemp, nlam);
     for (int i = 0; i < ntemp; i++)
         for (int j = 0; j < nlam; j++)
-            tmp[i][j] = kabs[j] * planck_function(nu[j], temp[i]);
+            tmp(i,j) = kabs(j) * planck_function(nu(j), temp(i));
 
-    random_nu_CPD = new double*[ntemp];
-    for (int i = 0; i < ntemp; i++)
-        random_nu_CPD[i] = cumulative_integrate(tmp[i], nu, nlam);
+    Kokkos::resize(random_nu_CPD, ntemp, nlam);
+    for (int i = 0; i < ntemp; i++) {
+        auto random_nu_CPD_tmp = cumulative_integrate(Kokkos::subview(tmp, i, Kokkos::ALL), nu, nlam);
+        for (int j = 0; j < nlam; j++)
+            random_nu_CPD(i,j) = random_nu_CPD_tmp(j);
+    }
 
-    drandom_nu_CPD_dT = derivative2D_ax0(random_nu_CPD, temp, ntemp, nlam);
+    Kokkos::resize(drandom_nu_CPD_dT, ntemp-1, nlam);
+    Kokkos::deep_copy(drandom_nu_CPD_dT, derivative2D_ax0(random_nu_CPD, temp, ntemp, nlam));
 
     // Create the cumulative probability density functions for generating a
     // random nu value, for bw.
     for (int i = 0; i < ntemp; i++)
         for (int j = 0; j < nlam; j++)
-            tmp[i][j] = kabs[j] * planck_function_derivative(nu[j], temp[i]);
+            tmp(i,j) = kabs(j) * planck_function_derivative(nu(j), temp(i));
 
-    random_nu_CPD_bw = new double*[ntemp];
-    for (int i = 0; i < ntemp; i++)
-        random_nu_CPD_bw[i] = cumulative_integrate(tmp[i], nu, nlam);
+    Kokkos::resize(random_nu_CPD_bw, ntemp, nlam);
+    for (int i = 0; i < ntemp; i++) {
+        auto random_nu_CPD_bw_tmp = cumulative_integrate(Kokkos::subview(tmp, i, Kokkos::ALL), nu, nlam);
+        for (int j = 0; j < nlam; j++)
+            random_nu_CPD_bw(i,j) = random_nu_CPD_bw_tmp(j);
+    }
 
-    drandom_nu_CPD_bw_dT = derivative2D_ax0(random_nu_CPD_bw, temp, ntemp, 
-            nlam);
-
-    delete2DArr(tmp, ntemp, nlam);
+    Kokkos::resize(drandom_nu_CPD_bw_dT, ntemp-1, nlam);
+    Kokkos::deep_copy(drandom_nu_CPD_bw_dT, derivative2D_ax0(random_nu_CPD_bw, temp, ntemp, nlam));
 }
 
 /* Scatter a photon isotropically off of dust. */
@@ -186,14 +180,14 @@ double Dust::random_nu(double T, bool bw) {
 
     for (int j=1; j < nlam; j++) {
         if (bw)
-            CPD = drandom_nu_CPD_bw_dT[i][j] * (T - temp[i]) + 
-                random_nu_CPD_bw[i][j];
+            CPD = drandom_nu_CPD_bw_dT(i,j) * (T - temp(i)) + 
+                random_nu_CPD_bw(i,j);
         else
-            CPD = drandom_nu_CPD_dT[i][j] * (T - temp[i]) + 
-                random_nu_CPD[i][j];
+            CPD = drandom_nu_CPD_dT(i,j) * (T - temp(i)) + 
+                random_nu_CPD(i,j);
 
         if (CPD > ksi) {
-            freq = random_number(random_pool) * (nu[j] - nu[j-1]) + nu[j-1];
+            freq = random_number(random_pool) * (nu(j) - nu(j-1)) + nu(j-1);
             break;
         }
     }
@@ -206,7 +200,7 @@ double Dust::random_nu(double T, bool bw) {
 double Dust::opacity(double freq) {
     int l = find_in_arr(freq, nu, nlam);
 
-    double opacity = dkextdnu[l]*(freq-nu[l])+kext[l];
+    double opacity = dkextdnu(l)*(freq-nu(l))+kext(l);
 
     return opacity;
 };
@@ -216,7 +210,7 @@ double Dust::opacity(double freq) {
 double Dust::albdo(double freq) {
     int l = find_in_arr(freq, nu, nlam);
 
-    double albdo = dalbedodnu[l]*(freq-nu[l])+albedo[l];
+    double albdo = dalbedodnu(l)*(freq-nu(l))+albedo(l);
 
     return albdo;
 }
@@ -226,8 +220,8 @@ double Dust::albdo(double freq) {
 double Dust::planck_mean_opacity(double T) {
     int n = find_in_arr(T,temp,ntemp);
 
-    double planck_mean_opacity = dplanck_opacity_dT[n]*(T-temp[n])+
-        planck_opacity[n];
+    double planck_mean_opacity = dplanck_opacity_dT(n)*(T-temp(n))+
+        planck_opacity(n);
 
     return planck_mean_opacity;
 }
@@ -238,8 +232,8 @@ double Dust::planck_mean_opacity(double T) {
 double Dust::rosseland_mean_extinction(double T) {
     int n = find_in_arr(T,temp,ntemp);
 
-    double rosseland_mean_extinction = drosseland_extinction_dT[n]*(T-temp[n])+
-        rosseland_extinction[n];
+    double rosseland_mean_extinction = drosseland_extinction_dT(n)*(T-temp(n))+
+        rosseland_extinction(n);
 
     return rosseland_mean_extinction;
 }

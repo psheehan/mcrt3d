@@ -14,10 +14,10 @@ struct Gas {
     double mu;
 
     int nlevels;
-    int *levels;
-    double *energies;
-    double *weights;
-    int *J;
+    Kokkos::View<int*> levels{"levels", 0};
+    Kokkos::View<double*> energies{"energies", 0};
+    Kokkos::View<double*> weights{"weights", 0};
+    Kokkos::View<int*> J{"J", 0};
 
     py::array_t<int> _levels;
     py::array_t<double> _energies;
@@ -25,12 +25,12 @@ struct Gas {
     py::array_t<int> _J;
 
     int ntransitions;
-    int *transitions;
-    int *up;
-    int *low;
-    double *A;
-    double *nu;
-    double *Eu;
+    Kokkos::View<int*> transitions{"transitions", 0};
+    Kokkos::View<int*> up{"up", 0};
+    Kokkos::View<int*> low{"low", 0};
+    Kokkos::View<double*> A{"A", 0};
+    Kokkos::View<double*> nu{"nu", 0};
+    Kokkos::View<double*> Eu{"Eu", 0};
 
     py::array_t<int> _transitions;
     py::array_t<int> _up;
@@ -40,9 +40,9 @@ struct Gas {
     py::array_t<double> _Eu;
 
     int ntemp;
-    double *temp;
-    double *Z;
-    double *dZdT;
+    Kokkos::View<double*> temp{"temp", 0};
+    Kokkos::View<double*> Z{"Z", 0};
+    Kokkos::View<double*> dZdT{"dZdT", 0};
 
     Gas(double _mu, py::array_t<int> __levels, py::array_t<double> __energies, 
             py::array_t<double> __weights, py::array_t<int> __J, 
