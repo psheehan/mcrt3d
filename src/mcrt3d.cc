@@ -393,7 +393,7 @@ void MCRT::run_spectrum(py::str name, py::array_t<double> __lam, int nphot,
     if (raytrace_gas) G->deselect_lines();
 }
 
-PYBIND11_MODULE(mcrt3d, m) {
+PYBIND11_MODULE(cpu, m) {
     py::class_<Dust>(m, "Dust")
         .def(py::init<py::array_t<double>, py::array_t<double>, 
                 py::array_t<double>>())

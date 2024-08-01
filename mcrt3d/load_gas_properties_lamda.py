@@ -1,4 +1,4 @@
-from .mcrt3d import Gas
+from .cpu import Gas
 import numpy
 
 def load_gas_properties_lamda(filename):
