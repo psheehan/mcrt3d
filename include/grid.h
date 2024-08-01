@@ -52,22 +52,22 @@ struct Grid {
     py::array_t<double> _temp;
     py::list _scatt;
 
-    Kokkos::View<double**> dens{"density", 0, 0};
-    Kokkos::View<double**> energy{"energy", 0, 0};
-    Kokkos::View<double**> energy_mrw{"energy", 0, 0};
-    Kokkos::View<double**> temp{"temperature", 0, 0};
-    Kokkos::View<double**> mass{"mass", 0, 0};
-    Kokkos::View<double**> rosseland_mean_extinction{"rosseland_mean_extinction", 0, 0};
-    Kokkos::View<double**> planck_mean_opacity{"planck_mean_opacity", 0, 0};
-    Kokkos::View<double**> luminosity{"luminosity", 0, 0};
-    Kokkos::View<double**> scatt{"scattering_phase_function", 0, 0};
-    Kokkos::View<double*> volume{"volume", 0};
-    Kokkos::View<double*> uses_mrw{"uses_mrw", 0};
+    Kokkos::View<double****> dens{"density", 0, 0, 0, 0};
+    Kokkos::View<double****> energy{"energy", 0, 0, 0, 0};
+    Kokkos::View<double****> energy_mrw{"energy", 0, 0, 0, 0};
+    Kokkos::View<double****> temp{"temperature", 0, 0, 0, 0};
+    Kokkos::View<double****> mass{"mass", 0, 0, 0, 0};
+    Kokkos::View<double****> rosseland_mean_extinction{"rosseland_mean_extinction", 0, 0, 0, 0};
+    Kokkos::View<double****> planck_mean_opacity{"planck_mean_opacity", 0, 0, 0, 0};
+    Kokkos::View<double****> luminosity{"luminosity", 0, 0, 0, 0};
+    Kokkos::View<double*****> scatt{"scattering_phase_function", 0, 0, 0, 0, 0};
+    Kokkos::View<double***> volume{"volume", 0, 0, 0};
+    Kokkos::View<double***> uses_mrw{"uses_mrw", 0, 0, 0};
 
-    Kokkos::View<double**> number_dens{"number_density", 0, 0};
-    Kokkos::View<double**> gas_temp{"gas_temperature", 0, 0};
-    Kokkos::View<double**> velocity{"velocity", 0, 0};
-    Kokkos::View<double**> microturbulence{"microturbulence", 0, 0};
+    Kokkos::View<double****> number_dens{"number_density", 0, 0, 0, 0};
+    Kokkos::View<double****> gas_temp{"gas_temperature", 0, 0, 0, 0};
+    Kokkos::View<double****[3]> velocity{"velocity", 0, 0, 0, 0};
+    Kokkos::View<double****> microturbulence{"microturbulence", 0, 0, 0, 0};
 
     py::array_t<double> _number_dens;
     py::array_t<double> _gas_temp;
@@ -83,9 +83,9 @@ struct Grid {
     py::list _gas;
 
     Kokkos::View<int*> include_lines{"include_lines", 0};
-    Kokkos::View<double**> level_populations{"level_populations", 0, 0};
-    Kokkos::View<double**> alpha_line{"alpha_line", 0, 0};
-    Kokkos::View<double**> inv_gamma_thermal{"inv_gamma_thermal", 0, 0};
+    Kokkos::View<double****> level_populations{"level_populations", 0, 0, 0, 0};
+    Kokkos::View<double****> alpha_line{"alpha_line", 0, 0, 0, 0};
+    Kokkos::View<double****> inv_gamma_thermal{"inv_gamma_thermal", 0, 0, 0, 0};
 
 
     int nsources;
@@ -159,14 +159,14 @@ struct Grid {
     void update_grid(Vector<int, 3> l, int cell_index);
     void update_grid();
 
-    double cell_lum(int idust, int cell_index);
-    double cell_lum(int idust, int cell_index, double nu);
+    double cell_lum(int idust, int i, int j, int k);
+    double cell_lum(int idust, int i, int j, int k, double nu);
 
     Vector<double, 3> vector_velocity(int igas, Photon *P);
     double maximum_velocity(int igas);
     double maximum_gas_temperature(int igas);
     double maximum_microturbulence(int igas);
-    double line_profile(int igas, int iline, int itrans, int cell_index, 
+    double line_profile(int igas, int iline, int itrans, int i, int j, int k, 
             double nu);
     void calculate_level_populations(int igas, int iline);
     void set_tgas_eq_tdust();

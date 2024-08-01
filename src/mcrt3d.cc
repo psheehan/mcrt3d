@@ -82,7 +82,7 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
     if (Q->bw)
         mc_iteration(nthreads);
     else {
-        Kokkos::View<double**> told, treallyold;
+        Kokkos::View<double****> told, treallyold;
 
         int maxniter = 10;
 
@@ -99,9 +99,13 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
 
             for (int ithread=0; ithread < (int) G->energy.size(); ithread++) {
                 for (int idust=0; idust < G->nspecies; idust++) {
-                    for (int icell=0; icell < G->n1*G->n2*G->n3; icell++) {
-                        G->energy(idust,icell) = 0.;
-                        G->energy_mrw(idust,icell) = 0.;
+                    for (int ix=0; ix < G->n1; ix++) {
+                        for (int iy=0; iy < G->n2; iy++) {
+                            for (int iz=0; iz < G->n3; iz++) {
+                                G->energy(idust,ix,iy,iz) = 0.;
+                                G->energy_mrw(idust,ix,iy,iz) = 0.;
+                            }
+                        }
                     }
                 }
             }
@@ -116,7 +120,7 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
         }
     }
 
-    G->_temp = array_from_view(G->temp, 4, {(size_t) G->nspecies, (size_t) G->n1, (size_t) G->n2, (size_t) G->n3});
+    G->_temp = array_from_view<double,double****>(G->temp, 4, {(size_t) G->nspecies, (size_t) G->n1, (size_t) G->n2, (size_t) G->n3});
 
     // Clean up the energy arrays that were calculated.
     //G->deallocate_energy_arrays();
@@ -175,7 +179,7 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
     // Clean up the appropriate grid parameters.
     if (save) {
         std::vector<size_t> extents = {1, (size_t) G->n1, (size_t) G->n2, (size_t) G->n3, (size_t) Q->nnu};
-        G->_scatt.append(array_from_view(G->scatt, 5, extents));
+        G->_scatt.append(array_from_view<double,double*****>(G->scatt, 5, extents));
 
         G->deallocate_scattering_array(0);
 
@@ -208,7 +212,7 @@ void MCRT::mc_iteration(int nthreads) {
             printf("Emitted with direction: %f  %f  %f\n", P->n[0], P->n[1], 
                     P->n[2]);
             printf("Emitted from a cell with temperature: %f\n", 
-                    G->temp(0,P->cell_index));
+                    G->temp(0,P->l[0],P->l[1],P->l[2]));
             printf("Emitted with frequency: %e\n", P->nu);
         }
 

@@ -49,7 +49,27 @@ Kokkos::View<int*> view_from_array(py::array_t<int> arr) {
     return result;
 }
 
-//template<typename Ta, typename Tv>
+template<typename Ta, typename Tv>
+py::array_t<Ta> array_from_view(Kokkos::View<Tv> v, int ndim, std::vector<size_t> extents) {
+    std::vector<size_t> strides;
+    for (int i=0; i < ndim; i++) {
+        strides.push_back(sizeof(Ta));
+        for (int j = i+1; j<ndim; j++)
+            strides[i] *= extents[j];
+    }
+    py::array_t<Ta> arr = py::array_t<Ta>(py::buffer_info(
+            v.data(),                               /* Pointer to buffer */
+            sizeof(Ta),                          /* Size of one scalar */
+            py::format_descriptor<Ta>::format(), /* Python struct-style format descriptor */
+            ndim,                                      /* Number of dimensions */
+            extents,                                /* Buffer dimensions */
+            strides
+        )
+    );
+
+    return arr;
+};
+
 py::array_t<double> array_from_view(Kokkos::View<double*> v, int ndim, std::vector<size_t> extents) {
     std::vector<size_t> strides;
     for (int i=0; i < ndim; i++) {
@@ -432,8 +452,8 @@ double quantile(double* R, double p, int nx, int ny, int nz, int nq) {
     return quant;
 }
 
-bool converged(Kokkos::View<double**> newArr, Kokkos::View<double**> oldArr, 
-        Kokkos::View<double**> reallyoldArr, int n1, int n2, int n3, int n4) {
+bool converged(Kokkos::View<double****> newArr, Kokkos::View<double****> oldArr, 
+        Kokkos::View<double****> reallyoldArr, int n1, int n2, int n3, int n4) {
     double Qthresh = 2.0;
     double Delthresh = 1.1;
     double p = 0.99;
@@ -442,9 +462,13 @@ bool converged(Kokkos::View<double**> newArr, Kokkos::View<double**> oldArr,
     double* Rold = new double[n1*n2*n3*n4];
 
     for (int i=0; i<n1; i++) {
-        for (int j=0; j<n2*n3*n4; j++) {
-            R[i*n2*n3*n4 + j] = delta(oldArr(i,j), newArr(i,j));
-            Rold[i*n2*n3*n4 + j] = delta(reallyoldArr(i,j), newArr(i,j));
+        for (int j=0; j<n2; j++) {
+            for (int k=0; k<n3; k++) {
+                for (int l=0; l<n4; l++) {
+                    R[i*n2*n3*n4 + j*n3*n4 + k*n4 + j] = delta(oldArr(i,j,k,l), newArr(i,j,k,l));
+                    Rold[i*n2*n3*n4 + j*n3*n4 + k*n4 + j] = delta(reallyoldArr(i,j,k,l), newArr(i,j,k,l));
+                }
+            }
         }
     }
 

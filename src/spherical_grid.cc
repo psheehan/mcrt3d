@@ -71,7 +71,7 @@ SphericalGrid::SphericalGrid(py::array_t<double> _r,
     for (int i = 0; i < n1; i++)
         for (int j = 0; j < n2; j++)
             for (int k = 0; k < n3; k++)
-                volume(i*n2*n3 + j*n3 + k) = (w1(i+1)*w1(i+1)*w1(i+1) - 
+                volume(i,j,k) = (w1(i+1)*w1(i+1)*w1(i+1) - 
                         w1(i)*w1(i)*w1(i)) * (cos_w2(j) - cos_w2(j+1)) * 
                         (w3(k+1) - w3(k)) / 3 * volume_scale;
 }
@@ -273,7 +273,7 @@ double SphericalGrid::smallest_wall_size(Ray *R) {
 
     // Use the cell volume as an estimator of the average size of a cell.
 
-    double cell_volume = volume[R->l[0]*n2*n3 + R->l[1]*n3 + R->l[2]];
+    double cell_volume = volume(R->l[0],R->l[1],R->l[2]);
 
     // Scale by the size in the theta, if theta width > 0.3
     
