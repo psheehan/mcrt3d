@@ -1,4 +1,4 @@
-#include "mcrt3d.h"
+#include "pinballrt.h"
 
 #include "params.cc"
 #include "dust.cc"
@@ -16,20 +16,20 @@
 
 #include "timer.c"
 
-MCRT::MCRT() {
+Model::Model() {
     settings.set_num_threads(1);
     Kokkos::initialize(settings);
     
     Q = new Params();
 }
 
-MCRT::~MCRT() {
+Model::~Model() {
     delete G; delete C; delete Q;
 
     Kokkos::finalize();
 }
 
-void MCRT::set_cartesian_grid(py::array_t<double> x, py::array_t<double> y,
+void Model::set_cartesian_grid(py::array_t<double> x, py::array_t<double> y,
         py::array_t<double> z) {
     G = new CartesianGrid(x, y, z);
     G->Q = Q;
@@ -37,7 +37,7 @@ void MCRT::set_cartesian_grid(py::array_t<double> x, py::array_t<double> y,
     C = new Camera(G, Q);
 }
 
-void MCRT::set_cylindrical_grid(py::array_t<double> r, py::array_t<double> phi,
+void Model::set_cylindrical_grid(py::array_t<double> r, py::array_t<double> phi,
         py::array_t<double> z) {
     G = new CylindricalGrid(r, phi, z);
     G->Q = Q;
@@ -45,7 +45,7 @@ void MCRT::set_cylindrical_grid(py::array_t<double> r, py::array_t<double> phi,
     C = new Camera(G, Q);
 }
 
-void MCRT::set_spherical_grid(py::array_t<double> r, 
+void Model::set_spherical_grid(py::array_t<double> r, 
         py::array_t<double> theta, py::array_t<double> phi) {
     G = new SphericalGrid(r, theta, phi);
     G->Q = Q;
@@ -60,7 +60,7 @@ void signalHandler(int signum) {
     exit(signum);
 }
 
-void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma, 
+void Model::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma, 
         bool verbose, int nthreads) {
     // Add a signal handler.
     signal(SIGINT, signalHandler);
@@ -126,7 +126,7 @@ void MCRT::thermal_mc(int nphot, bool bw, bool use_mrw, double mrw_gamma,
     //G->deallocate_energy_arrays();
 }
 
-void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose, 
+void Model::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose, 
         bool save, int nthreads) {
     // Add a signal handler.
     signal(SIGINT, signalHandler);
@@ -188,7 +188,7 @@ void MCRT::scattering_mc(py::array_t<double> __lam, int nphot, bool verbose,
     }
 }
 
-void MCRT::mc_iteration(int nthreads) {
+void Model::mc_iteration(int nthreads) {
     Kokkos::View<double> event_average("event average");
     Kokkos::View<int> photon_count("photon count");
 
@@ -238,7 +238,7 @@ void MCRT::mc_iteration(int nthreads) {
     if (not Q->scattering) G->update_grid();
 }
 
-void MCRT::run_image(py::str name, py::array_t<double> __lam, int nx, int ny, 
+void Model::run_image(py::str name, py::array_t<double> __lam, int nx, int ny, 
         double pixel_size, int nphot, double incl, double pa, double dpc, 
         int nthreads, bool raytrace_dust, bool raytrace_gas) {
     // Add a signal handler.
@@ -277,7 +277,7 @@ void MCRT::run_image(py::str name, py::array_t<double> __lam, int nx, int ny,
     if (raytrace_gas) G->deselect_lines();
 }
 
-void MCRT::run_unstructured_image(py::str name, py::array_t<double> __lam, 
+void Model::run_unstructured_image(py::str name, py::array_t<double> __lam, 
         int nx, int ny, double pixel_size, int nphot, double incl, double pa, 
         double dpc, int nthreads, bool raytrace_dust, bool raytrace_gas) {
     // Add a signal handler.
@@ -316,7 +316,7 @@ void MCRT::run_unstructured_image(py::str name, py::array_t<double> __lam,
     if (raytrace_gas) G->deselect_lines();
 }
 
-void MCRT::run_circular_image(py::str name, py::array_t<double> __lam, int nr, 
+void Model::run_circular_image(py::str name, py::array_t<double> __lam, int nr, 
         int nphi, int nphot, double incl, double pa, double dpc, int nthreads, 
         bool raytrace_dust, bool raytrace_gas) {
     // Add a signal handler.
@@ -355,7 +355,7 @@ void MCRT::run_circular_image(py::str name, py::array_t<double> __lam, int nr,
     if (raytrace_gas) G->deselect_lines();
 }
 
-void MCRT::run_spectrum(py::str name, py::array_t<double> __lam, int nphot, 
+void Model::run_spectrum(py::str name, py::array_t<double> __lam, int nphot, 
         double incl, double pa, double dpc, int nthreads, bool raytrace_dust, 
         bool raytrace_gas) {
     // Add a signal handler.
@@ -485,33 +485,33 @@ PYBIND11_MODULE(cpu, m) {
         .def_readonly("nu", &Spectrum::_nu)
         .def_readonly("lam", &Spectrum::_lam);
 
-    py::class_<MCRT>(m, "MCRT")
+    py::class_<Model>(m, "Model")
         .def(py::init<>())
-        .def_readonly("grid", &MCRT::G)
-        .def_readonly("images", &MCRT::images)
-        .def_readonly("spectra", &MCRT::spectra)
-        .def("set_cartesian_grid", &MCRT::set_cartesian_grid,
+        .def_readonly("grid", &Model::G)
+        .def_readonly("images", &Model::images)
+        .def_readonly("spectra", &Model::spectra)
+        .def("set_cartesian_grid", &Model::set_cartesian_grid,
                 "Setup a grid in cartesian coordinates.")
-        .def("set_cylindrical_grid", &MCRT::set_cylindrical_grid,
+        .def("set_cylindrical_grid", &Model::set_cylindrical_grid,
                 "Setup a grid in cylindrical coordinates.")
-        .def("set_spherical_grid", &MCRT::set_spherical_grid,
+        .def("set_spherical_grid", &Model::set_spherical_grid,
                 "Setup a grid in spherical coordinates.")
-        .def("thermal_mc", &MCRT::thermal_mc, 
+        .def("thermal_mc", &Model::thermal_mc, 
                 "Calculate the temperature throughout the grid.",
                 py::arg("nphot")=1000000, py::arg("bw")=true, 
                 py::arg("use_mrw")=false, py::arg("mrw_gamma")=4, 
                 py::arg("verbose")=false, py::arg("nthreads")=1)
-        .def("scattering_mc", &MCRT::scattering_mc, py::arg("lam"), 
+        .def("scattering_mc", &Model::scattering_mc, py::arg("lam"), 
                 py::arg("nphot")=100000, py::arg("verbose")=false, 
                 py::arg("save")=true, py::arg("nthreads")=1)
-        .def("run_image", &MCRT::run_image, "Generate an image.", 
+        .def("run_image", &Model::run_image, "Generate an image.", 
                 py::arg("name"),
                 py::arg("lam"), py::arg("nx")=256, py::arg("ny")=256, 
                 py::arg("pixel_size")=0.1, py::arg("nphot")=100000, 
                 py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1., 
                 py::arg("nthreads")=1, py::arg("raytrace_dust")=true, 
                 py::arg("raytrace_gas")=false)
-        .def("run_unstructured_image", &MCRT::run_unstructured_image, 
+        .def("run_unstructured_image", &Model::run_unstructured_image, 
                 "Generate an unstructured image.", 
                 py::arg("name"),
                 py::arg("lam"), py::arg("nx")=25, py::arg("ny")=25, 
@@ -519,14 +519,14 @@ PYBIND11_MODULE(cpu, m) {
                 py::arg("incl")=0., py::arg("pa")=0., py::arg("dpc")=1., 
                 py::arg("nthreads")=1, py::arg("raytrace_dust")=true, 
                 py::arg("raytrace_gas")=false)
-        .def("run_circular_image", &MCRT::run_circular_image, 
+        .def("run_circular_image", &Model::run_circular_image, 
                 "Generate an unstructured image.", 
                 py::arg("name"),
                 py::arg("lam"), py::arg("nr")=128, py::arg("ny")=128, 
                 py::arg("nphot")=100000, py::arg("incl")=0., py::arg("pa")=0., 
                 py::arg("dpc")=1., py::arg("nthreads")=1, 
                 py::arg("raytrace_dust")=true, py::arg("raytrace_gas")=false)
-        .def("run_spectrum", &MCRT::run_spectrum, "Generate a spectrum.", 
+        .def("run_spectrum", &Model::run_spectrum, "Generate a spectrum.", 
                 py::arg("name"),
                 py::arg("lam"), py::arg("nphot")=10000, py::arg("incl")=0,
                 py::arg("pa")=0, py::arg("dpc")=1., py::arg("nthreads")=1, 

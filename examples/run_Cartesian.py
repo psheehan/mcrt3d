@@ -4,15 +4,15 @@
 from scipy.constants import au as AU
 from astropy.constants import M_sun, R_sun
 import matplotlib.pyplot as plt
-from mcrt3d.cpu import MCRT
-from mcrt3d.cpu import IsotropicDust
+from pinballrt.cpu import Model
+from pinballrt.cpu import IsotropicDust
 from time import time
 import numpy
 import sys
 
 # Create a model class.
 
-model = MCRT()
+model = Model()
 
 # Set up the dust.
 

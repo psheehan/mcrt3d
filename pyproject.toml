@@ -7,9 +7,12 @@ requires = [
 build-backend="scikit_build_core.build"
 
 [project]
-name = "mcrt3d"
+name = "pinballrt"
 version = "0.0.1"
 authors = [
     { name="Patrick Sheehan", email="psheehan@nrao.edu" },
 ]
 description = "Monte Carlo radiative transfer"
+
+[tool.spin]
+package = 'pinballrt'

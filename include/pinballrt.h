@@ -28,7 +28,7 @@
 
 namespace py = pybind11;
 
-struct MCRT {
+struct Model {
     Grid *G;
     Params *Q;
     Camera *C;
@@ -38,9 +38,9 @@ struct MCRT {
     py::dict images;
     py::dict spectra;
 
-    //MCRT(Grid *G, Params *Q);
-    MCRT();
-    ~MCRT();
+    //Model(Grid *G, Params *Q);
+    Model();
+    ~Model();
 
     void set_cartesian_grid(py::array_t<double> x, py::array_t<double> y,
             py::array_t<double> z);
